@@ -41,36 +41,10 @@
       #status.hidden {
         display: none;
       }
-      #controls {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        display: flex;
-        gap: 6px;
-        z-index: 10;
-      }
-      #controls button {
-        background: rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #d1d5db;
-        font-size: 10px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        padding: 6px 10px;
-        border-radius: 10px;
-        cursor: pointer;
-      }
-      #controls button:hover {
-        border-color: rgba(255, 255, 255, 0.3);
-      }
     </style>
   </head>
   <body>
     <div id="status">Connecting...</div>
-    <div id="controls">
-      <button id="reset-keys" type="button">Reset Keys</button>
-      <button id="toggle-caps" type="button">Toggle Caps</button>
-    </div>
     <div id="screen"></div>
     <script type="module">
       import RFB from '/novnc/core/rfb.js';
@@ -114,25 +88,6 @@
         ];
         modifiers.forEach(([keysym, code]) => sendKey(keysym, code, false));
       };
-
-      const toggleCaps = () => {
-        sendKey(0xFFE5, 'CapsLock', true);
-        sendKey(0xFFE5, 'CapsLock', false);
-      };
-
-      const resetButton = document.getElementById('reset-keys');
-      const capsButton = document.getElementById('toggle-caps');
-      if (resetButton) {
-        resetButton.addEventListener('click', () => {
-          clearModifiers();
-        });
-      }
-      if (capsButton) {
-        capsButton.addEventListener('click', () => {
-          toggleCaps();
-          clearModifiers();
-        });
-      }
 
       window.addEventListener('focus', () => {
         clearModifiers();
