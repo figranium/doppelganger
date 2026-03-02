@@ -240,6 +240,7 @@ const ActionItem: React.FC<ActionItemProps> = memo(({
                                     onClick={() => setAiPromptOpen(false)}
                                     className="text-gray-500 hover:text-white transition-colors p-1 -mr-1"
                                     title="Close"
+                                    aria-label="Close"
                                 >
                                     <MaterialIcon name="close" className="text-[12px]" />
                                 </button>
