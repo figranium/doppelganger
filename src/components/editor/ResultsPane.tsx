@@ -784,6 +784,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                         onClick={() => onNotify('Preview truncated for performance.', 'error')}
                         className="absolute top-5 right-5 h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
                         title="Preview truncated"
+                        aria-label="Preview truncated"
                     />
                 )}
                 <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 relative">
