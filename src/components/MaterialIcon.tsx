@@ -1,12 +1,15 @@
 
 
+import React from 'react';
+
 type MaterialIconProps = {
     name: string;
     className?: string;
     fill?: boolean;
 };
 
-export default function MaterialIcon({ name, className = '', fill = false }: MaterialIconProps) {
+// ⚡ Bolt: Add React.memo() to prevent unnecessary re-renders of this widely used static icon component.
+const MaterialIcon = React.memo(({ name, className = '', fill = false }: MaterialIconProps) => {
     return (
         <span
             className={`material-symbols-outlined ${className}`}
@@ -18,4 +21,6 @@ export default function MaterialIcon({ name, className = '', fill = false }: Mat
             {name}
         </span>
     );
-}
+});
+
+export default MaterialIcon;
