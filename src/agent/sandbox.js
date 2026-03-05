@@ -11,8 +11,9 @@ function createSafeProxy(target) {
     let shadowTarget = target;
     if (typeof target === 'function') {
         shadowTarget = function (...args) { };
-        try { Object.defineProperty(shadowTarget, 'name', { value: target.name, configurable: true }); } catch {}
-        try { Object.defineProperty(shadowTarget, 'length', { value: target.length, configurable: true }); } catch {}
+        // Best effort to copy function properties. If these fail (e.g. non-configurable), we ignore.
+        try { Object.defineProperty(shadowTarget, 'name', { value: target.name, configurable: true }); } catch (e) { /* ignore */ }
+        try { Object.defineProperty(shadowTarget, 'length', { value: target.length, configurable: true }); } catch (e) { /* ignore */ }
         shadowTarget[REAL_TARGET] = target;
     }
 
