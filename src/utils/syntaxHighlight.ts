@@ -121,11 +121,26 @@ const highlightHtml = (text: string) => {
             html += escapeHtml(text.substring(lastIndex, match.index));
         }
         const rawTag = match[0];
-        let escaped = escapeHtml(rawTag);
-        escaped = escaped.replace(/^(&lt;\/?)([A-Za-z0-9-]+)/, '$1<span class="code-token-tag">$2</span>');
-        escaped = escaped.replace(/(\s)([A-Za-z0-9-:]+)(=)/g, '$1<span class="code-token-attr">$2</span>$3');
-        escaped = escaped.replace(/(&quot;.*?&quot;|&#39;.*?&#39;)/g, '<span class="code-token-string">$1</span>');
-        html += `<span class="code-token-punct">${escaped}</span>`;
+        const m = rawTag.match(/^<(\/?[A-Za-z0-9-]+)([\s\S]*?)>$/);
+
+        if (m) {
+            const name = m[1];
+            const attrs = m[2];
+            let highlightedName = escapeHtml(name);
+            if (highlightedName.startsWith('/')) {
+                highlightedName = `/<span class="code-token-tag">${highlightedName.substring(1)}</span>`;
+            } else {
+                highlightedName = `<span class="code-token-tag">${highlightedName}</span>`;
+            }
+
+            let highlightedAttrs = escapeHtml(attrs);
+            highlightedAttrs = highlightedAttrs.replace(/(\s)([A-Za-z0-9-:]+)(=)/g, '$1<span class="code-token-attr">$2</span>$3');
+            highlightedAttrs = highlightedAttrs.replace(/(&quot;.*?&quot;|&#39;.*?&#39;)/g, '<span class="code-token-string">$1</span>');
+
+            html += `<span class="code-token-punct">&lt;${highlightedName}${highlightedAttrs}&gt;</span>`;
+        } else {
+            html += `<span class="code-token-punct">${escapeHtml(rawTag)}</span>`;
+        }
         lastIndex = tagRegex.lastIndex;
     }
     html += escapeHtml(text.substring(lastIndex));
