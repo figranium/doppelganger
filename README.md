@@ -6,7 +6,7 @@
 
 Figranium (formerly Doppelganger) is a self‑hosted, block-first automation control plane built for teams that want predictable, auditable browser workflows without pushing sensitive data to third‑party SaaS. It bundles a React/Vite frontend, an Express/Playwright backend, helper scripts, and optional CLI tooling so you can sketch blocks, inject JavaScript, rotate proxies, and run everything locally.
 
-![Screenshot](https://raw.githubusercontent.com/figranium/figranium/main/demo-run.gif)
+<img src="https://raw.githubusercontent.com/figranium/figranium/main/demo-run.gif" alt="Figranium Demo" width="100%">
 
 # What You Get
 
