@@ -1,0 +1,5 @@
+
+> @doppelgangerdev/doppelganger@0.9.0 start /app
+> node server.js
+
+Server running at http://localhost:11345

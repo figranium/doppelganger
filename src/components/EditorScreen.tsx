@@ -1019,7 +1019,8 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                             const nodes: React.ReactNode[] = [];
                                             let i = startIndex;
                                             while (i < endIndex) {
-                                                const action = currentTask.actions[i];
+                                                const currentIndex = i;
+                                                const action = currentTask.actions[currentIndex];
                                                 if (!action) { i++; continue; }
 
                                                 if (action.type === 'if' || action.type === 'while') {
@@ -1051,7 +1052,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                                             <div className="w-[360px]">
                                                                 <ActionItem
                                                                     action={action}
-                                                                    index={i}
+                                                                    index={currentIndex}
                                                                     isDragOver={false}
                                                                     isDragging={false}
                                                                     isSelected={selectedActionIds.has(action.id)}
@@ -1156,7 +1157,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                                             <div className="w-[360px]">
                                                                 <ActionItem
                                                                     action={action}
-                                                                    index={i}
+                                                                    index={currentIndex}
                                                                     isDragOver={false}
                                                                     isDragging={false}
                                                                     isSelected={selectedActionIds.has(action.id)}
@@ -1187,7 +1188,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                                                 <div className="flex flex-col items-center my-1">
                                                                     <div className="w-px h-2 bg-white/25" />
                                                                     <button
-                                                                        onClick={() => openActionPalette(undefined, i + 1)}
+                                                                        onClick={() => openActionPalette(undefined, currentIndex + 1)}
                                                                         className="w-8 h-8 border border-dashed border-white/10 rounded-lg hover:border-white/30 hover:bg-white/5 transition-all flex items-center justify-center group cursor-pointer"
                                                                     >
                                                                         <MaterialIcon name="add" className="text-sm text-gray-600 group-hover:text-white transition-colors" />
