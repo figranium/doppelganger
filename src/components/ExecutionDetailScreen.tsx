@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Execution, Results, ConfirmRequest } from '../types';
 import ResultsPane from './editor/ResultsPane';
+import { useHeadfulStatus } from '../hooks/useHeadfulStatus';
 
 interface ExecutionDetailScreenProps {
     onConfirm: (request: string | ConfirmRequest) => Promise<boolean>;
@@ -27,6 +28,7 @@ const ExecutionDetailScreen: React.FC<ExecutionDetailScreenProps> = ({ onConfirm
     const navigate = useNavigate();
     const [execution, setExecution] = useState<Execution | null>(null);
     const [loading, setLoading] = useState(false);
+    const useNovnc = useHeadfulStatus();
 
     useEffect(() => {
         const loadExecution = async () => {
@@ -102,6 +104,7 @@ const ExecutionDetailScreen: React.FC<ExecutionDetailScreenProps> = ({ onConfirm
                                 onConfirm={onConfirm}
                                 onNotify={onNotify}
                                 fullWidth
+                                useNovnc={useNovnc}
                             />
                         ) : (
                             <div className="text-[9px] text-gray-500 uppercase tracking-widest">No output captured.</div>

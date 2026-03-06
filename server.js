@@ -363,22 +363,9 @@ app.use(express.static(DIST_DIR));
 
 // Headful Status Endpoint
 app.get('/api/headful/status', (req, res) => {
-    const detectContainer = () => {
-        try {
-            if (fs.existsSync('/.dockerenv')) return true;
-        } catch {
-            // ignore
-        }
-        try {
-            const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
-            if (/docker|kubepods|containerd|podman/i.test(cgroup)) return true;
-        } catch {
-            // ignore
-        }
-        return false;
-    };
-    const useNovnc = detectContainer() && novncEnabled;
-    res.json({ useNovnc });
+    // If noVNC is enabled (found on disk), we consider the environment optimized.
+    // This allows Docker and manual installations with proper deps to hide the disclaimer.
+    res.json({ useNovnc: novncEnabled });
 });
 
 // Start Server

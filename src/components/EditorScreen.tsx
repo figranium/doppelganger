@@ -32,6 +32,7 @@ interface EditorScreenProps {
     isHeadfulOpen?: boolean;
     onOpenHeadful?: (url: string) => void;
     onStopHeadful?: () => void;
+    useNovnc?: boolean | null;
 }
 
 const _VariableRow: React.FC<{
@@ -121,6 +122,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     isHeadfulOpen,
     onOpenHeadful,
     onStopHeadful,
+    useNovnc,
 }) => {
     const [_copied, setCopied] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -1429,6 +1431,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                         onPin={onPinResults}
                         onUnpin={onUnpinResults}
                         fullWidth={true}
+                        useNovnc={useNovnc}
                     />
                 </div>
             </div>
@@ -1510,9 +1513,11 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                     <div className="flex items-center gap-3">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-white">Active Browser Session</span>
                                     </div>
-                                    <span className="text-[10px] text-amber-500/80 max-w-md hidden sm:block">
-                                        Figranium is not optimized for native browser windows. Please install the proper tools for stability (Xvfb, x11vnc, websockify) or use Docker.
-                                    </span>
+                                    {useNovnc === false && (
+                                        <span className="text-[10px] text-amber-500/80 max-w-md hidden sm:block">
+                                            Figranium is not optimized for native browser windows. Please install the proper tools for stability (Xvfb, x11vnc, websockify) or use Docker.
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <button

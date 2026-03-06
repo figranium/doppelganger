@@ -40,6 +40,7 @@ interface ResultsPaneProps {
     onPin?: (results: Results) => void;
     onUnpin?: () => void;
     fullWidth?: boolean;
+    useNovnc?: boolean | null;
 }
 
 const MAX_PREVIEW_CHARS = 60000;
@@ -292,12 +293,17 @@ const downloadText = (filename: string, content: string, mime: string) => {
     URL.revokeObjectURL(url);
 };
 
-const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExecuting, isHeadful, runId, onConfirm, onNotify, onPin, onUnpin, fullWidth }) => {
+const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExecuting, isHeadful, runId, onConfirm, onNotify, onPin, onUnpin, fullWidth, useNovnc }) => {
     const [copied, setCopied] = useState<string | null>(null);
     const [dataView, setDataView] = useState<'raw' | 'table'>('raw');
     const [mainView, setMainView] = useState<'data' | 'downloads'>('data');
     const [resultView, setResultView] = useState<'latest' | 'pinned'>(() => (pinnedResults && !results ? 'pinned' : 'latest'));
-    const [headfulViewer, setHeadfulViewer] = useState<'checking' | 'native' | 'novnc'>('checking');
+
+    const headfulViewer = useMemo(() => {
+        if (useNovnc === null) return 'checking';
+        return useNovnc ? 'novnc' : 'native';
+    }, [useNovnc]);
+
     const [capturesOpen, setCapturesOpen] = useState(false);
     const [capturesLoading, setCapturesLoading] = useState(false);
     const [captures, setCaptures] = useState<CaptureEntry[]>([]);
@@ -360,22 +366,6 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
         }
     }, [pinnedResults, resultView]);
 
-    useEffect(() => {
-        if (!isHeadful || resultView !== 'latest') return;
-        let cancelled = false;
-        const checkHeadful = async () => {
-            try {
-                const test = await fetch('/novnc/core/rfb.js', { method: 'HEAD', cache: 'no-store' });
-                if (!cancelled) setHeadfulViewer(test.ok ? 'novnc' : 'native');
-            } catch {
-                if (!cancelled) setHeadfulViewer('native');
-            }
-        };
-        checkHeadful();
-        return () => {
-            cancelled = true;
-        };
-    }, [isHeadful, resultView]);
 
     const handleCopy = async (text: string, id: string, options?: { skipSizeConfirm?: boolean; truncatedNotice?: boolean }) => {
         if (!text) {

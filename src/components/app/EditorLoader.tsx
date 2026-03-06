@@ -29,6 +29,7 @@ interface EditorLoaderProps {
     isHeadfulOpen?: boolean;
     onOpenHeadful?: (url: string) => void;
     onStopHeadful?: () => void;
+    useNovnc?: boolean | null;
 }
 
 const EditorLoader: React.FC<EditorLoaderProps> = ({
