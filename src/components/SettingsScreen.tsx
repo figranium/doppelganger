@@ -6,7 +6,6 @@ import StoragePanel from './settings/StoragePanel';
 import CapturesPanel from './settings/CapturesPanel';
 import CookiesPanel from './settings/CookiesPanel';
 import SettingsHeader from './settings/SettingsHeader';
-import LayoutPanel from './settings/LayoutPanel';
 import ProxiesPanel from './settings/ProxiesPanel';
 import UserAgentPanel from './settings/UserAgentPanel';
 import VersionPanel from './settings/VersionPanel';
@@ -35,7 +34,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     const [geminiApiKeys, setGeminiApiKeys] = useState<string[]>([]);
     const [geminiApiKeyLoading, setGeminiApiKeyLoading] = useState(true);
     const [geminiApiKeySaving, setGeminiApiKeySaving] = useState(false);
-    const [layoutSplitPercent, setLayoutSplitPercent] = useState(30);
     const [proxies, setProxies] = useState<{ id: string; server: string; username?: string; password?: string; label?: string; isRotatingPool?: boolean; estimatedPoolSize?: number }[]>([]);
     const [defaultProxyId, setDefaultProxyId] = useState<string | null>(null);
     const [includeDefaultInRotation, setIncludeDefaultInRotation] = useState(false);
@@ -44,20 +42,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     const [userAgentSelection, setUserAgentSelection] = useState('system');
     const [userAgentOptions, setUserAgentOptions] = useState<string[]>([]);
     const [userAgentLoading, setUserAgentLoading] = useState(false);
-
-    const layoutStorageKey = 'doppelganger.layout.leftWidthPct';
-
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem(layoutStorageKey);
-            if (stored) {
-                const value = Math.min(75, Math.max(25, Math.round(parseFloat(stored) * 100)));
-                if (!Number.isNaN(value)) setLayoutSplitPercent(value);
-            }
-        } catch {
-            // ignore
-        }
-    }, []);
 
     const loadData = useCallback(async () => {
         setDataLoading(true);
@@ -540,14 +524,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
         }
     }, []);
 
-    useEffect(() => {
-        try {
-            localStorage.setItem(layoutStorageKey, String(layoutSplitPercent / 100));
-        } catch {
-            // ignore
-        }
-    }, [layoutSplitPercent]);
-
     const availableProviders: ProviderConfig[] = [
         {
             id: 'gemini_api_key',
@@ -670,11 +646,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
                             options={userAgentOptions}
                             loading={userAgentLoading}
                             onChange={saveUserAgent}
-                        />
-                        <LayoutPanel
-                            splitPercent={layoutSplitPercent}
-                            onChange={setLayoutSplitPercent}
-                            onReset={() => setLayoutSplitPercent(30)}
                         />
                         <VersionPanel version={APP_VERSION} />
                         <StoragePanel onClearStorage={onClearStorage} />
