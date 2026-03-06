@@ -55,6 +55,7 @@ export default function App() {
         results,
         setResults,
         activeRunId,
+        useNovnc,
         runTaskWithSnapshot,
         stopTask,
         openHeadful,
@@ -239,6 +240,7 @@ export default function App() {
                                 isHeadfulOpen={isHeadfulOpen}
                                 onOpenHeadful={(url) => openHeadful(url)}
                                 onStopHeadful={stopHeadful}
+                                useNovnc={useNovnc}
                             />
                         ) : <LoadingScreen title="Initializing" subtitle="Preparing task workspace" />
                     } />
@@ -269,6 +271,7 @@ export default function App() {
                                 isHeadfulOpen={isHeadfulOpen}
                                 onOpenHeadful={(url) => openHeadful(url)}
                                 onStopHeadful={stopHeadful}
+                                useNovnc={useNovnc}
                             />
                         }
                     />

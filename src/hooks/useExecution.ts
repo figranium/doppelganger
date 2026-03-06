@@ -2,12 +2,14 @@ import { useState, useRef } from 'react';
 import { Task, Results } from '../types';
 import { formatExecutionError, isDisplayUnavailable } from '../utils/executionUtils';
 import { ensureActionIds } from '../utils/taskUtils';
+import { useHeadfulStatus } from './useHeadfulStatus';
 
 export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error') => void) {
     const [isExecuting, setIsExecuting] = useState(false);
     const [isHeadfulOpen, setIsHeadfulOpen] = useState(false);
     const [results, setResults] = useState<Results | null>(null);
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
+    const useNovnc = useHeadfulStatus();
     const executeAbortRef = useRef<AbortController | null>(null);
 
     const stopHeadful = async () => {
@@ -231,6 +233,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
         results,
         setResults,
         activeRunId,
+        useNovnc,
         runTaskWithSnapshot,
         stopTask,
         openHeadful,
