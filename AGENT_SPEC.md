@@ -1,6 +1,6 @@
 # Agent Spec (For AI Agents)
 
-This document is a concise, implementation-focused reference for AI agents that generate tasks for Doppelganger. It covers the JSON schema, supported actions, variable templating, control flow, JavaScript execution context, and extraction scripts.
+This document is a concise, implementation-focused reference for AI agents that generate tasks for Figranium. It covers the JSON schema, supported actions, variable templating, control flow, JavaScript execution context, and extraction scripts.
 
 
 
