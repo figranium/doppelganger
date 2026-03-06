@@ -1,7 +1,12 @@
 const express = require('express');
 const crypto = require('crypto');
 const { authRateLimiter, requireAuthForSettings, csrfProtection } = require('../middleware');
-const { loadApiKey, saveApiKey, loadGeminiApiKey, saveGeminiApiKey } = require('../storage');
+const {
+    loadApiKey, saveApiKey,
+    loadGeminiApiKey, saveGeminiApiKey,
+    loadOpenAiApiKey, saveOpenAiApiKey,
+    loadClaudeApiKey, saveClaudeApiKey
+} = require('../storage');
 const { getUserAgentConfig, setUserAgentSelection } = require('../../../user-agent-settings');
 const { listProxies, addProxy, addProxies, updateProxy, deleteProxy, deleteProxies, setDefaultProxy, setIncludeDefaultInRotation, setRotationMode } = require('../../../proxy-rotation');
 
@@ -82,6 +87,62 @@ router.post('/gemini-api-key', requireAuthForSettings, async (req, res) => {
     } catch (e) {
         console.error('[GEMINI_API_KEY] Save failed:', e);
         res.status(500).json({ error: 'GEMINI_API_KEY_SAVE_FAILED', message: e.message });
+    }
+});
+
+// OpenAI API Key
+router.get('/openai-api-key', authRateLimiter, requireAuthForSettings, async (req, res) => {
+    try {
+        const keys = await loadOpenAiApiKey();
+        res.json({ openAiApiKeys: keys || [] });
+    } catch (e) {
+        console.error('[OPENAI_API_KEY] Load failed:', e);
+        res.status(500).json({ error: 'OPENAI_API_KEY_LOAD_FAILED' });
+    }
+});
+
+router.post('/openai-api-key', requireAuthForSettings, async (req, res) => {
+    try {
+        let keys = [];
+        if (req.body && Array.isArray(req.body.openAiApiKeys)) {
+            keys = req.body.openAiApiKeys.map(k => typeof k === 'string' ? k.trim() : '').filter(k => k);
+        } else if (req.body && typeof req.body.openAiApiKey === 'string') {
+            const bodyKey = req.body.openAiApiKey.trim();
+            if (bodyKey) keys.push(bodyKey);
+        }
+        await saveOpenAiApiKey(keys);
+        res.json({ openAiApiKeys: keys });
+    } catch (e) {
+        console.error('[OPENAI_API_KEY] Save failed:', e);
+        res.status(500).json({ error: 'OPENAI_API_KEY_SAVE_FAILED', message: e.message });
+    }
+});
+
+// Claude API Key
+router.get('/claude-api-key', authRateLimiter, requireAuthForSettings, async (req, res) => {
+    try {
+        const keys = await loadClaudeApiKey();
+        res.json({ claudeApiKeys: keys || [] });
+    } catch (e) {
+        console.error('[CLAUDE_API_KEY] Load failed:', e);
+        res.status(500).json({ error: 'CLAUDE_API_KEY_LOAD_FAILED' });
+    }
+});
+
+router.post('/claude-api-key', requireAuthForSettings, async (req, res) => {
+    try {
+        let keys = [];
+        if (req.body && Array.isArray(req.body.claudeApiKeys)) {
+            keys = req.body.claudeApiKeys.map(k => typeof k === 'string' ? k.trim() : '').filter(k => k);
+        } else if (req.body && typeof req.body.claudeApiKey === 'string') {
+            const bodyKey = req.body.claudeApiKey.trim();
+            if (bodyKey) keys.push(bodyKey);
+        }
+        await saveClaudeApiKey(keys);
+        res.json({ claudeApiKeys: keys });
+    } catch (e) {
+        console.error('[CLAUDE_API_KEY] Save failed:', e);
+        res.status(500).json({ error: 'CLAUDE_API_KEY_SAVE_FAILED', message: e.message });
     }
 });
 

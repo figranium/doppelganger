@@ -6,6 +6,8 @@ const {
     EXECUTIONS_FILE,
     API_KEY_FILE,
     GEMINI_API_KEY_FILE,
+    OPENAI_API_KEY_FILE,
+    CLAUDE_API_KEY_FILE,
     ALLOWED_IPS_FILE,
     STORAGE_STATE_PATH,
     MAX_EXECUTIONS,
@@ -453,6 +455,106 @@ async function saveGeminiApiKey(keysArg) {
     }
 }
 
+// OpenAI API Key Storage
+async function loadOpenAiApiKey() {
+    let keys = [];
+    const useDB = await ensureDB();
+    if (useDB) {
+        try {
+            const pool = getPool();
+            const res = await pool.query('SELECT key FROM openai_api_key ORDER BY id ASC');
+            keys = res.rows.map(row => row.key).filter(k => k);
+        } catch (e) { }
+    } else {
+        try {
+            const raw = await fs.promises.readFile(OPENAI_API_KEY_FILE, 'utf8');
+            const data = JSON.parse(raw);
+            if (Array.isArray(data.openAiApiKeys)) {
+                keys = data.openAiApiKeys;
+            } else if (data.openAiApiKey) {
+                keys = [data.openAiApiKey];
+            }
+        } catch (e) { }
+    }
+    return keys;
+}
+
+async function saveOpenAiApiKey(keysArg) {
+    const keys = Array.isArray(keysArg) ? keysArg : (keysArg ? [keysArg] : []);
+    const useDB = await ensureDB();
+    if (useDB) {
+        const pool = getPool();
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('TRUNCATE openai_api_key');
+            let id = 1;
+            for (let i = 0; i < keys.length; i++) {
+                if (keys[i] && keys[i].trim()) {
+                    await client.query('INSERT INTO openai_api_key (id, key) VALUES ($1, $2)', [id++, keys[i].trim()]);
+                }
+            }
+            await client.query('COMMIT');
+        } catch (e) {
+            await client.query('ROLLBACK');
+        } finally {
+            client.release();
+        }
+    } else {
+        fs.writeFileSync(OPENAI_API_KEY_FILE, JSON.stringify({ openAiApiKeys: keys.filter(k => k && k.trim()) }, null, 2));
+    }
+}
+
+// Claude API Key Storage
+async function loadClaudeApiKey() {
+    let keys = [];
+    const useDB = await ensureDB();
+    if (useDB) {
+        try {
+            const pool = getPool();
+            const res = await pool.query('SELECT key FROM claude_api_key ORDER BY id ASC');
+            keys = res.rows.map(row => row.key).filter(k => k);
+        } catch (e) { }
+    } else {
+        try {
+            const raw = await fs.promises.readFile(CLAUDE_API_KEY_FILE, 'utf8');
+            const data = JSON.parse(raw);
+            if (Array.isArray(data.claudeApiKeys)) {
+                keys = data.claudeApiKeys;
+            } else if (data.claudeApiKey) {
+                keys = [data.claudeApiKey];
+            }
+        } catch (e) { }
+    }
+    return keys;
+}
+
+async function saveClaudeApiKey(keysArg) {
+    const keys = Array.isArray(keysArg) ? keysArg : (keysArg ? [keysArg] : []);
+    const useDB = await ensureDB();
+    if (useDB) {
+        const pool = getPool();
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('TRUNCATE claude_api_key');
+            let id = 1;
+            for (let i = 0; i < keys.length; i++) {
+                if (keys[i] && keys[i].trim()) {
+                    await client.query('INSERT INTO claude_api_key (id, key) VALUES ($1, $2)', [id++, keys[i].trim()]);
+                }
+            }
+            await client.query('COMMIT');
+        } catch (e) {
+            await client.query('ROLLBACK');
+        } finally {
+            client.release();
+        }
+    } else {
+        fs.writeFileSync(CLAUDE_API_KEY_FILE, JSON.stringify({ claudeApiKeys: keys.filter(k => k && k.trim()) }, null, 2));
+    }
+}
+
 // Session Helper
 const saveSession = (req) => new Promise((resolve, reject) => {
     if (!req.session) {
@@ -547,6 +649,10 @@ module.exports = {
     saveApiKey,
     loadGeminiApiKey,
     saveGeminiApiKey,
+    loadOpenAiApiKey,
+    saveOpenAiApiKey,
+    loadClaudeApiKey,
+    saveClaudeApiKey,
     saveSession,
     loadAllowedIps,
     getStorageStateFile

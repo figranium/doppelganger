@@ -34,6 +34,12 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     const [geminiApiKeys, setGeminiApiKeys] = useState<string[]>([]);
     const [geminiApiKeyLoading, setGeminiApiKeyLoading] = useState(true);
     const [geminiApiKeySaving, setGeminiApiKeySaving] = useState(false);
+    const [openAiApiKeys, setOpenAiApiKeys] = useState<string[]>([]);
+    const [openAiApiKeyLoading, setOpenAiApiKeyLoading] = useState(true);
+    const [openAiApiKeySaving, setOpenAiApiKeySaving] = useState(false);
+    const [claudeApiKeys, setClaudeApiKeys] = useState<string[]>([]);
+    const [claudeApiKeyLoading, setClaudeApiKeyLoading] = useState(true);
+    const [claudeApiKeySaving, setClaudeApiKeySaving] = useState(false);
     const [proxies, setProxies] = useState<{ id: string; server: string; username?: string; password?: string; label?: string; isRotatingPool?: boolean; estimatedPoolSize?: number }[]>([]);
     const [defaultProxyId, setDefaultProxyId] = useState<string | null>(null);
     const [includeDefaultInRotation, setIncludeDefaultInRotation] = useState(false);
@@ -129,6 +135,46 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             setGeminiApiKeys([]);
         } finally {
             setGeminiApiKeyLoading(false);
+        }
+    };
+
+    const loadOpenAiApiKeys = async () => {
+        setOpenAiApiKeyLoading(true);
+        try {
+            const res = await fetch('/api/settings/openai-api-key', { credentials: 'include' });
+            if (!res.ok) {
+                if (res.status === 401) {
+                    onNotify('Session expired. Please log in again.', 'error');
+                }
+                setOpenAiApiKeys([]);
+                return;
+            }
+            const data = await res.json();
+            setOpenAiApiKeys(Array.isArray(data.openAiApiKeys) ? data.openAiApiKeys : []);
+        } catch {
+            setOpenAiApiKeys([]);
+        } finally {
+            setOpenAiApiKeyLoading(false);
+        }
+    };
+
+    const loadClaudeApiKeys = async () => {
+        setClaudeApiKeyLoading(true);
+        try {
+            const res = await fetch('/api/settings/claude-api-key', { credentials: 'include' });
+            if (!res.ok) {
+                if (res.status === 401) {
+                    onNotify('Session expired. Please log in again.', 'error');
+                }
+                setClaudeApiKeys([]);
+                return;
+            }
+            const data = await res.json();
+            setClaudeApiKeys(Array.isArray(data.claudeApiKeys) ? data.claudeApiKeys : []);
+        } catch {
+            setClaudeApiKeys([]);
+        } finally {
+            setClaudeApiKeyLoading(false);
         }
     };
 
@@ -505,12 +551,68 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
         }
     };
 
+    const saveOpenAiApiKeys = async (newKeys: string[]) => {
+        setOpenAiApiKeySaving(true);
+        try {
+            const res = await fetch('/api/settings/openai-api-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ openAiApiKeys: newKeys })
+            });
+            if (!res.ok) {
+                if (res.status === 401) {
+                    onNotify('Session expired. Please log in again.', 'error');
+                } else {
+                    onNotify('Failed to save OpenAI API keys.', 'error');
+                }
+                return;
+            }
+            const data = await res.json();
+            setOpenAiApiKeys(Array.isArray(data.openAiApiKeys) ? data.openAiApiKeys : []);
+            onNotify('OpenAI API keys saved.', 'success');
+        } catch {
+            onNotify('Failed to save OpenAI API keys.', 'error');
+        } finally {
+            setOpenAiApiKeySaving(false);
+        }
+    };
+
+    const saveClaudeApiKeys = async (newKeys: string[]) => {
+        setClaudeApiKeySaving(true);
+        try {
+            const res = await fetch('/api/settings/claude-api-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ claudeApiKeys: newKeys })
+            });
+            if (!res.ok) {
+                if (res.status === 401) {
+                    onNotify('Session expired. Please log in again.', 'error');
+                } else {
+                    onNotify('Failed to save Claude API keys.', 'error');
+                }
+                return;
+            }
+            const data = await res.json();
+            setClaudeApiKeys(Array.isArray(data.claudeApiKeys) ? data.claudeApiKeys : []);
+            onNotify('Claude API keys saved.', 'success');
+        } catch {
+            onNotify('Failed to save Claude API keys.', 'error');
+        } finally {
+            setClaudeApiKeySaving(false);
+        }
+    };
+
     // Load system data on mount and when tab changes to system
     useEffect(() => {
         if (tab === 'data') loadData();
         if (tab === 'system') {
             loadApiKey();
             loadGeminiApiKeys();
+            loadOpenAiApiKeys();
+            loadClaudeApiKeys();
             loadUserAgent();
         }
         if (tab === 'proxies') loadProxies();
@@ -521,6 +623,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
         if (tab === 'system') {
             loadApiKey();
             loadGeminiApiKeys();
+            loadOpenAiApiKeys();
+            loadClaudeApiKeys();
         }
     }, []);
 
@@ -535,13 +639,13 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             id: 'anthropic_api_key',
             name: 'Anthropic API Key',
             iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/claude.svg',
-            disabled: true
+            disabled: false
         },
         {
             id: 'openai_api_key',
             name: 'OpenAI API Key',
             iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/openai.svg',
-            disabled: true
+            disabled: false
         },
         {
             id: 'ollama_api_key',
@@ -590,8 +694,54 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
         });
     });
 
-    const numUnsaved = addedProviders.filter(p => p === 'gemini_api_key').length;
-    for (let i = 0; i < numUnsaved; i++) {
+    const validOpenAiKeys = openAiApiKeys.filter(k => k && k.trim());
+    validOpenAiKeys.forEach((keyVal, idx) => {
+        apiKeysConfig.push({
+            id: `openai_api_key_${idx}`,
+            name: `OpenAI API Key`,
+            description: 'Provide an API Key from OpenAI for AI features',
+            iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/openai.svg',
+            value: keyVal,
+            saving: openAiApiKeySaving,
+            loading: openAiApiKeyLoading,
+            badge: idx === 0 ? 'Primary' : 'Backup',
+            onSave: async (val) => {
+                const newKeys = [...openAiApiKeys];
+                newKeys[idx] = val;
+                await saveOpenAiApiKeys(newKeys);
+            },
+            onDelete: async () => {
+                const newKeys = openAiApiKeys.filter((_, i) => i !== idx);
+                await saveOpenAiApiKeys(newKeys);
+            }
+        });
+    });
+
+    const validClaudeKeys = claudeApiKeys.filter(k => k && k.trim());
+    validClaudeKeys.forEach((keyVal, idx) => {
+        apiKeysConfig.push({
+            id: `anthropic_api_key_${idx}`,
+            name: `Anthropic API Key`,
+            description: 'Provide an API Key from Anthropic for AI features',
+            iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/claude.svg',
+            value: keyVal,
+            saving: claudeApiKeySaving,
+            loading: claudeApiKeyLoading,
+            badge: idx === 0 ? 'Primary' : 'Backup',
+            onSave: async (val) => {
+                const newKeys = [...claudeApiKeys];
+                newKeys[idx] = val;
+                await saveClaudeApiKeys(newKeys);
+            },
+            onDelete: async () => {
+                const newKeys = claudeApiKeys.filter((_, i) => i !== idx);
+                await saveClaudeApiKeys(newKeys);
+            }
+        });
+    });
+
+    const numUnsavedGemini = addedProviders.filter(p => p === 'gemini_api_key').length;
+    for (let i = 0; i < numUnsavedGemini; i++) {
         apiKeysConfig.push({
             id: `gemini_api_key_unsaved_${i}`,
             name: `Gemini API Key`,
@@ -617,6 +767,82 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             onDelete: async () => {
                 setAddedProviders(prev => {
                     const idx = prev.indexOf('gemini_api_key');
+                    if (idx !== -1) {
+                        const next = [...prev];
+                        next.splice(idx, 1);
+                        return next;
+                    }
+                    return prev;
+                });
+            }
+        });
+    }
+
+    const numUnsavedOpenAi = addedProviders.filter(p => p === 'openai_api_key').length;
+    for (let i = 0; i < numUnsavedOpenAi; i++) {
+        apiKeysConfig.push({
+            id: `openai_api_key_unsaved_${i}`,
+            name: `OpenAI API Key`,
+            description: 'Provide an API Key from OpenAI for AI features',
+            iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/openai.svg',
+            value: null,
+            saving: openAiApiKeySaving,
+            loading: openAiApiKeyLoading,
+            startEditing: true,
+            onSave: async (val) => {
+                const newKeys = [...openAiApiKeys, val];
+                await saveOpenAiApiKeys(newKeys);
+                setAddedProviders(prev => {
+                    const idx = prev.indexOf('openai_api_key');
+                    if (idx !== -1) {
+                        const next = [...prev];
+                        next.splice(idx, 1);
+                        return next;
+                    }
+                    return prev;
+                });
+            },
+            onDelete: async () => {
+                setAddedProviders(prev => {
+                    const idx = prev.indexOf('openai_api_key');
+                    if (idx !== -1) {
+                        const next = [...prev];
+                        next.splice(idx, 1);
+                        return next;
+                    }
+                    return prev;
+                });
+            }
+        });
+    }
+
+    const numUnsavedClaude = addedProviders.filter(p => p === 'anthropic_api_key').length;
+    for (let i = 0; i < numUnsavedClaude; i++) {
+        apiKeysConfig.push({
+            id: `anthropic_api_key_unsaved_${i}`,
+            name: `Anthropic API Key`,
+            description: 'Provide an API Key from Anthropic for AI features',
+            iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/claude.svg',
+            value: null,
+            saving: claudeApiKeySaving,
+            loading: claudeApiKeyLoading,
+            startEditing: true,
+            onSave: async (val) => {
+                const newKeys = [...claudeApiKeys, val];
+                await saveClaudeApiKeys(newKeys);
+                setAddedProviders(prev => {
+                    const idx = prev.indexOf('anthropic_api_key');
+                    if (idx !== -1) {
+                        const next = [...prev];
+                        next.splice(idx, 1);
+                        return next;
+                    }
+                    return prev;
+                });
+            },
+            onDelete: async () => {
+                setAddedProviders(prev => {
+                    const idx = prev.indexOf('anthropic_api_key');
                     if (idx !== -1) {
                         const next = [...prev];
                         next.splice(idx, 1);

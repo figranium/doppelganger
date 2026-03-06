@@ -70,7 +70,19 @@ async function initDB() {
             `);
             await client.query(`
                 CREATE TABLE IF NOT EXISTS gemini_api_key (
-                    id INT PRIMARY KEY DEFAULT 1,
+                    id SERIAL PRIMARY KEY,
+                    key VARCHAR(255) NOT NULL
+                );
+            `);
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS openai_api_key (
+                    id SERIAL PRIMARY KEY,
+                    key VARCHAR(255) NOT NULL
+                );
+            `);
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS claude_api_key (
+                    id SERIAL PRIMARY KEY,
                     key VARCHAR(255) NOT NULL
                 );
             `);

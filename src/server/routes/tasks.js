@@ -1,6 +1,9 @@
 const express = require('express');
 const { requireAuth, requireApiKey } = require('../middleware');
-const { loadTasks, saveTasks, getTaskById, getTaskIndexById, loadGeminiApiKey } = require('../storage');
+const {
+    loadTasks, saveTasks, getTaskById, getTaskIndexById,
+    loadGeminiApiKey, loadOpenAiApiKey, loadClaudeApiKey
+} = require('../storage');
 const { taskMutex } = require('../state');
 const { appendTaskVersion, cloneTaskForVersion } = require('../utils');
 const { handleAgent } = require('../../agent/index');
@@ -173,63 +176,91 @@ router.post('/generate-selector', requireAuth, async (req, res) => {
             return res.status(statusCode !== 200 ? statusCode : 500).json({ error: 'Failed to extract DOM.' });
         }
 
-        const configuredKeys = await loadGeminiApiKey();
-        let apiKeys = [];
-        if (Array.isArray(configuredKeys) && configuredKeys.length > 0) {
-            apiKeys = configuredKeys;
-        } else if (typeof configuredKeys === 'string' && configuredKeys) {
-            apiKeys = [configuredKeys];
-        } else if (process.env.GEMINI_API_KEY) {
-            apiKeys = [process.env.GEMINI_API_KEY];
-        }
+        const geminiKeys = await loadGeminiApiKey();
+        const openAiKeys = await loadOpenAiApiKey();
+        const claudeKeys = await loadClaudeApiKey();
 
-        if (apiKeys.length === 0) {
-            return res.status(400).json({ error: 'Gemini API key is not configured.' });
-        }
+        const llmPrompt = `Given this HTML:\n${agentResult.html}\n\nFind a reliable CSS selector for: "${prompt}"\n\nCRITICAL RULES:\n- Content-based selectors (e.g., using placeholder text, aria-labels, or has-text filters) are the MOST reliable.\n- NEVER use dynamic, numeric, or random-looking IDs (e.g., #APjFqb, #popup-170970, #id-9812).\n- NEVER use auto-generated utility classes that look like hashes (e.g., .css-1h2p).\n- Avoid long, fragile element chains (e.g., body > div > div > span).\n- Prefer specific, semantic, human-readable classes or data attributes (\`[data-testid="xyz"]\`, \`[aria-label="xyz"]\`).\n- If no good class/id exists, prefer structural pseudo-classes (e.g., \`button:nth-of-type(2)\`) or nearby stable anchors.\n\nOnly reply with the exact CSS selector, nothing else. Do not include markdown formatting or backticks.`;
 
-        // Use primary key (index 0) first; fall back to backup keys on failure
-        let apiKey = apiKeys[0];
-
-        let geminiResponse = null;
+        let selector = null;
         let lastError = null;
-        for (let ki = 0; ki < apiKeys.length; ki++) {
-            apiKey = apiKeys[ki];
-            try {
-                geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{
-                                text: `Given this HTML:\n${agentResult.html}\n\nFind a reliable CSS selector for: "${prompt}"\n\nCRITICAL RULES:\n- Content-based selectors (e.g., using placeholder text, aria-labels, or has-text filters) are the MOST reliable.\n- NEVER use dynamic, numeric, or random-looking IDs (e.g., #APjFqb, #popup-170970, #id-9812).\n- NEVER use auto-generated utility classes that look like hashes (e.g., .css-1h2p).\n- Avoid long, fragile element chains (e.g., body > div > div > span).\n- Prefer specific, semantic, human-readable classes or data attributes (\`[data-testid="xyz"]\`, \`[aria-label="xyz"]\`).\n- If no good class/id exists, prefer structural pseudo-classes (e.g., \`button:nth-of-type(2)\`) or nearby stable anchors.\n\nOnly reply with the exact CSS selector, nothing else. Do not include markdown formatting or backticks.`
-                            }]
-                        }]
-                    })
-                });
 
-                if (geminiResponse.ok) break; // Success, stop trying
-
-                // If rate limited or auth error, try next key
-                const errBody = await geminiResponse.text();
-                lastError = errBody;
-                console.warn(`[GEMINI] Key ${ki + 1}/${apiKeys.length} failed (${geminiResponse.status}), ${ki + 1 < apiKeys.length ? 'trying backup...' : 'no more keys'}`);
-                geminiResponse = null; // Mark as failed so next iteration tries
-            } catch (fetchErr) {
-                lastError = fetchErr.message;
-                console.warn(`[GEMINI] Key ${ki + 1}/${apiKeys.length} fetch error: ${fetchErr.message}, ${ki + 1 < apiKeys.length ? 'trying backup...' : 'no more keys'}`);
-                geminiResponse = null;
+        // Try Gemini
+        if (geminiKeys.length > 0) {
+            for (const key of geminiKeys) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: llmPrompt }] }]
+                        })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        selector = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (selector) break;
+                    }
+                } catch (e) { lastError = e.message; }
             }
         }
 
-        if (!geminiResponse || !geminiResponse.ok) {
-            console.error('Gemini error (all keys exhausted):', lastError);
-            return res.status(500).json({ error: 'Failed to contact Gemini API.' });
+        // Try OpenAI if no selector yet
+        if (!selector && openAiKeys.length > 0) {
+            for (const key of openAiKeys) {
+                try {
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${key}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o-mini',
+                            messages: [{ role: 'user', content: llmPrompt }]
+                        })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        selector = data.choices?.[0]?.message?.content;
+                        if (selector) break;
+                    }
+                } catch (e) { lastError = e.message; }
+            }
         }
 
-        const data = await geminiResponse.json();
-        let selector = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        // Try Claude if no selector yet
+        if (!selector && claudeKeys.length > 0) {
+            for (const key of claudeKeys) {
+                try {
+                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': key,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify({
+                            model: 'claude-3-5-haiku-20241022',
+                            max_tokens: 1024,
+                            messages: [{ role: 'user', content: llmPrompt }]
+                        })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        selector = data.content?.[0]?.text;
+                        if (selector) break;
+                    }
+                } catch (e) { lastError = e.message; }
+            }
+        }
+
+        if (!selector) {
+            return res.status(500).json({ error: 'Failed to generate selector. Please ensure at least one AI API key is configured.', detail: lastError });
+        }
+
         selector = selector.trim();
-        // Remove markdown formatting if the model still includes it
+        // Remove markdown formatting
         if (selector.startsWith('```') && selector.endsWith('```')) {
             selector = selector.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```$/, '').trim();
         } else if (selector.startsWith('`') && selector.endsWith('`')) {
