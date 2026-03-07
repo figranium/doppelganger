@@ -32,9 +32,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            onImportTasks(file);
+        const files = Array.from(event.target.files || []);
+        if (files.length > 0) {
+            files.forEach(file => onImportTasks(file));
         }
         event.target.value = '';
     };
@@ -82,6 +82,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                                 ref={fileInputRef}
                                 type="file"
                                 accept="application/json"
+                                multiple
                                 className="hidden"
                                 onChange={handleFileChange}
                             />
