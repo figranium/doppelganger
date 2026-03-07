@@ -5,7 +5,6 @@ const { getProxySelection } = require('./proxy-rotation');
 const { selectUserAgent } = require('./user-agent-settings');
 const { validateUrl } = require('./url-utils');
 const { parseBooleanFlag } = require('./common-utils');
-const { installMouseHelper } = require('./src/agent/dom-utils');
 const { Mutex } = require('./src/server/utils');
 
 const headfulMutex = new Mutex();
@@ -134,7 +133,6 @@ async function runHeadful(data, options = {}) {
             document.addEventListener('click', handleLinkClick, true);
             document.addEventListener('auxclick', handleLinkClick, true);
         });
-        await context.addInitScript(installMouseHelper);
 
         const page = await context.newPage();
 
