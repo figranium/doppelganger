@@ -32,11 +32,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ status, onSubmit, error, busy =
                     <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] leading-relaxed max-w-[200px] mx-auto">
                         Deterministic Control for an Agentic World
                     </p>
-                    {status === 'setup' && (
-                        <p className="text-[10px] font-bold text-accent uppercase tracking-[0.3em]">
-                            Initializing System
-                        </p>
-                    )}
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
