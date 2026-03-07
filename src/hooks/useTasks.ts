@@ -139,16 +139,28 @@ export function useTasks(
         try {
             const text = await file.text();
             const parsed = JSON.parse(text);
-            const list = Array.isArray(parsed) ? parsed : parsed?.tasks;
-            if (!Array.isArray(list)) {
+            let list: any[] = [];
+            if (Array.isArray(parsed)) {
+                list = parsed;
+            } else if (parsed && typeof parsed === 'object') {
+                if (Array.isArray(parsed.tasks)) {
+                    list = parsed.tasks;
+                } else if (parsed.name || parsed.actions) {
+                    // Looks like a single task object
+                    list = [parsed];
+                }
+            }
+
+            if (list.length === 0) {
                 showAlert('Invalid import file.', 'error');
                 return;
             }
+
             const stamp = Date.now();
             const prepared = list
                 .map((raw, index) => normalizeImportedTask(raw, index))
                 .filter((task): task is Task => !!task)
-                .map((task) => (task.id ? task : { ...task, id: `task_${stamp}` }));
+                .map((task, index) => (task.id ? task : { ...task, id: `task_${stamp}_${index}` }));
 
             if (prepared.length === 0) {
                 showAlert('No tasks to import.', 'error');
