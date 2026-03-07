@@ -257,7 +257,7 @@ const ActionItem: React.FC<ActionItemProps> = memo(({
                                     }}
                                     disabled={aiGenerating}
                                     placeholder="e.g. The green submit button"
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 transition-colors disabled:opacity-50"
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/50 transition-colors disabled:opacity-50"
                                 />
                                 <div className="flex justify-end pt-1">
                                     <button
@@ -274,9 +274,9 @@ const ActionItem: React.FC<ActionItemProps> = memo(({
                                             }
                                         }}
                                         disabled={aiGenerating || !aiPrompt.trim()}
-                                        className="bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 px-3 py-1 rounded border border-purple-500/30 text-[9px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 flex items-center gap-1"
+                                        className="bg-white/20 text-white hover:bg-white/30 px-3 py-1 rounded border border-white/30 text-[9px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 flex items-center gap-1"
                                     >
-                                        {aiGenerating ? <div className="w-2.5 h-2.5 border border-purple-300/30 border-t-purple-300 rounded-full animate-spin" /> : <MaterialIcon name="search" className="text-[10px]" />}
+                                        {aiGenerating ? <div className="w-2.5 h-2.5 border border-white/30 border-t-white rounded-full animate-spin" /> : <MaterialIcon name="search" className="text-[10px]" />}
                                         Find
                                     </button>
                                 </div>
@@ -296,7 +296,7 @@ const ActionItem: React.FC<ActionItemProps> = memo(({
                                 <button
                                     onClick={() => setAiPromptOpen(!aiPromptOpen)}
                                     disabled={action.disabled}
-                                    className="text-purple-400 hover:text-purple-300 transition-colors focus:outline-none flex items-center justify-center opacity-50 hover:opacity-100 shrink-0 disabled:opacity-20 disabled:hover:opacity-20 disabled:cursor-not-allowed"
+                                    className="text-white transition-colors focus:outline-none flex items-center justify-center opacity-50 hover:opacity-100 shrink-0 disabled:opacity-20 disabled:hover:opacity-20 disabled:cursor-not-allowed"
                                     title="AI Selector Finder"
                                 >
                                     <MaterialIcon name="auto_awesome" className="text-lg" />
