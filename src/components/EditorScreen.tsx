@@ -492,7 +492,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
         const nextState = !isInspectMode;
         setIsInspectLoading(true);
         try {
-            const res = await fetch('/headful/inspect', {
+            const res = await fetch('/api/headful/inspect', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabled: nextState })

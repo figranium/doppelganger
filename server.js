@@ -47,7 +47,7 @@ const {
 // Feature Modules (Legacy/Existing)
 const { handleScrape } = require('./scrape');
 const { handleAgent, setProgressReporter, setStopChecker } = require('./agent');
-const { handleHeadful, stopHeadful } = require('./headful');
+const { handleHeadful, stopHeadful, toggleInspectMode, headfulEventEmitter } = require('./headful');
 
 // Routes
 const authRoutes = require('./src/server/routes/auth');
@@ -147,6 +147,43 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/executions', executionRoutes);
 app.use('/api/data', dataRoutes);
+
+// Headful Routes
+const handleSelectorStream = (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+    res.write('event: ready\ndata: {}\n\n');
+
+    const onSelectorSelected = (selector) => {
+        try {
+            res.write(`data: ${JSON.stringify({ selector })}\n\n`);
+        } catch (err) {
+            // ignore
+        }
+    };
+
+    headfulEventEmitter.on('selectorSelected', onSelectorSelected);
+
+    const keepAlive = setInterval(() => {
+        try {
+            res.write(':keep-alive\n\n');
+        } catch {
+            // ignore
+        }
+    }, 20000);
+
+    req.on('close', () => {
+        clearInterval(keepAlive);
+        headfulEventEmitter.off('selectorSelected', onSelectorSelected);
+    });
+};
+
+app.get('/api/headful/selector_stream', requireAuth, handleSelectorStream);
+app.get('/headful/selector_stream', requireAuth, handleSelectorStream);
+app.post('/api/headful/inspect', requireAuth, toggleInspectMode);
+app.post('/headful/inspect', requireAuth, toggleInspectMode);
 
 // View Routes & Static
 app.use('/', viewRoutes);
