@@ -1144,7 +1144,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                                                     onStartInspect={(id: string) => {
                                                                         setActiveInspectActionId(id);
                                                                         if (!isHeadfulOpen) {
-                                                                            onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTask);
+                                                                            onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTask, currentTask.variables);
                                                                         }
                                                                     }}
                                                                 />
@@ -1246,7 +1246,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                                                     onStartInspect={(id) => {
                                                                         setActiveInspectActionId(id);
                                                                         if (!isHeadfulOpen) {
-                                                                            onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTask);
+                                                                            onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTask, currentTask.variables);
                                                                         }
                                                                     }}
                                                                 />
@@ -1684,7 +1684,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                         if (isHeadfulOpen) {
                             onStopHeadful?.();
                         } else {
-                            onOpenHeadful?.(currentTask.url || 'https://www.google.com');
+                            onOpenHeadful?.(currentTask.url || 'https://www.google.com', undefined, currentTask, currentTask.variables);
                         }
                     }}
                     disabled={isExecuting}

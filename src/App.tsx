@@ -238,7 +238,7 @@ export default function App() {
                                 runId={activeRunId}
                                 onStop={() => stopTask()}
                                 isHeadfulOpen={isHeadfulOpen}
-                                onOpenHeadful={(url) => openHeadful(url)}
+                                onOpenHeadful={(url, targetActionId, taskSnapshot, variables) => openHeadful(url, targetActionId, taskSnapshot, variables)}
                                 onStopHeadful={stopHeadful}
                                 useNovnc={useNovnc}
                             />
@@ -269,7 +269,7 @@ export default function App() {
                                 onStop={() => stopTask()}
                                 onTaskLoaded={markTaskAsSaved}
                                 isHeadfulOpen={isHeadfulOpen}
-                                onOpenHeadful={(url) => openHeadful(url)}
+                                onOpenHeadful={(url, targetActionId, taskSnapshot, variables) => openHeadful(url, targetActionId, taskSnapshot, variables)}
                                 onStopHeadful={stopHeadful}
                                 useNovnc={useNovnc}
                             />

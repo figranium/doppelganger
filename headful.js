@@ -4,7 +4,7 @@ const path = require('path');
 const { getProxySelection } = require('./proxy-rotation');
 const { selectUserAgent } = require('./user-agent-settings');
 const { validateUrl } = require('./url-utils');
-const { parseBooleanFlag } = require('./common-utils');
+const { parseBooleanFlag, cookieMatches } = require('./common-utils');
 const { Mutex } = require('./src/server/utils');
 
 const headfulMutex = new Mutex();
@@ -119,38 +119,51 @@ async function runHeadful(data, options = {}) {
             };
 
             if (!statelessExecution && fs.existsSync(STORAGE_STATE_FILE)) {
-                try {
-                    const rawState = JSON.parse(fs.readFileSync(STORAGE_STATE_FILE, 'utf8'));
-                    const targetHost = new URL(url).hostname;
-                    const targetDomain = targetHost.replace(/^www\./, '');
-
-                    if (rawState.cookies) {
-                        rawState.cookies = rawState.cookies.filter(c => {
-                            const cookieDomain = (c.domain || '').replace(/^\./, '');
-                            return cookieDomain === targetDomain ||
-                                cookieDomain.endsWith('.' + targetDomain) ||
-                                targetDomain.endsWith('.' + cookieDomain);
-                        });
-                    }
-
-                    if (rawState.origins) {
-                        rawState.origins = rawState.origins.filter(o => {
-                            try {
-                                const originHost = new URL(o.origin).hostname.replace(/^www\./, '');
-                                return originHost === targetDomain || originHost.endsWith('.' + targetDomain);
-                            } catch { return false; }
-                        });
-                    }
-
-                    contextOptions.storageState = rawState;
-                } catch (e) {
-                    contextOptions.storageState = STORAGE_STATE_FILE;
-                }
+                contextOptions.storageState = STORAGE_STATE_FILE;
             }
 
             contextOptions.permissions = ['clipboard-read', 'clipboard-write'];
             context = await browser.newContext(contextOptions);
         }
+
+        let preloadedCookies = [];
+        if (fs.existsSync(STORAGE_STATE_FILE)) {
+            try {
+                const state = JSON.parse(fs.readFileSync(STORAGE_STATE_FILE, 'utf8'));
+                preloadedCookies = state.cookies || [];
+            } catch (e) { }
+        }
+
+        await context.route('**/*', async (route) => {
+            const request = route.request();
+            const requestUrl = request.url();
+            const resourceType = request.resourceType();
+
+            const isDataRequest = ['document', 'script', 'xhr', 'fetch'].includes(resourceType);
+            if (isDataRequest && preloadedCookies.length > 0) {
+                const filteredCookies = preloadedCookies.filter(cookie => cookieMatches(cookie, requestUrl));
+                if (filteredCookies.length > 0) {
+                    const fileCookieMap = new Map();
+                    filteredCookies.forEach(c => fileCookieMap.set(c.name, c.value));
+
+                    const existingCookieHeader = request.headers()['cookie'] || '';
+                    const existingCookies = existingCookieHeader.split(';').filter(Boolean).map(s => s.trim());
+
+                    existingCookies.forEach(s => {
+                        const [name, ...valParts] = s.split('=');
+                        const val = valParts.join('=');
+                        if (!fileCookieMap.has(name)) {
+                            fileCookieMap.set(name, val);
+                        }
+                    });
+
+                    const cookieHeader = Array.from(fileCookieMap.entries()).map(([n, v]) => `${n}=${v}`).join('; ');
+                    const headers = { ...request.headers(), 'cookie': cookieHeader };
+                    return route.continue({ headers });
+                }
+            }
+            route.continue();
+        });
 
         const inspectInitFn = () => {
             Object.defineProperty(window, 'open', { writable: true, configurable: true, value: () => null });

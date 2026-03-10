@@ -22,7 +22,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
         }
     };
 
-    const openHeadful = async (url: string) => {
+    const openHeadful = async (url: string, targetActionId?: string, taskSnapshot?: Task, variables?: any) => {
         if (isHeadfulOpen) {
             await stopHeadful();
             return;
@@ -32,7 +32,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
             const res = await fetch('/headful', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
+                body: JSON.stringify({ url, targetActionId, taskSnapshot, variables })
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));

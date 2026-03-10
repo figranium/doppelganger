@@ -156,11 +156,46 @@ const parseCoords = (value) => {
     return null;
 };
 
+const cookieMatches = (cookie, requestUrl) => {
+    try {
+        const url = new URL(requestUrl);
+        const host = url.hostname.toLowerCase();
+        const path = url.pathname || '/';
+
+        // Domain matching (RFC 6265)
+        let cookieDomain = (cookie.domain || '').toLowerCase();
+        if (cookieDomain.startsWith('.')) {
+            cookieDomain = cookieDomain.slice(1);
+        }
+
+        const domainMatches = host === cookieDomain || host.endsWith('.' + cookieDomain);
+        if (!domainMatches) return false;
+
+        // Path matching
+        const cookiePath = cookie.path || '/';
+        const pathMatches = path === cookiePath ||
+            (path.startsWith(cookiePath) && (cookiePath.endsWith('/') || path[cookiePath.length] === '/'));
+
+        if (!pathMatches) return false;
+
+        // Secure matching
+        if (cookie.secure && url.protocol !== 'https:') return false;
+
+        // Expiry matching
+        if (cookie.expires && cookie.expires < Date.now() / 1000) return false;
+
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
+
 module.exports = {
     parseBooleanFlag,
     parseCoords,
     parseValue,
     parseCsv,
     csvEscape,
-    toCsvString
+    toCsvString,
+    cookieMatches
 };

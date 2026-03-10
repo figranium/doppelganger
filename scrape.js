@@ -6,7 +6,7 @@ const { getProxySelection } = require('./proxy-rotation');
 const { selectUserAgent } = require('./user-agent-settings');
 const { formatHTML } = require('./html-utils');
 const { validateUrl } = require('./url-utils');
-const { parseBooleanFlag, toCsvString } = require('./common-utils');
+const { parseBooleanFlag, toCsvString, cookieMatches } = require('./common-utils');
 const { installMouseHelper } = require('./src/agent/dom-utils');
 
 const STORAGE_STATE_PATH = path.join(__dirname, 'storage_state.json');
@@ -104,6 +104,45 @@ async function runScrape(data) {
         }
 
         context = await browser.newContext(contextOptions);
+
+        let preloadedCookies = [];
+        if (!statelessExecution && fs.existsSync(STORAGE_STATE_FILE)) {
+            try {
+                const state = JSON.parse(fs.readFileSync(STORAGE_STATE_FILE, 'utf8'));
+                preloadedCookies = state.cookies || [];
+            } catch (e) { }
+        }
+
+        await context.route('**/*', async (route) => {
+            const request = route.request();
+            const requestUrl = request.url();
+            const resourceType = request.resourceType();
+
+            const isDataRequest = ['document', 'script', 'xhr', 'fetch'].includes(resourceType);
+            if (isDataRequest && preloadedCookies.length > 0) {
+                const filteredCookies = preloadedCookies.filter(cookie => cookieMatches(cookie, requestUrl));
+                if (filteredCookies.length > 0) {
+                    const fileCookieMap = new Map();
+                    filteredCookies.forEach(c => fileCookieMap.set(c.name, c.value));
+
+                    const existingCookieHeader = request.headers()['cookie'] || '';
+                    const existingCookies = existingCookieHeader.split(';').filter(Boolean).map(s => s.trim());
+
+                    existingCookies.forEach(s => {
+                        const [name, ...valParts] = s.split('=');
+                        const val = valParts.join('=');
+                        if (!fileCookieMap.has(name)) {
+                            fileCookieMap.set(name, val);
+                        }
+                    });
+
+                    const cookieHeader = Array.from(fileCookieMap.entries()).map(([n, v]) => `${n}=${v}`).join('; ');
+                    const headers = { ...request.headers(), 'cookie': cookieHeader };
+                    return route.continue({ headers });
+                }
+            }
+            route.continue();
+        });
 
         await context.addInitScript(() => {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -320,7 +359,7 @@ async function runScrape(data) {
         };
 
         if (!statelessExecution) {
-            await context.storageState({ path: STORAGE_STATE_FILE });
+            try { await context.storageState({ path: STORAGE_STATE_FILE }); } catch { }
         }
 
         const video = page.video();
@@ -351,6 +390,9 @@ async function runScrape(data) {
         await browser.close();
         return resultData;
     } catch (error) {
+        if (context && !statelessExecution) {
+            try { await context.storageState({ path: STORAGE_STATE_FILE }); } catch { }
+        }
         if (context) await context.close();
         if (browser) await browser.close();
         throw error;

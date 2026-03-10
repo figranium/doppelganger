@@ -3,7 +3,7 @@ const path = require('path');
 const { selectUserAgent } = require('../../user-agent-settings');
 const { safeFormatHTML } = require('../../html-utils');
 const { validateUrl } = require('../../url-utils');
-const { parseBooleanFlag, toCsvString } = require('../../common-utils');
+const { parseBooleanFlag, toCsvString, cookieMatches } = require('../../common-utils');
 const { runExtractionScript } = require('./sandbox');
 const { cleanHtml } = require('./dom-utils');
 const { launchBrowser, createBrowserContext } = require('./browser');
@@ -147,6 +147,45 @@ async function runAgent(data, options = {}) {
         const downloads = [];
         const pendingDownloads = new Set();
         const newDownloadListeners = new Set();
+
+        let preloadedCookies = [];
+        if (fs.existsSync(storageStateFile)) {
+            try {
+                const state = JSON.parse(fs.readFileSync(storageStateFile, 'utf8'));
+                preloadedCookies = state.cookies || [];
+            } catch (e) { }
+        }
+
+        await context.route('**/*', async (route) => {
+            const request = route.request();
+            const requestUrl = request.url();
+            const resourceType = request.resourceType();
+
+            const isDataRequest = ['document', 'script', 'xhr', 'fetch'].includes(resourceType);
+            if (isDataRequest && preloadedCookies.length > 0) {
+                const filteredCookies = preloadedCookies.filter(cookie => cookieMatches(cookie, requestUrl));
+                if (filteredCookies.length > 0) {
+                    const fileCookieMap = new Map();
+                    filteredCookies.forEach(c => fileCookieMap.set(c.name, c.value));
+
+                    const existingCookieHeader = request.headers()['cookie'] || '';
+                    const existingCookies = existingCookieHeader.split(';').filter(Boolean).map(s => s.trim());
+
+                    existingCookies.forEach(s => {
+                        const [name, ...valParts] = s.split('=');
+                        const val = valParts.join('=');
+                        if (!fileCookieMap.has(name)) {
+                            fileCookieMap.set(name, val);
+                        }
+                    });
+
+                    const cookieHeader = Array.from(fileCookieMap.entries()).map(([n, v]) => `${n}=${v}`).join('; ');
+                    const headers = { ...request.headers(), 'cookie': cookieHeader };
+                    return route.continue({ headers });
+                }
+            }
+            route.continue();
+        });
 
         context.on('page', (p) => {
             p.on('download', async (download) => {
@@ -600,10 +639,20 @@ async function runAgent(data, options = {}) {
             };
         }
 
+        if (!statelessExecution) {
+            try { await context.storageState({ path: storageStateFile }); } catch { }
+        }
+
         try { await browser.close(); } catch { }
         return outputData;
     } catch (error) {
         console.error('Agent Error:', error);
+        if (context && !statelessExecution && !options.handoffContext) {
+            try {
+                const storageStateFile = getStorageStateFile();
+                await context.storageState({ path: storageStateFile });
+            } catch { }
+        }
         try {
             if (context) await context.close();
         } catch { }
