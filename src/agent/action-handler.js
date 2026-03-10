@@ -276,17 +276,29 @@ const executeAction = async (act, context) => {
                     }
                 }
 
-                if (typeMode === 'replace') {
-                    // Try to clear the input field manually so we don't use page.fill() centering
-                    await page.keyboard.press('Control+A');
-                    await page.keyboard.press('Meta+A');
-                    await page.keyboard.press('Backspace');
+                let isSpecialInput = false;
+                try {
+                    const type = await page.getAttribute(selectorValue, 'type', { timeout: 2000 });
+                    isSpecialInput = ['date', 'time', 'datetime-local', 'month', 'week', 'color'].includes(type);
+                } catch (e) {
+                    // Not an input or selector not found yet, fall through to default behavior
                 }
 
-                if (humanTyping) {
-                    await humanType(page, null, valueText, humanOptions); // Uses null to type unconditionally where focused
+                if (isSpecialInput) {
+                    await page.fill(selectorValue, valueText);
                 } else {
-                    await page.keyboard.insertText(valueText);
+                    if (typeMode === 'replace') {
+                        // Try to clear the input field manually so we don't use page.fill() centering
+                        await page.keyboard.press('Control+A');
+                        await page.keyboard.press('Meta+A');
+                        await page.keyboard.press('Backspace');
+                    }
+
+                    if (humanTyping) {
+                        await humanType(page, null, valueText, humanOptions); // Uses null to type unconditionally where focused
+                    } else {
+                        await page.keyboard.insertText(valueText);
+                    }
                 }
             };
 
