@@ -90,7 +90,7 @@ const requireAuth = (req, res, next) => {
 };
 
 const requireAuthForSettings = (req, res, next) => {
-    if (process.env.NODE_ENV !== 'production') return next();
+    // Always require authentication for settings, even in development.
     return requireAuth(req, res, next);
 };
 
