@@ -15,6 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, curr
                 onClick={() => onNavigate('dashboard')}
                 className="mb-12 hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-lg"
                 aria-label="Go to Dashboard"
+                title="Go to Dashboard"
             >
                 <img src="/figranium_icon.svg" alt="Figranium Logo" className="w-10 h-10" onError={(e) => { e.currentTarget.src = '/figranium_icon.svg' }} />
             </button>

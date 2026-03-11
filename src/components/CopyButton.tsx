@@ -35,7 +35,8 @@ const CopyButton: React.FC<CopyButtonProps> = ({
   };
 
   const defaultClassName = "flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-[9px] font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed";
-  const resolvedClass = className || defaultClassName;
+  const focusClasses = "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50";
+  const resolvedClass = className ? `${className} ${focusClasses}` : `${defaultClassName} ${focusClasses}`;
   const finalClass = copied ? resolvedClass.replace('border-white/10', 'border-green-400 text-green-400') : resolvedClass;
 
   return (
