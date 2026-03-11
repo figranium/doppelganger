@@ -169,11 +169,18 @@ const runExtraction = async (data) => {
             console: createSafeProxy(consoleProxy)
         });
 
+        sandbox.$$userScript = script;
         const context = vm.createContext(sandbox);
-        const code = `"use strict"; (async () => { ${script}\n})();`;
+        const scriptCode = `
+            "use strict";
+            (async () => {
+                const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+                const fn = new AsyncFunction('$$data', 'window', 'document', 'DOMParser', 'console', $$userScript);
+                return fn($$data, window, document, DOMParser, console);
+            })();
+        `;
 
-        const scriptObj = new vm.Script(code);
-        const result = await scriptObj.runInContext(context, { timeout: 1000 });
+        const result = await vm.runInContext(scriptCode, context, { timeout: 1000 });
 
         return { result, logs: logBuffer };
     } catch (e) {
