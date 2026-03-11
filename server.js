@@ -30,7 +30,8 @@ const {
 } = require('./src/server/state');
 const {
     findAvailablePort,
-    proxyWebsockify
+    proxyWebsockify,
+    isPortAvailable
 } = require('./src/server/utils');
 
 // Middleware
@@ -362,10 +363,14 @@ app.use('/screenshots', express.static(capturesDir));
 app.use(express.static(DIST_DIR));
 
 // Headful Status Endpoint
-app.get('/api/headful/status', (req, res) => {
-    // If noVNC is enabled (found on disk), we consider the environment optimized.
-    // This allows Docker and manual installations with proper deps to hide the disclaimer.
-    res.json({ useNovnc: novncEnabled });
+app.get('/api/headful/status', async (req, res) => {
+    if (!novncEnabled) {
+        return res.json({ useNovnc: false });
+    }
+    // Check if the novnc port is actually in use
+    const portAvailable = await isPortAvailable(NOVNC_PORT);
+    // If the port is NOT available, something (websockify) is listening on it
+    res.json({ useNovnc: !portAvailable });
 });
 
 app.get('/api/headful/selector_stream', requireAuth, (req, res) => {

@@ -5,9 +5,9 @@ const { getProxySelection } = require('../../proxy-rotation');
 const { installMouseHelper } = require('./dom-utils');
 
 async function launchBrowser(options = {}) {
-    const { rotateProxies } = options;
+    const { rotateProxies, headless = true } = options;
     const launchOptions = {
-        headless: true,
+        headless: headless,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -17,6 +17,9 @@ async function launchBrowser(options = {}) {
             '--mute-audio'
         ]
     };
+    if (headless === false) {
+        launchOptions.args.push('--disable-gpu');
+    }
     const useRotateProxies = String(rotateProxies).toLowerCase() === 'true' || rotateProxies === true;
     const selection = getProxySelection(useRotateProxies);
     if (selection.proxy) {

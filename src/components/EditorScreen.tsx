@@ -1602,11 +1602,6 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                     <div className="flex items-center gap-3">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-white">Active Browser Session</span>
                                     </div>
-                                    {useNovnc === false && (
-                                        <span className="text-[10px] text-amber-500/80 max-w-md hidden sm:block">
-                                            Figranium is not optimized for native browser windows. Please install the proper tools for stability (Xvfb, x11vnc, websockify) or use Docker.
-                                        </span>
-                                    )}
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <button
@@ -1644,12 +1639,31 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                                 </div>
                             </div>
                             {/* Browser specific container */}
-                            <div ref={headfulFrameRef} className="flex-1 relative bg-black">
-                                <iframe
-                                    src={headfulUrl}
-                                    className="absolute inset-0 w-full h-full border-0"
-                                    title="Headful Browser"
-                                />
+                            <div ref={headfulFrameRef} className="flex-1 relative bg-black flex items-center justify-center">
+                                {useNovnc === false ? (
+                                    <div className="text-center p-8">
+                                        <MaterialIcon name="open_in_new" className="text-6xl text-white/20 mb-4 block" />
+                                        <h3 className="text-white text-lg font-bold mb-2">Browser Opened Natively</h3>
+                                        <p className="text-white/60 text-sm max-w-md mx-auto leading-relaxed mb-6">
+                                            The headful browser has been launched in a separate window on your desktop. 
+                                            Use that window to pick selectors. It will automatically sync back here.
+                                        </p>
+                                        <div className="text-[11px] text-amber-500/80 max-w-md mx-auto bg-amber-500/10 p-4 rounded-xl border border-amber-500/20 text-left">
+                                            <div className="flex items-center gap-2 mb-2 font-bold uppercase tracking-widest text-amber-500">
+                                                <MaterialIcon name="warning" className="text-base" />
+                                                <span>Disclaimer</span>
+                                            </div>
+                                            Figranium is not optimized for native browser windows. On <strong>Wayland displays</strong>, you <strong>HAVE TO use Docker</strong>, or you will have to deal with the problems of a physical browser losing focus or failing to capture clicks.<br /><br />
+                                            For maximum stability, please install the proper tools (Xvfb, x11vnc, websockify) or use the official Docker image.
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <iframe
+                                        src={headfulUrl}
+                                        className="absolute inset-0 w-full h-full border-0"
+                                        title="Headful Browser"
+                                    />
+                                )}
                             </div>
                         </div>
                     </div>

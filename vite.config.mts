@@ -19,6 +19,11 @@ export default defineConfig({
             '/headful': `http://localhost:${process.env.VITE_BACKEND_PORT || 11345}`,
             '/tasks': `http://localhost:${process.env.VITE_BACKEND_PORT || 11345}`,
             '/screenshots': `http://localhost:${process.env.VITE_BACKEND_PORT || 11345}`,
+            '/novnc': `http://localhost:${process.env.VITE_BACKEND_PORT || 11345}`,
+            '/websockify': {
+                target: `ws://localhost:${process.env.VITE_BACKEND_PORT || 11345}`,
+                ws: true,
+            },
         },
     },
     build: {
