@@ -17,3 +17,11 @@
 ## 2026-03-04 - [Frontend Performance: EditorScreen Memoization]
 **Learning:** Functions that derive state from large data structures (like `getBlockDepths` iterating over `currentTask.actions`) will be executed on every re-render if called directly in the component body. This causes O(N) recalculations even when the data structure hasn't changed (e.g., during drag-and-drop operations, variable edits, etc.). Also, do not use hooks inside `(() => {})()` statements!
 **Action:** Always wrap derived array calculations inside `useMemo` hooks, with the parent array as the dependency, to avoid unnecessary loop executions during React render cycles. Ensure it is placed directly at the top level of the function block.
+
+## 2025-03-24 - [Agent Performance: Template Resolution and Loop Optimization]
+**Learning:**  was executing a regex replacement on every call even for static strings. Additionally, the agent loop was stringifying every action object on every iteration to check for `{$html}` markers, which is expensive for large tasks or long-running loops.
+**Action:** Add a fast-path check (`!input.includes('{$')`) to template resolution functions and pre-calculate action properties (like HTML requirement) before entering the execution loop to avoid redundant O(N) operations inside the loop.
+
+## 2025-03-24 - [Agent Performance: Template Resolution and Loop Optimization]
+**Learning:** `resolveTemplate` was executing a regex replacement on every call even for static strings. Additionally, the agent loop was stringifying every action object on every iteration to check for `{$html}` markers, which is expensive for large tasks or long-running loops.
+**Action:** Add a fast-path check (`!input.includes('{$')`) to template resolution functions and pre-calculate action properties (like HTML requirement) before entering the execution loop to avoid redundant O(N) operations inside the loop.

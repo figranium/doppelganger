@@ -56,7 +56,7 @@ async function runAgent(data, options = {}) {
     };
 
     const resolveTemplate = (input) => {
-        if (typeof input !== 'string') return input;
+        if (typeof input !== 'string' || !input.includes('{$')) return input;
         return input.replace(/\{\$([\w.]+)\}/g, (_match, name) => {
             if (name === 'now') return new Date().toISOString();
             const value = runtimeVars[name];
@@ -274,6 +274,9 @@ async function runAgent(data, options = {}) {
             return `/captures/${screenshotName}`;
         };
 
+        // ⚡ Bolt: Pre-calculate which actions need {$html} to avoid repeated JSON.stringify in loop
+        const actionNeedsHtml = actions.map(act => JSON.stringify(act).includes('{$html}'));
+
         let index = 0;
         const maxSteps = Math.max(actions.length * 20, 1000);
         let steps = 0;
@@ -302,7 +305,7 @@ async function runAgent(data, options = {}) {
 
             actionIdx += 1;
 
-            if (JSON.stringify(act).includes('{$html}')) {
+            if (actionNeedsHtml[index]) {
                 try {
                     runtimeVars.html = await page.content();
                 } catch (err) {

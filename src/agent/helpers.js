@@ -39,7 +39,7 @@ const randomBetween = (min, max) => min + Math.random() * (max - min);
 
 const getForeachItems = async (act, page, runtimeVars) => {
     const resolve = (input) => {
-        if (typeof input !== 'string') return input;
+        if (typeof input !== 'string' || !input.includes('{$')) return input;
         return input.replace(/\{\$([\w.]+)\}/g, (_match, name) => {
             if (name === 'now') return new Date().toISOString();
             const value = runtimeVars[name];
