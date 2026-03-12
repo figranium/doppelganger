@@ -3,7 +3,7 @@ const path = require('path');
 const { selectUserAgent } = require('../../user-agent-settings');
 const { safeFormatHTML } = require('../../html-utils');
 const { validateUrl } = require('../../url-utils');
-const { parseBooleanFlag, toCsvString, cookieMatches } = require('../../common-utils');
+const { parseBooleanFlag, sanitizeRunId, toCsvString, cookieMatches } = require('../../common-utils');
 const { runExtractionScript } = require('./sandbox');
 const { cleanHtml } = require('./dom-utils');
 const { launchBrowser, createBrowserContext } = require('./browser');
@@ -77,7 +77,7 @@ async function runAgent(data, options = {}) {
     }
 
     const runId = data.runId ? String(data.runId) : null;
-    const captureRunId = runId || `run_${Date.now()}_unknown`;
+    const captureRunId = sanitizeRunId(runId) || `run_${Date.now()}_unknown`;
     const includeShadowDomRaw = data.includeShadowDom;
     const includeShadowDom = includeShadowDomRaw === undefined
         ? true

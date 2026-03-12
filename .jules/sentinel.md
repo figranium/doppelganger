@@ -7,3 +7,8 @@
 **Vulnerability:** The `requireAuthForSettings` middleware was bypassing authentication checks if `NODE_ENV` was not set to `'production'`.
 **Learning:** Hardcoding security bypasses based on environment variables can lead to unintended exposure if the environment is misconfigured or if development builds are accessible over a network.
 **Prevention:** Avoid environment-based security bypasses for sensitive operations. If local development requires ease of access, use dedicated development mocks or local-only listeners rather than bypassing auth in shared middleware.
+
+## 2026-03-06 - [Security: Path Traversal in runId for Captures]
+**Vulnerability:** User-provided `runId` was used directly in screenshot and recording filenames, allowing attackers to write files outside the `public/captures` directory using `../` sequences.
+**Learning:** Any user input that influences file system paths MUST be strictly sanitized or validated against a whitelist of allowed characters. Even if the base directory is hardcoded, relative path components in the input can escape it.
+**Prevention:** Centralize sanitization for identifiers that map to file paths. Use a restrictive whitelist (e.g., `/[^a-zA-Z0-9_-]/g`) to strip potentially dangerous characters like dots and slashes.

@@ -6,7 +6,7 @@ const { getProxySelection } = require('./proxy-rotation');
 const { selectUserAgent } = require('./user-agent-settings');
 const { formatHTML } = require('./html-utils');
 const { validateUrl } = require('./url-utils');
-const { parseBooleanFlag, toCsvString, cookieMatches } = require('./common-utils');
+const { parseBooleanFlag, sanitizeRunId, toCsvString, cookieMatches } = require('./common-utils');
 const { installMouseHelper } = require('./src/agent/dom-utils');
 
 const STORAGE_STATE_PATH = path.join(__dirname, 'storage_state.json');
@@ -32,7 +32,7 @@ async function runScrape(data) {
     const rotateViewportRaw = data.rotateViewport;
     const rotateViewport = String(rotateViewportRaw).toLowerCase() === 'true' || rotateViewportRaw === true;
     const runId = data.runId || null;
-    const captureRunId = runId ? String(runId) : `run_${Date.now()}_unknown`;
+    const captureRunId = sanitizeRunId(runId) || `run_${Date.now()}_unknown`;
     const rotateProxiesRaw = data.rotateProxies;
     const rotateProxies = String(rotateProxiesRaw).toLowerCase() === 'true' || rotateProxiesRaw === true;
     const includeShadowDomRaw = data.includeShadowDom;

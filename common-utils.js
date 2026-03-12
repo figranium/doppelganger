@@ -5,6 +5,11 @@ const parseBooleanFlag = (value) => {
     return normalized === 'true' || normalized === '1';
 };
 
+const sanitizeRunId = (runId) => {
+    if (!runId) return null;
+    return String(runId).replace(/[^a-zA-Z0-9_-]/g, '');
+};
+
 const parseValue = (value) => {
     if (typeof value !== 'string') return value;
     const trimmed = value.trim();
@@ -192,6 +197,7 @@ const cookieMatches = (cookie, requestUrl) => {
 
 module.exports = {
     parseBooleanFlag,
+    sanitizeRunId,
     parseCoords,
     parseValue,
     parseCsv,
