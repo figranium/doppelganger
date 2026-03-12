@@ -59,6 +59,22 @@ const normalizeVarName = (raw: string) => {
     return match ? match[1] : trimmed;
 };
 
+const getActionSummary = (action: Action) => {
+    let summary = '';
+    if (action.type === 'click' || action.type === 'hover' || action.type === 'scroll' || action.type === 'wait_selector') {
+        summary = action.selector || '';
+    } else if (action.type === 'type' || action.type === 'navigate' || action.type === 'wait' || action.type === 'javascript' || action.type === 'repeat' || action.type === 'start' || action.type === 'screenshot' || action.type === 'wait_downloads' || action.type === 'stop') {
+        summary = action.value || '';
+    } else if (action.type === 'set' || action.type === 'foreach' || action.type === 'merge') {
+        summary = action.varName || '';
+    } else if (action.type === 'press') {
+        summary = action.key || '';
+    } else if (action.type === 'if' || action.type === 'while') {
+        summary = action.conditionVar || '';
+    }
+    return summary.trim();
+};
+
 const conditionOps: Record<VarType, { value: string; label: string }[]> = {
     string: [
         { value: 'equals', label: 'Equals' },
@@ -200,6 +216,11 @@ const ActionItem: React.FC<ActionItemProps> = memo(({
                     >
                         {ACTION_CATALOG.find((item) => item.type === action.type)?.label || action.type}
                     </button>
+                    {!isExpanded && (
+                        <span className="ml-2 text-white/40 text-[9px] font-mono truncate max-w-[150px] pointer-events-none">
+                            {getActionSummary(action)}
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     <MaterialIcon name={isExpanded ? 'expand_less' : 'expand_more'} className="text-base text-gray-600" />
