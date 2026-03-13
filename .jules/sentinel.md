@@ -12,3 +12,8 @@
 **Vulnerability:** User-provided `runId` was used directly in screenshot and recording filenames, allowing attackers to write files outside the `public/captures` directory using `../` sequences.
 **Learning:** Any user input that influences file system paths MUST be strictly sanitized or validated against a whitelist of allowed characters. Even if the base directory is hardcoded, relative path components in the input can escape it.
 **Prevention:** Centralize sanitization for identifiers that map to file paths. Use a restrictive whitelist (e.g., `/[^a-zA-Z0-9_-]/g`) to strip potentially dangerous characters like dots and slashes.
+
+## 2026-03-07 - [Security: Synchronous Sandbox Denial of Service]
+**Vulnerability:** Use of `vm.runInContext` without a timeout allowed infinite loops in user-provided scripts to block the Node.js event loop.
+**Learning:** The `vm` module in Node.js is synchronous. If a script executed via `vm.runInContext` enters an infinite loop, it will hang the entire process.
+**Prevention:** Always provide a `timeout` option to `vm` methods (`runInContext`, `runInNewContext`, `runInThisContext`) when executing untrusted or user-provided code.

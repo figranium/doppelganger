@@ -182,7 +182,7 @@ const runExtractionScript = async (script, html, pageUrl, includeShadowDom) => {
             })();
         `;
 
-        const result = await vm.runInContext(scriptCode, context);
+        const result = await vm.runInContext(scriptCode, context, { timeout: 5000 });
         return { result, logs: logBuffer };
     } catch (e) {
         return { result: `Extraction script error: ${e.message}`, logs: [] };

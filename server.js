@@ -59,6 +59,7 @@ const dataRoutes = require('./src/server/routes/data');
 const viewRoutes = require('./src/server/routes/views');
 
 const app = express();
+app.disable('x-powered-by');
 const port = Number(process.env.PORT) || DEFAULT_PORT;
 
 // Session Secret Setup
