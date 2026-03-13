@@ -2,6 +2,7 @@ import React from 'react';
 import MaterialIcon from '../MaterialIcon';
 import { Task, VarType } from '../../types';
 import CodeEditor from '../CodeEditor';
+import CopyButton from '../CopyButton';
 
 interface TaskSettingsCabinetProps {
     isOpen: boolean;
@@ -98,6 +99,8 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                         <button
                             onClick={onClose}
                             className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+                            aria-label="Close settings"
+                            title="Close settings"
                         >
                             <MaterialIcon name="close" />
                         </button>
@@ -189,7 +192,12 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                     <option value="number">Number</option>
                                                     <option value="boolean">Bool</option>
                                                 </select>
-                                                <button onClick={() => removeVariable(name)} className="text-red-500/50 hover:text-red-500 p-2">
+                                                <button
+                                                    onClick={() => removeVariable(name)}
+                                                    className="text-red-500/50 hover:text-red-500 p-2"
+                                                    aria-label="Remove variable"
+                                                    title="Remove variable"
+                                                >
                                                     <MaterialIcon name="delete" className="text-sm" />
                                                 </button>
                                             </div>
@@ -240,6 +248,8 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                             <button
                                                 key={item.key}
                                                 disabled={item.disabled}
+                                                role="switch"
+                                                aria-checked={!!currentTask[item.key as keyof Task]}
                                                 onClick={() => onUpdateTask({ [item.key]: !currentTask[item.key as keyof Task] })}
                                                 className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${currentTask[item.key as keyof Task]
                                                     ? 'bg-white/10 border-white/30 text-white'
@@ -273,6 +283,8 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                         ].map((item) => (
                                             <button
                                                 key={item.key}
+                                                role="switch"
+                                                aria-checked={!!currentTask.stealth[item.key as keyof Task['stealth']]}
                                                 onClick={() => toggleStealth(item.key as keyof Task['stealth'])}
                                                 className={`flex flex-col gap-2 p-4 rounded-2xl border transition-all text-left ${currentTask.stealth[item.key as keyof Task['stealth']]
                                                     ? 'bg-white/15 border-white/40 text-white'
@@ -321,8 +333,16 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                     <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Trigger via API</label>
                                     <div className="space-y-2">
                                         <p className="text-[10px] text-gray-500">Run this task from external tools using the endpoint below:</p>
-                                        <div className="bg-black/40 border border-white/10 rounded-xl p-4 font-mono text-[10px] text-white/80 break-all border-dashed">
-                                            POST /api/tasks/{currentTask.id}/api
+                                        <div className="relative group">
+                                            <div className="bg-black/40 border border-white/10 rounded-xl p-4 pr-12 font-mono text-[10px] text-white/80 break-all border-dashed">
+                                                POST /api/tasks/{currentTask.id}/api
+                                            </div>
+                                            <CopyButton
+                                                text={`POST /api/tasks/${currentTask.id}/api`}
+                                                className="absolute right-2 top-2 p-2 rounded-lg bg-white/5 border border-white/10 text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all"
+                                                iconClassName="text-xs"
+                                                title="Copy Endpoint"
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -331,12 +351,24 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                     <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Passing Variables</label>
                                     <div className="space-y-2">
                                         <p className="text-[10px] text-gray-500">You can override task variables in the request body:</p>
-                                        <div className="bg-black/40 border border-white/5 rounded-xl p-4 font-mono text-[10px] text-white/60">
-                                            <pre>{JSON.stringify({
-                                                variables: Object.fromEntries(
-                                                    Object.entries(currentTask.variables || {}).slice(0, 2).map(([k, v]) => [k, v.value])
-                                                )
-                                            }, null, 2)}</pre>
+                                        <div className="relative group">
+                                            <div className="bg-black/40 border border-white/5 rounded-xl p-4 pr-12 font-mono text-[10px] text-white/60">
+                                                <pre>{JSON.stringify({
+                                                    variables: Object.fromEntries(
+                                                        Object.entries(currentTask.variables || {}).slice(0, 2).map(([k, v]) => [k, v.value])
+                                                    )
+                                                }, null, 2)}</pre>
+                                            </div>
+                                            <CopyButton
+                                                text={JSON.stringify({
+                                                    variables: Object.fromEntries(
+                                                        Object.entries(currentTask.variables || {}).slice(0, 2).map(([k, v]) => [k, v.value])
+                                                    )
+                                                }, null, 2)}
+                                                className="absolute right-2 top-2 p-2 rounded-lg bg-white/5 border border-white/10 text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all"
+                                                iconClassName="text-xs"
+                                                title="Copy Payload"
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -365,6 +397,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                     onClick={() => onPreview(v.id)}
                                                     className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all"
                                                     title="Preview version"
+                                                    aria-label="Preview version"
                                                 >
                                                     <MaterialIcon name="visibility" className="text-sm" />
                                                 </button>
@@ -372,6 +405,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                     onClick={() => onRollback(v.id)}
                                                     className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all"
                                                     title="Rollback to this version"
+                                                    aria-label="Rollback to this version"
                                                 >
                                                     <MaterialIcon name="restore" className="text-sm" />
                                                 </button>
