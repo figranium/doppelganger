@@ -271,7 +271,7 @@ If enabled, provide the `x-api-key` header or `Authorization: Bearer <key>`. For
 - [x] **File downloads** — add explicit support for agent tasks to download files (PDFs, CSVs, etc.) directly from target pages, then surface those downloads in the UI so users can preview or export them without sifting through captures.
 - [x] **Stateless mode** — Tasks now have a “Stateless execution” toggle alongside the recording controls so each run can skip `storage_state.json`, ensuring no cookies or local storage persist between executions for that workflow.
 - [ ] **Adblocking filters** — add controls so execution contexts can enable built-in ad/malware filtering (e.g., via hosts file overrides or request blocking) to reduce noise on sensitive sites.
-- [ ] **Extraction response mode** — add a Settings switch so users can choose whether the UI returns HTML+data (for debugging) or data-only payloads when extraction scripts run.
+- [ ] **Extraction response mode** — add a Settings switch so users can choose whether the API returns HTML+data (for debugging) or data-only payloads when extraction scripts run.
 - [ ] **Folder organization** — group tasks, assets, and captures into named folders so operators can browse, filter, and download collections per workflow.
 - [ ] **Stable capture retention** — add filtering, pinning, and archiving in captures tab so teams can keep compliance records.
 - [ ] **Workspace templates** — allow saving and sharing workspace presets (layout + default proxies/agents) so new team members can onboard with pre-configured setups.
@@ -281,11 +281,11 @@ If enabled, provide the `x-api-key` header or `Authorization: Bearer <key>`. For
 - [ ] **Two-factor authentication** — add optional TOTP/second-factor support to Settings/Auth so operators can lock down the UI with 2FA.
 - [ ] **AI-assisted fixing** — add an “AI auto-fix” helper that suggests layout, selector, and proxy tweaks after failed runs, letting teams approve or discard the proposed changes without switching contexts.
 - [ ] **Companion app** — build a lightweight companion app that mirrors critical dashboard notifications (failures, capture completions, proxy issues) so operators can stay informed without opening the full UI.
-- [ ] **Community presets hub** — build a marketplace where users can publish task/workspace presets, browse and download others’ submissions, and choose to offer each preset either for free or as a paid template so creators can monetize standalone workflows while keeping the free option available.
+- [x] **Community presets hub** — build a marketplace where users can publish task/workspace presets, browse and download others’ submissions, and choose to offer each preset either for free or as a paid template so creators can monetize standalone workflows while keeping the free option available.
 - [ ] **Database Tab / Local CRM** — add a built-in spreadsheet-like interface for viewing and managing extracted data (CRM-style) entirely within the app, without requiring external tools.
 - [ ] **iframe interaction support** — add the ability to target and interact with elements inside iframes in the task editor.
 - [x] **Autosave** — automatically persist task changes and editor state at regular intervals so operators don't lose work on long-running or complex workflow designs.
-- [ ] **Highlight tool** — add a feature to highlight elements on the page (similar to a browser's inspect tool) to easily pick selectors and build workflows.
+- [x] **Highlight tool** — add a feature to highlight elements on the page (similar to a browser's inspect tool) to easily pick selectors and build workflows.
 - [ ] **Cron triggers** — add support for scheduling tasks with cron expressions so workflows can run automatically on defined intervals.
 
 # Security Considerations
