@@ -56,6 +56,21 @@ export interface Action {
     typeMode?: 'append' | 'replace';
 }
 
+export interface TaskSchedule {
+    enabled: boolean;
+    frequency?: 'interval' | 'hourly' | 'daily' | 'weekly' | 'monthly';
+    intervalMinutes?: number;
+    hour?: number;
+    minute?: number;
+    daysOfWeek?: number[];
+    dayOfMonth?: number;
+    cron?: string;
+    lastRun?: number;
+    lastRunStatus?: 'success' | 'error';
+    lastRunDurationMs?: number;
+    nextRun?: number;
+}
+
 export interface Task {
     id?: string;
     name: string;
@@ -77,6 +92,7 @@ export interface Task {
     disableRecording?: boolean;
     statelessExecution?: boolean;
     versions?: TaskVersion[];
+    schedule?: TaskSchedule;
 }
 
 export interface TaskVersion {

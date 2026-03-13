@@ -286,7 +286,7 @@ If enabled, provide the `x-api-key` header or `Authorization: Bearer <key>`. For
 - [ ] **iframe interaction support** — add the ability to target and interact with elements inside iframes in the task editor.
 - [x] **Autosave** — automatically persist task changes and editor state at regular intervals so operators don't lose work on long-running or complex workflow designs.
 - [x] **Highlight tool** — add a feature to highlight elements on the page (similar to a browser's inspect tool) to easily pick selectors and build workflows.
-- [ ] **Cron triggers** — add support for scheduling tasks with cron expressions so workflows can run automatically on defined intervals.
+- [x] **Cron triggers** — add support for scheduling tasks with cron expressions so workflows can run automatically on defined intervals.
 
 # Security Considerations
 

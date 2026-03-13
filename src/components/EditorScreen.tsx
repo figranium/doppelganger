@@ -143,7 +143,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     const [_versionsLoading, setVersionsLoading] = useState(false);
     const [actionPaletteOpen, setActionPaletteOpen] = useState(false);
     const [isCabinetOpen, setIsCabinetOpen] = useState(false);
-    const [cabinetTab, setCabinetTab] = useState<'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'history'>('mode');
+    const [cabinetTab, setCabinetTab] = useState<'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'schedule' | 'history'>('mode');
 
     const handleOpenCabinet = (tab: typeof cabinetTab = 'mode') => {
         setCabinetTab(tab);

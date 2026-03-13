@@ -57,6 +57,7 @@ const taskRoutes = require('./src/server/routes/tasks');
 const executionRoutes = require('./src/server/routes/executions');
 const dataRoutes = require('./src/server/routes/data');
 const viewRoutes = require('./src/server/routes/views');
+const scheduleRoutes = require('./src/server/routes/schedules');
 
 const app = express();
 app.disable('x-powered-by');
@@ -149,6 +150,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/executions', executionRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/schedules', scheduleRoutes);
 
 // View Routes & Static
 app.use('/', viewRoutes);
@@ -449,6 +451,10 @@ findAvailablePort(port, 20)
             const address = server.address();
             const displayPort = typeof address === 'object' && address ? address.port : availablePort;
             console.log(`Server running at http://localhost:${displayPort}`);
+
+            // Start the cron scheduler
+            const { startScheduler } = require('./src/server/scheduler');
+            startScheduler().catch(err => console.error('[SCHEDULER] Failed to start:', err.message));
         });
         server.on('upgrade', async (req, socket, head) => {
             if (!await isIpAllowed(req.socket?.remoteAddress)) {
