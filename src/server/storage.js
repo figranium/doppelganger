@@ -43,6 +43,25 @@ async function ensureDB() {
     return dbInitPromise;
 }
 
+async function bulkInsert(client, table, columns, rows) {
+    if (!rows || rows.length === 0) return;
+    const valuePlaceholders = [];
+    const flatValues = [];
+    let placeholderIndex = 1;
+
+    for (const row of rows) {
+        const placeholders = [];
+        for (const col of columns) {
+            placeholders.push(`$${placeholderIndex++}`);
+            flatValues.push(row[col]);
+        }
+        valuePlaceholders.push(`(${placeholders.join(', ')})`);
+    }
+
+    const query = `INSERT INTO ${table} (${columns.join(', ')}) VALUES ${valuePlaceholders.join(', ')}`;
+    await client.query(query, flatValues);
+}
+
 // User Storage
 // Load users is now asynchronous since DB query is async
 async function loadUsers() {
@@ -123,9 +142,8 @@ async function saveUsers(users) {
         try {
             await client.query('BEGIN');
             await client.query('TRUNCATE users');
-            for (let i = 0; i < users.length; i++) {
-                await client.query('INSERT INTO users (id, data) VALUES ($1, $2)', [i + 1, users[i]]);
-            }
+            const rows = users.map((data, i) => ({ id: i + 1, data }));
+            await bulkInsert(client, 'users', ['id', 'data'], rows);
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');
@@ -257,9 +275,8 @@ async function saveTasks(tasks) {
         try {
             await client.query('BEGIN');
             await client.query('TRUNCATE tasks');
-            for (const task of tasks) {
-                await client.query('INSERT INTO tasks (id, data) VALUES ($1, $2)', [task.id, task]);
-            }
+            const rows = tasks.map(task => ({ id: task.id, data: task }));
+            await bulkInsert(client, 'tasks', ['id', 'data'], rows);
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');
@@ -340,9 +357,8 @@ async function saveExecutions(executions) {
         try {
             await client.query('BEGIN');
             await client.query('TRUNCATE executions');
-            for (const exec of executions) {
-                await client.query('INSERT INTO executions (id, data) VALUES ($1, $2)', [exec.id, exec]);
-            }
+            const rows = executions.map(exec => ({ id: exec.id, data: exec }));
+            await bulkInsert(client, 'executions', ['id', 'data'], rows);
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');
@@ -586,10 +602,8 @@ async function saveGeminiApiKey(keysArg) {
         try {
             await client.query('BEGIN');
             await client.query('TRUNCATE gemini_api_key');
-            let id = 1;
-            for (const key of keys) {
-                await client.query('INSERT INTO gemini_api_key (id, key) VALUES ($1, $2)', [id++, key]);
-            }
+            const rows = keys.map((key, i) => ({ id: i + 1, key }));
+            await bulkInsert(client, 'gemini_api_key', ['id', 'key'], rows);
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');
@@ -704,10 +718,8 @@ async function saveOpenAiApiKey(keysArg) {
         try {
             await client.query('BEGIN');
             await client.query('TRUNCATE openai_api_key');
-            let id = 1;
-            for (const key of keys) {
-                await client.query('INSERT INTO openai_api_key (id, key) VALUES ($1, $2)', [id++, key]);
-            }
+            const rows = keys.map((key, i) => ({ id: i + 1, key }));
+            await bulkInsert(client, 'openai_api_key', ['id', 'key'], rows);
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');
@@ -822,10 +834,8 @@ async function saveClaudeApiKey(keysArg) {
         try {
             await client.query('BEGIN');
             await client.query('TRUNCATE claude_api_key');
-            let id = 1;
-            for (const key of keys) {
-                await client.query('INSERT INTO claude_api_key (id, key) VALUES ($1, $2)', [id++, key]);
-            }
+            const rows = keys.map((key, i) => ({ id: i + 1, key }));
+            await bulkInsert(client, 'claude_api_key', ['id', 'key'], rows);
             await client.query('COMMIT');
         } catch (e) {
             await client.query('ROLLBACK');
