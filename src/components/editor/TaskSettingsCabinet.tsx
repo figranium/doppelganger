@@ -1,6 +1,6 @@
 import React from 'react';
 import MaterialIcon from '../MaterialIcon';
-import { Task, VarType } from '../../types';
+import { Task, VarType, Credential, TaskOutput } from '../../types';
 import CodeEditor from '../CodeEditor';
 import CopyButton from '../CopyButton';
 import ScheduleTab from './ScheduleTab';
@@ -15,7 +15,7 @@ interface TaskSettingsCabinetProps {
 }
 
 const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
-    initialTab?: 'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'schedule' | 'history',
+    initialTab?: 'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'output' | 'schedule' | 'history',
     versions: { id: string; timestamp: number; name: string; mode: string }[],
     versionsLoading: boolean,
     onRollback: (id: string) => void,
@@ -34,12 +34,104 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
     onPreview
 }) => {
         const [activeTab, setActiveTab] = React.useState<typeof initialTab>(initialTab);
+        const [credentials, setCredentials] = React.useState<Credential[]>([]);
+        const [newCred, setNewCred] = React.useState({ name: '', baseUrl: 'https://api.baserow.io', token: '' });
+        const [showNewCredForm, setShowNewCredForm] = React.useState(false);
+        const [credSaving, setCredSaving] = React.useState(false);
+        const [databases, setDatabases] = React.useState<{ id: string; name: string; workspaceName: string }[]>([]);
+        const [tables, setTables] = React.useState<{ id: string; name: string }[]>([]);
+        const [dbLoading, setDbLoading] = React.useState(false);
+        const [tableLoading, setTableLoading] = React.useState(false);
+        const [browseSupported, setBrowseSupported] = React.useState(true);
 
         React.useEffect(() => {
             if (isOpen) {
                 setActiveTab(initialTab);
             }
         }, [isOpen, initialTab]);
+
+        React.useEffect(() => {
+            if (isOpen && activeTab === 'output') {
+                fetch('/api/credentials').then(r => r.json()).then(setCredentials).catch(() => {});
+            }
+        }, [isOpen, activeTab]);
+
+        const fetchDatabases = React.useCallback(async (credentialId: string) => {
+            if (!credentialId) { setDatabases([]); setTables([]); setBrowseSupported(true); return; }
+            setDbLoading(true);
+            setBrowseSupported(true);
+            try {
+                const res = await fetch(`/api/credentials/${credentialId}/proxy/baserow/databases`);
+                if (res.ok) {
+                    const dbs = await res.json();
+                    setDatabases(dbs);
+                    setBrowseSupported(true);
+                } else {
+                    setDatabases([]);
+                    setBrowseSupported(false);
+                }
+            } catch { setDatabases([]); setBrowseSupported(false); } finally { setDbLoading(false); }
+        }, []);
+
+        const fetchTables = React.useCallback(async (credentialId: string, databaseId: string) => {
+            if (!credentialId || !databaseId) { setTables([]); return; }
+            setTableLoading(true);
+            try {
+                const res = await fetch(`/api/credentials/${credentialId}/proxy/baserow/databases/${databaseId}/tables`);
+                if (res.ok) setTables(await res.json());
+                else setTables([]);
+            } catch { setTables([]); } finally { setTableLoading(false); }
+        }, []);
+
+        // Auto-load databases when credential changes
+        React.useEffect(() => {
+            if (currentTask.output?.credentialId) {
+                fetchDatabases(currentTask.output.credentialId);
+            } else {
+                setDatabases([]);
+                setTables([]);
+            }
+        }, [currentTask.output?.credentialId, fetchDatabases]);
+
+        // Auto-load tables when database changes
+        React.useEffect(() => {
+            if (currentTask.output?.credentialId && currentTask.output?.databaseId) {
+                fetchTables(currentTask.output.credentialId, currentTask.output.databaseId);
+            } else {
+                setTables([]);
+            }
+        }, [currentTask.output?.databaseId, currentTask.output?.credentialId, fetchTables]);
+
+        const saveNewCredential = async () => {
+            if (!newCred.name || !newCred.token) return;
+            setCredSaving(true);
+            try {
+                const resp = await fetch('/api/credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newCred.name, provider: 'baserow', config: { baseUrl: newCred.baseUrl, token: newCred.token } })
+                });
+                if (resp.ok) {
+                    const created = await resp.json();
+                    setCredentials(prev => [...prev, created]);
+                    setNewCred({ name: '', baseUrl: 'https://api.baserow.io', token: '' });
+                    setShowNewCredForm(false);
+                    if (!currentTask.output?.credentialId) {
+                        onUpdateTask({ output: { ...currentTask.output as TaskOutput, credentialId: created.id, provider: 'baserow', tableId: currentTask.output?.tableId || '', onError: currentTask.output?.onError || 'ignore' } });
+                    }
+                }
+            } finally {
+                setCredSaving(false);
+            }
+        };
+
+        const deleteCredential = async (id: string) => {
+            await fetch(`/api/credentials/${id}`, { method: 'DELETE' });
+            setCredentials(prev => prev.filter(c => c.id !== id));
+            if (currentTask.output?.credentialId === id) {
+                onUpdateTask({ output: { ...currentTask.output as TaskOutput, credentialId: '' } });
+            }
+        };
 
         if (!isOpen) return null;
 
@@ -114,6 +206,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                         {renderTabButton('behavior', 'Behavior', 'psychology')}
                         {renderTabButton('extraction', 'Extract', 'terminal')}
                         {renderTabButton('api', 'API', 'api')}
+                        {renderTabButton('output', 'Output', 'table')}
                         {renderTabButton('schedule', 'Schedule', 'event_repeat')}
                         {renderTabButton('history', 'History', 'history')}
                     </div>
@@ -390,6 +483,202 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'output' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                {/* Enable toggle */}
+                                <button
+                                    onClick={() => onUpdateTask({ output: currentTask.output ? undefined : { provider: 'baserow', credentialId: '', tableId: '', onError: 'ignore' } })}
+                                    className="w-full flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5 hover:bg-white/5 transition-colors"
+                                >
+                                    <div className="text-left">
+                                        <span className="text-xs font-medium">Push results to destination</span>
+                                        <p className="text-[9px] text-gray-500 mt-0.5">Send extracted data to an external table after each run</p>
+                                    </div>
+                                    <div className={`w-8 h-4 rounded-full relative transition-colors flex-shrink-0 ${currentTask.output ? 'bg-white' : 'bg-white/10'}`}>
+                                        <div className={`absolute top-1 w-2 h-2 rounded-full transition-all ${currentTask.output ? 'right-1 bg-black' : 'left-1 bg-white/20'}`} />
+                                    </div>
+                                </button>
+
+                                {currentTask.output && (<>
+                                    {/* Provider dropdown */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Provider</label>
+                                        <select
+                                            value={currentTask.output.provider}
+                                            onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, provider: e.target.value as 'baserow', credentialId: '', tableId: '' } })}
+                                            className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/20"
+                                        >
+                                            <option value="baserow">Baserow</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Credential picker */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Credential</label>
+                                            <button
+                                                onClick={() => setShowNewCredForm(v => !v)}
+                                                className="text-[9px] font-bold text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+                                            >
+                                                <MaterialIcon name="add" className="text-xs" />
+                                                New
+                                            </button>
+                                        </div>
+
+                                        {showNewCredForm && (
+                                            <div className="space-y-2 p-3 rounded-xl bg-black/40 border border-white/5">
+                                                <input
+                                                    className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/20"
+                                                    placeholder="Name (e.g. My Baserow)"
+                                                    value={newCred.name}
+                                                    onChange={e => setNewCred(v => ({ ...v, name: e.target.value }))}
+                                                />
+                                                <input
+                                                    className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/20"
+                                                    placeholder="Base URL"
+                                                    value={newCred.baseUrl}
+                                                    onChange={e => setNewCred(v => ({ ...v, baseUrl: e.target.value }))}
+                                                />
+                                                <input
+                                                    className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/20"
+                                                    placeholder="API Token"
+                                                    type="password"
+                                                    value={newCred.token}
+                                                    onChange={e => setNewCred(v => ({ ...v, token: e.target.value }))}
+                                                />
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={saveNewCredential}
+                                                        disabled={credSaving || !newCred.name || !newCred.token}
+                                                        className="flex-1 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold disabled:opacity-40 transition-opacity"
+                                                    >
+                                                        {credSaving ? 'Saving…' : 'Save'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setShowNewCredForm(false)}
+                                                        className="px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 text-[10px] font-bold hover:text-white transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {(() => {
+                                            const filtered = credentials.filter(c => c.provider === currentTask.output?.provider);
+                                            return filtered.length === 0 && !showNewCredForm ? (
+                                                <p className="text-[10px] text-gray-600">No credentials yet. Click <span className="text-gray-400">+ New</span> to add one.</p>
+                                            ) : (
+                                                <select
+                                                    value={currentTask.output.credentialId}
+                                                    onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, credentialId: e.target.value } })}
+                                                    className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/20"
+                                                >
+                                                    <option value="">Select credential…</option>
+                                                    {filtered.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                </select>
+                                            );
+                                        })()}
+
+                                        {/* Credential list with delete */}
+                                        {credentials.filter(c => c.provider === currentTask.output?.provider).length > 0 && (
+                                            <div className="space-y-1">
+                                                {credentials.filter(c => c.provider === currentTask.output?.provider).map(c => (
+                                                    <div key={c.id} className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-black/20 border border-white/5">
+                                                        <div>
+                                                            <span className="text-[10px] text-white">{c.name}</span>
+                                                            <span className="text-[9px] text-gray-600 ml-2">{c.config.baseUrl}</span>
+                                                        </div>
+                                                        <button onClick={() => deleteCredential(c.id)} className="text-gray-600 hover:text-red-400 transition-colors">
+                                                            <MaterialIcon name="delete" className="text-sm" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {currentTask.output.credentialId && browseSupported && (
+                                        <>
+                                            {/* Database picker */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Database</label>
+                                                    {dbLoading && <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
+                                                </div>
+                                                <select
+                                                    value={currentTask.output.databaseId || ''}
+                                                    onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, databaseId: e.target.value, tableId: '' } })}
+                                                    className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/20"
+                                                    disabled={dbLoading}
+                                                >
+                                                    <option value="">Select database…</option>
+                                                    {databases.map(db => (
+                                                        <option key={db.id} value={db.id}>{db.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Table picker */}
+                                            {currentTask.output.databaseId && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Table</label>
+                                                        {tableLoading && <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
+                                                    </div>
+                                                    <select
+                                                        value={currentTask.output.tableId}
+                                                        onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, tableId: e.target.value } })}
+                                                        className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/20"
+                                                        disabled={tableLoading}
+                                                    >
+                                                        <option value="">Select table…</option>
+                                                        {tables.map(t => (
+                                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {currentTask.output.credentialId && !browseSupported && (
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Table ID</label>
+                                            <input
+                                                className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-white/20"
+                                                placeholder="e.g. 1234"
+                                                value={currentTask.output.tableId}
+                                                onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, tableId: e.target.value } })}
+                                            />
+                                            <p className="text-[9px] text-gray-600">Your token doesn't support browsing. Use a <span className="text-gray-400">Personal API Token</span> for dropdowns, or enter the Table ID from the Baserow URL.</p>
+                                        </div>
+                                    )}
+
+                                    {/* On Error */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">On Push Error</label>
+                                        <div className="flex gap-2">
+                                            {(['ignore', 'fail'] as const).map(val => (
+                                                <button
+                                                    key={val}
+                                                    onClick={() => onUpdateTask({ output: { ...currentTask.output as TaskOutput, onError: val } })}
+                                                    className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${currentTask.output?.onError === val ? 'bg-white text-black' : 'bg-white/5 text-gray-500 hover:text-white'}`}
+                                                >
+                                                    {val === 'ignore' ? 'Ignore' : 'Log Error'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="text-[9px] text-gray-600">
+                                            {currentTask.output.onError === 'fail'
+                                                ? 'Push errors will be logged prominently in the server console.'
+                                                : 'Push errors will be silently suppressed.'}
+                                        </p>
+                                    </div>
+                                </>)}
                             </div>
                         )}
 

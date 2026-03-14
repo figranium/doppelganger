@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import GithubStarPill from './GithubStarPill';
-import { ConfirmRequest } from '../types';
-import ApiKeysPanel, { ApiKeyConfig, ProviderConfig } from './settings/ApiKeysPanel';
+import { ConfirmRequest, Credential } from '../types';
+import ApiKeysPanel, { ApiKeyConfig, ProviderConfig, DbProviderConfig } from './settings/ApiKeysPanel';
 import StoragePanel from './settings/StoragePanel';
 import CapturesPanel from './settings/CapturesPanel';
 import CookiesPanel from './settings/CookiesPanel';
@@ -23,6 +23,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     onNotify
 }) => {
     const [tab, setTab] = useState<'system' | 'data' | 'proxies'>('system');
+    const [credentials, setCredentials] = useState<Credential[]>([]);
+    const [credentialsLoading, setCredentialsLoading] = useState(false);
     const [addedProviders, setAddedProviders] = useState<string[]>([]);
     const [captures, setCaptures] = useState<{ name: string; url: string; size: number; modified: number; type: 'screenshot' | 'recording' }[]>([]);
     const [cookies, setCookies] = useState<{ name: string; value: string; domain?: string; path?: string; expires?: number }[]>([]);
@@ -68,6 +70,23 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
         } finally {
             setDataLoading(false);
         }
+    }, []);
+
+    const loadCredentials = useCallback(async () => {
+        setCredentialsLoading(true);
+        try {
+            const res = await fetch('/api/credentials');
+            if (res.ok) setCredentials(await res.json());
+        } catch {
+            setCredentials([]);
+        } finally {
+            setCredentialsLoading(false);
+        }
+    }, []);
+
+    const deleteCredential = useCallback(async (id: string) => {
+        await fetch(`/api/credentials/${id}`, { method: 'DELETE' });
+        setCredentials(prev => prev.filter(c => c.id !== id));
     }, []);
 
     const deleteCapture = useCallback(async (name: string) => {
@@ -614,6 +633,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             loadOpenAiApiKeys();
             loadClaudeApiKeys();
             loadUserAgent();
+            loadCredentials();
         }
         if (tab === 'proxies') loadProxies();
     }, [tab]);
@@ -625,6 +645,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             loadGeminiApiKeys();
             loadOpenAiApiKeys();
             loadClaudeApiKeys();
+            loadCredentials();
         }
     }, []);
 
@@ -654,6 +675,37 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
             disabled: true
         }
     ];
+
+    const dbProviders: DbProviderConfig[] = [
+        {
+            providerKey: 'baserow',
+            name: 'Baserow',
+            iconUrl: 'https://www.google.com/s2/favicons?domain=baserow.io&sz=128',
+        }
+    ];
+
+    const handleAddDbCredential = async (cred: { name: string; provider: 'baserow'; config: { baseUrl: string; token: string } }): Promise<boolean> => {
+        try {
+            const res = await fetch('/api/credentials', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(cred)
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                console.error('[handleAddDbCredential] API error', res.status, body);
+                return false;
+            }
+            const created = await res.json();
+            setCredentials(prev => [...prev, created]);
+            onNotify('Credential saved.', 'success');
+            return true;
+        } catch (err) {
+            console.error('[handleAddDbCredential] fetch error:', err);
+            return false;
+        }
+    };
 
     const apiKeysConfig: ApiKeyConfig[] = [
         {
@@ -854,6 +906,27 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
         });
     }
 
+    // Add saved DB credentials as rows
+    credentials.forEach(cred => {
+        apiKeysConfig.push({
+            id: `db_cred_${cred.id}`,
+            name: cred.name,
+            description: `${cred.provider} · ${cred.config.baseUrl}`,
+            iconUrl: 'https://www.google.com/s2/favicons?domain=baserow.io&sz=128',
+            value: cred.config.token || null,
+            saving: false,
+            loading: credentialsLoading,
+            onSave: async () => {},
+            readOnly: true,
+            onDelete: async () => {
+                const confirmed = onConfirm
+                    ? await onConfirm(`Delete credential "${cred.name}"?`)
+                    : confirm(`Delete credential "${cred.name}"?`);
+                if (confirmed) await deleteCredential(cred.id);
+            }
+        });
+    });
+
     return (
         <main className="flex-1 p-12 overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
             <div className="max-w-3xl mx-auto space-y-8">
@@ -865,6 +938,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
                             keys={apiKeysConfig}
                             availableProviders={availableProviders}
                             onAddProvider={(id) => setAddedProviders(prev => [...prev, id])}
+                            dbProviders={dbProviders}
+                            onAddDbCredential={handleAddDbCredential}
                             onConfirm={onConfirm}
                         />
                         <UserAgentPanel

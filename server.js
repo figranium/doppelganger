@@ -59,6 +59,8 @@ const executionRoutes = require('./src/server/routes/executions');
 const dataRoutes = require('./src/server/routes/data');
 const viewRoutes = require('./src/server/routes/views');
 const scheduleRoutes = require('./src/server/routes/schedules');
+const credentialRoutes = require('./src/server/routes/credentials');
+const { pushOutput } = require('./src/server/outputProviders');
 
 const app = express();
 app.disable('x-powered-by');
@@ -162,6 +164,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/executions', executionRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/schedules', scheduleRoutes);
+app.use('/api/credentials', credentialRoutes);
 
 // View Routes & Static
 app.use('/', viewRoutes);
@@ -206,6 +209,12 @@ const registerExecution = (req, res, baseMeta = {}) => {
             result: res.locals.executionResult || null
         };
         appendExecution(entry).catch(err => console.error('Failed to append execution:', err));
+
+        const outputConfig = body.output || (body.taskSnapshot && body.taskSnapshot.output);
+        if (outputConfig && entry.result) {
+            pushOutput(outputConfig, entry.result.data, requestId)
+                .catch(err => console.error('[OUTPUT] Unexpected error:', err));
+        }
     });
 };
 

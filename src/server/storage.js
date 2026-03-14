@@ -4,6 +4,7 @@ const {
     USERS_FILE,
     TASKS_FILE,
     EXECUTIONS_FILE,
+    CREDENTIALS_FILE,
     API_KEY_FILE,
     GEMINI_API_KEY_FILE,
     OPENAI_API_KEY_FILE,
@@ -855,6 +856,25 @@ async function saveClaudeApiKey(keysArg) {
     }
 }
 
+// Credentials Storage
+let credentialsCache = null;
+
+async function loadCredentials() {
+    if (credentialsCache) return [...credentialsCache];
+    try {
+        const raw = await fs.promises.readFile(CREDENTIALS_FILE, 'utf8');
+        credentialsCache = JSON.parse(raw);
+    } catch {
+        credentialsCache = [];
+    }
+    return [...credentialsCache];
+}
+
+async function saveCredentials(credentials) {
+    credentialsCache = credentials;
+    await fs.promises.writeFile(CREDENTIALS_FILE, JSON.stringify(credentials, null, 2));
+}
+
 // Session Helper
 const saveSession = (req) => new Promise((resolve, reject) => {
     if (!req.session) {
@@ -953,6 +973,8 @@ module.exports = {
     saveOpenAiApiKey,
     loadClaudeApiKey,
     saveClaudeApiKey,
+    loadCredentials,
+    saveCredentials,
     saveSession,
     loadAllowedIps,
     getStorageStateFile

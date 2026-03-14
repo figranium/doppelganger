@@ -32,6 +32,12 @@ This document is a concise, implementation-focused reference for AI agents that 
     "frequency": "daily",
     "hour": 9,
     "minute": 0
+  },
+  "output": {
+    "provider": "baserow",
+    "credentialId": "<credential-id>",
+    "tableId": "<baserow-table-id>",
+    "onError": "ignore"
   }
 }
 ```
@@ -94,7 +100,31 @@ CSV example:
 }
 ```
 
-## 6) Control flow
+## 6) Output — push results to Baserow
+Set the `output` field to automatically append `result.data` to a Baserow table after each run.
+
+- `provider`: always `"baserow"` for now.
+- `credentialId`: ID of a saved credential (manage via **Settings → Output** in the UI or `POST /api/credentials`).
+- `tableId`: numeric Baserow table ID (visible in the table URL).
+- `onError`: `"ignore"` (suppress errors) or `"fail"` (log errors prominently in the server console).
+
+The extraction script's return value must be a **JSON object** (→ one row) or **JSON array of objects** (→ batch rows). Object keys must match Baserow field names exactly. `extractionFormat` must be `"json"` when using output (CSV is not supported for push).
+
+Example:
+```json
+{
+  "extractionScript": "return Array.from(document.querySelectorAll('.product')).map(el => ({ Name: el.querySelector('h2').textContent, Price: el.querySelector('.price').textContent }));",
+  "extractionFormat": "json",
+  "output": {
+    "provider": "baserow",
+    "credentialId": "cred_abc123",
+    "tableId": "42",
+    "onError": "fail"
+  }
+}
+```
+
+## 7) Control flow
 ### If / Else / End
 Either use a **JS expression** in `value` or structured fields.
 

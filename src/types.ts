@@ -1,4 +1,22 @@
 export type TaskMode = 'scrape' | 'agent' | 'headful';
+
+export interface Credential {
+    id: string;
+    name: string;
+    provider: 'baserow';
+    config: {
+        baseUrl: string;
+        token: string;
+    };
+}
+
+export interface TaskOutput {
+    provider: 'baserow';
+    credentialId: string;
+    databaseId?: string;
+    tableId: string;
+    onError: 'fail' | 'ignore';
+}
 export type ViewMode = 'visual' | 'json' | 'api' | 'history';
 export type VarType = 'string' | 'number' | 'boolean';
 
@@ -89,6 +107,7 @@ export interface Task {
     extractionScript?: string;
     extractionFormat?: 'json' | 'csv';
     includeHtml?: boolean;
+    output?: TaskOutput;
     includeShadowDom?: boolean;
     disableRecording?: boolean;
     statelessExecution?: boolean;

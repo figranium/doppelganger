@@ -11,6 +11,13 @@ export interface ProviderConfig {
     disabled?: boolean;
 }
 
+export interface DbProviderConfig {
+    providerKey: 'baserow';
+    name: string;
+    iconUrl?: string;
+    disabled?: boolean;
+}
+
 export interface ApiKeyConfig {
     id: string;
     name: string;
@@ -34,6 +41,8 @@ interface ApiKeysPanelProps {
     keys: ApiKeyConfig[];
     availableProviders?: ProviderConfig[];
     onAddProvider?: (providerId: string) => void;
+    dbProviders?: DbProviderConfig[];
+    onAddDbCredential?: (cred: { name: string; provider: 'baserow'; config: { baseUrl: string; token: string } }) => Promise<boolean>;
     onConfirm?: (msg: string) => Promise<boolean>;
 }
 
@@ -195,8 +204,54 @@ const ApiKeyRow: React.FC<{
     );
 };
 
-const ApiKeysPanel: React.FC<ApiKeysPanelProps> = ({ keys, availableProviders, onAddProvider, onConfirm }) => {
+type ModalView = 'list' | 'db-form';
+
+const ApiKeysPanel: React.FC<ApiKeysPanelProps> = ({ keys, availableProviders, onAddProvider, dbProviders, onAddDbCredential, onConfirm }) => {
     const [showAddMenu, setShowAddMenu] = useState(false);
+    const [modalView, setModalView] = useState<ModalView>('list');
+    const [selectedDb, setSelectedDb] = useState<DbProviderConfig | null>(null);
+    const [dbForm, setDbForm] = useState({ name: '', baseUrl: 'https://api.baserow.io', token: '' });
+    const [dbSaving, setDbSaving] = useState(false);
+    const [dbError, setDbError] = useState<string | null>(null);
+
+    const hasAnything = (availableProviders && availableProviders.length > 0 && onAddProvider) || (dbProviders && dbProviders.length > 0 && onAddDbCredential);
+
+    const closeModal = () => {
+        setShowAddMenu(false);
+        setModalView('list');
+        setSelectedDb(null);
+        setDbForm({ name: '', baseUrl: 'https://api.baserow.io', token: '' });
+        setDbError(null);
+    };
+
+    const handleDbProviderClick = (p: DbProviderConfig) => {
+        setSelectedDb(p);
+        setModalView('db-form');
+        setDbError(null);
+    };
+
+    const handleDbSave = async () => {
+        if (!selectedDb || !dbForm.name || !dbForm.token || !onAddDbCredential) return;
+        setDbSaving(true);
+        setDbError(null);
+        try {
+            const ok = await onAddDbCredential({
+                name: dbForm.name,
+                provider: selectedDb.providerKey,
+                config: { baseUrl: dbForm.baseUrl, token: dbForm.token }
+            });
+            if (ok) {
+                closeModal();
+            } else {
+                setDbError('Failed to save credential. Check the server console for details.');
+            }
+        } catch (err) {
+            console.error('[ApiKeysPanel] handleDbSave error:', err);
+            setDbError('An unexpected error occurred.');
+        } finally {
+            setDbSaving(false);
+        }
+    };
 
     // Prevent scroll when modal is open
     useEffect(() => {
@@ -224,7 +279,7 @@ const ApiKeysPanel: React.FC<ApiKeysPanelProps> = ({ keys, availableProviders, o
                     <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Manage external integrations and API access</p>
                 </div>
 
-                {availableProviders && availableProviders.length > 0 && onAddProvider && (
+                {hasAnything && (
                     <div>
                         <button
                             onClick={() => setShowAddMenu(true)}
@@ -235,51 +290,163 @@ const ApiKeysPanel: React.FC<ApiKeysPanelProps> = ({ keys, availableProviders, o
                         </button>
 
                         {showAddMenu && createPortal(
-                            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+                            <div
+                                className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+                                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+                                onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+                            >
                                 <div className="glass-card max-w-2xl w-full p-10 rounded-[40px] shadow-2xl relative border border-white/10 animate-in zoom-in-95 duration-300 bg-gray-900/80">
                                     <button
-                                        onClick={() => setShowAddMenu(false)}
+                                        onClick={closeModal}
                                         className="absolute top-6 right-6 p-3 rounded-2xl text-white/50 hover:text-white hover:bg-white/10 transition-all"
                                         aria-label="Close"
                                     >
                                         <MaterialIcon name="close" className="text-2xl" />
                                     </button>
 
-                                    <h3 className="text-2xl font-bold text-white tracking-wide mb-2">Select Provider</h3>
-                                    <p className="text-sm text-white/50 mb-8">Choose an AI provider to add to your workspace.</p>
+                                    {modalView === 'list' && (
+                                        <>
+                                            <h3 className="text-2xl font-bold text-white tracking-wide mb-2">Add Key</h3>
+                                            <p className="text-sm text-white/50 mb-8">Choose what you'd like to add.</p>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {availableProviders.map(provider => (
+                                            {availableProviders && availableProviders.length > 0 && onAddProvider && (
+                                                <div className="mb-8">
+                                                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4">AI Providers</p>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {availableProviders.map(provider => (
+                                                            <button
+                                                                key={provider.id}
+                                                                onClick={() => {
+                                                                    if (!provider.disabled) {
+                                                                        onAddProvider(provider.id);
+                                                                        closeModal();
+                                                                    }
+                                                                }}
+                                                                disabled={provider.disabled}
+                                                                className={`flex items-start gap-4 p-5 rounded-3xl border transition-all text-left ${provider.disabled
+                                                                    ? 'border-white/5 bg-white/5 opacity-40 cursor-not-allowed grayscale'
+                                                                    : 'border-white/10 hover:border-blue-400/30 hover:bg-blue-500/5 cursor-pointer group'
+                                                                    }`}
+                                                            >
+                                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${provider.disabled ? 'bg-black/20' : 'bg-white/5 group-hover:scale-110 transition-transform'}`}>
+                                                                    {provider.iconUrl ? (
+                                                                        <img src={provider.iconUrl} alt={provider.name} className="w-8 h-8 object-contain drop-shadow-md" />
+                                                                    ) : provider.iconComponent ? (
+                                                                        <provider.iconComponent className="w-6 h-6 text-white" />
+                                                                    ) : (
+                                                                        <MaterialIcon name="api" className="text-xl text-white" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <div className="text-base font-bold text-white mb-1">{provider.name}</div>
+                                                                    <div className="text-[10px] text-white/50 uppercase tracking-widest">{provider.disabled ? 'Coming Soon' : 'Available'}</div>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {dbProviders && dbProviders.length > 0 && onAddDbCredential && (
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4">Database / Output</p>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {dbProviders.map(p => (
+                                                            <button
+                                                                key={p.providerKey}
+                                                                onClick={() => !p.disabled && handleDbProviderClick(p)}
+                                                                disabled={p.disabled}
+                                                                className={`flex items-start gap-4 p-5 rounded-3xl border transition-all text-left ${p.disabled
+                                                                    ? 'border-white/5 bg-white/5 opacity-40 cursor-not-allowed grayscale'
+                                                                    : 'border-white/10 hover:border-emerald-400/30 hover:bg-emerald-500/5 cursor-pointer group'
+                                                                    }`}
+                                                            >
+                                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${p.disabled ? 'bg-black/20' : 'bg-white/5 group-hover:scale-110 transition-transform'}`}>
+                                                                    {p.iconUrl ? (
+                                                                        <img src={p.iconUrl} alt={p.name} className="w-8 h-8 object-contain drop-shadow-md" />
+                                                                    ) : (
+                                                                        <MaterialIcon name="database" className="text-xl text-white" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <div className="text-base font-bold text-white mb-1">{p.name}</div>
+                                                                    <div className="text-[10px] text-white/50 uppercase tracking-widest">{p.disabled ? 'Coming Soon' : 'Available'}</div>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {modalView === 'db-form' && selectedDb && (
+                                        <>
                                             <button
-                                                key={provider.id}
-                                                onClick={() => {
-                                                    if (!provider.disabled) {
-                                                        onAddProvider(provider.id);
-                                                        setShowAddMenu(false);
-                                                    }
-                                                }}
-                                                disabled={provider.disabled}
-                                                className={`flex items-start gap-4 p-5 rounded-3xl border transition-all text-left ${provider.disabled
-                                                    ? 'border-white/5 bg-white/5 opacity-40 cursor-not-allowed grayscale'
-                                                    : 'border-white/10 hover:border-blue-400/30 hover:bg-blue-500/5 cursor-pointer group'
-                                                    }`}
+                                                onClick={() => setModalView('list')}
+                                                className="flex items-center gap-2 text-[10px] font-bold text-gray-500 hover:text-white uppercase tracking-widest mb-6 transition-colors"
                                             >
-                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${provider.disabled ? 'bg-black/20' : 'bg-white/5 group-hover:scale-110 transition-transform'}`}>
-                                                    {provider.iconUrl ? (
-                                                        <img src={provider.iconUrl} alt={provider.name} className="w-8 h-8 object-contain drop-shadow-md" />
-                                                    ) : provider.iconComponent ? (
-                                                        <provider.iconComponent className="w-6 h-6 text-white" />
-                                                    ) : (
-                                                        <MaterialIcon name="api" className="text-xl text-white" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="text-base font-bold text-white mb-1">{provider.name}</div>
-                                                    <div className="text-[10px] text-white/50 uppercase tracking-widest">{provider.disabled ? 'Coming Soon' : 'Available'}</div>
-                                                </div>
+                                                <MaterialIcon name="arrow_back" className="text-sm" />
+                                                Back
                                             </button>
-                                        ))}
-                                    </div>
+                                            <h3 className="text-2xl font-bold text-white tracking-wide mb-2">Add {selectedDb.name}</h3>
+                                            <p className="text-sm text-white/50 mb-8">Enter your {selectedDb.name} credentials.</p>
+
+                                            <div className="space-y-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em]">Name</label>
+                                                    <input
+                                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors"
+                                                        placeholder="e.g. My Baserow"
+                                                        value={dbForm.name}
+                                                        onChange={e => setDbForm(v => ({ ...v, name: e.target.value }))}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                {selectedDb.providerKey === 'baserow' && (
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em]">Base URL</label>
+                                                        <input
+                                                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors"
+                                                            placeholder="https://api.baserow.io"
+                                                            value={dbForm.baseUrl}
+                                                            onChange={e => setDbForm(v => ({ ...v, baseUrl: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em]">API Token</label>
+                                                    <input
+                                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors font-mono"
+                                                        placeholder="Token"
+                                                        type="password"
+                                                        value={dbForm.token}
+                                                        onChange={e => setDbForm(v => ({ ...v, token: e.target.value }))}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {dbError && (
+                                                <p className="mt-4 text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{dbError}</p>
+                                            )}
+
+                                            <div className="flex gap-3 mt-4">
+                                                <button
+                                                    onClick={closeModal}
+                                                    className="px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest bg-transparent border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleDbSave}
+                                                    disabled={dbSaving || !dbForm.name || !dbForm.token}
+                                                    className="flex-1 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest bg-white text-black hover:bg-white/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                                >
+                                                    {dbSaving ? 'Saving…' : 'Save Credential'}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>,
                             document.body

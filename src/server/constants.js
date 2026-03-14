@@ -14,6 +14,7 @@ const OPENAI_API_KEY_FILE = path.join(DATA_DIR, 'openai_api_key.json');
 const CLAUDE_API_KEY_FILE = path.join(DATA_DIR, 'claude_api_key.json');
 const STORAGE_STATE_PATH = path.join(__dirname, '../../storage_state.json');
 const EXECUTIONS_FILE = path.join(DATA_DIR, 'executions.json');
+const CREDENTIALS_FILE = path.join(DATA_DIR, 'credentials.json');
 const MAX_TASK_VERSIONS = 30;
 const MAX_EXECUTIONS = 500;
 const REQUEST_LIMIT_WINDOW_MS = 15 * 60 * 1000;
@@ -41,6 +42,7 @@ module.exports = {
     CLAUDE_API_KEY_FILE,
     STORAGE_STATE_PATH,
     EXECUTIONS_FILE,
+    CREDENTIALS_FILE,
     MAX_TASK_VERSIONS,
     MAX_EXECUTIONS,
     REQUEST_LIMIT_WINDOW_MS,
