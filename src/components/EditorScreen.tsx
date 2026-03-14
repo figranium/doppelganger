@@ -279,17 +279,42 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
             />
 
             {/* Zoom Controls */}
-            <div className="absolute bottom-24 left-6 z-30 flex flex-col gap-1 bg-[#111] border border-white/10 rounded-xl p-1 shadow-xl">
-                <button onClick={() => canvas.setCanvasScale(Math.min(2, canvas.canvasScale * 1.2))} className="w-8 h-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center text-sm font-bold">+</button>
-                <div className="text-[8px] text-center text-gray-500 font-bold select-none">{Math.round(canvas.canvasScale * 100)}%</div>
-                <button onClick={() => canvas.setCanvasScale(Math.max(0.25, canvas.canvasScale * 0.8))} className="w-8 h-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center text-sm font-bold">−</button>
+            <div
+                className="absolute bottom-24 left-6 z-30 flex flex-col gap-1 bg-[#111] border border-white/10 rounded-xl p-1 shadow-xl"
+                role="group"
+                aria-label="Zoom controls"
+            >
+                <button
+                    onClick={() => canvas.setCanvasScale(Math.min(2, canvas.canvasScale * 1.2))}
+                    className="w-8 h-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center text-sm font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    aria-label="Zoom in"
+                    title="Zoom in"
+                >
+                    +
+                </button>
+                <div
+                    className="text-[8px] text-center text-gray-500 font-bold select-none"
+                    aria-live="polite"
+                >
+                    {Math.round(canvas.canvasScale * 100)}%
+                </div>
+                <button
+                    onClick={() => canvas.setCanvasScale(Math.max(0.25, canvas.canvasScale * 0.8))}
+                    className="w-8 h-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center text-sm font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    aria-label="Zoom out"
+                    title="Zoom out"
+                >
+                    −
+                </button>
                 <button
                     onClick={() => {
                         canvas.setCanvasScale(1);
                         const vp = canvas.canvasViewportRef.current;
                         canvas.setCanvasOffset({ x: ((vp ? vp.clientWidth : 1000) - 400) / 2, y: 20 });
                     }}
-                    className="w-8 h-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center"
+                    className="w-8 h-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    aria-label="Reset zoom and center"
+                    title="Reset zoom and center"
                 >
                     <MaterialIcon name="fit_screen" className="text-sm" />
                 </button>
