@@ -158,16 +158,27 @@ function scheduleToCron(config) {
     switch (config.frequency) {
         case 'interval': {
             const interval = config.intervalMinutes || 5;
-            if (interval <= 0 || interval > 60) throw new Error('Interval must be 1-60 minutes');
-            if (60 % interval === 0) {
-                return `*/${interval} * * * *`;
+            if (interval <= 0 || interval > 1440) throw new Error('Interval must be 1-1440 minutes');
+            
+            if (interval <= 60) {
+                if (60 % interval === 0) {
+                    return `*/${interval} * * * *`;
+                }
+                const minutes = [];
+                for (let m = 0; m < 60; m += interval) {
+                    minutes.push(m);
+                }
+                return `${minutes.join(',')} * * * *`;
+            } else {
+                // For intervals > 60m, use hours/minutes
+                const hrs = Math.floor(interval / 60);
+                const mins = interval % 60;
+                if (hrs < 24 && 24 % hrs === 0 && mins === 0) {
+                    return `0 */${hrs} * * *`;
+                }
+                // Fallback to daily if too complex, or just return hourly with 0 min
+                return `0 */${Math.max(1, hrs)} * * *`;
             }
-            // For non-evenly-divisible intervals, list explicit minutes
-            const minutes = [];
-            for (let m = 0; m < 60; m += interval) {
-                minutes.push(m);
-            }
-            return `${minutes.join(',')} * * * *`;
         }
         case 'hourly':
             return `${min} * * * *`;
@@ -240,6 +251,19 @@ function describeCron(expression) {
         // Every minute
         if (minPart === '*' && hrPart === '*' && domPart === '*' && monPart === '*' && dowPart === '*') {
             return 'Every minute';
+        }
+
+        // Comma separated minutes (common for non-divisible intervals)
+        if (hrPart === '*' && domPart === '*' && monPart === '*' && dowPart === '*' && minPart.includes(',')) {
+            const mins = minPart.split(',');
+            if (mins.every(m => /^\d+$/.test(m))) {
+                const diffs = [];
+                for (let i = 1; i < mins.length; i++) diffs.push(parseInt(mins[i]) - parseInt(mins[i-1]));
+                const uniqueDiffs = new Set(diffs);
+                if (uniqueDiffs.size === 1) {
+                    return `Every ${uniqueDiffs.values().next().value} minutes`;
+                }
+            }
         }
 
         // Specific minute, every hour

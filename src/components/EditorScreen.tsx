@@ -1722,9 +1722,13 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 onClose={() => setIsCabinetOpen(false)}
                 currentTask={currentTask}
                 onUpdateTask={(updates) => {
-                    const next = { ...currentTask, ...updates };
-                    setCurrentTask(next);
-                    handleAutoSave(next);
+                    setCurrentTask(prev => {
+                        if (!prev) return prev;
+                        const next = { ...prev, ...updates };
+                        // Trigger autosave with the newly computed task
+                        handleAutoSave(next);
+                        return next;
+                    });
                 }}
                 proxyListLoaded={proxyListLoaded}
                 proxyList={proxyList}

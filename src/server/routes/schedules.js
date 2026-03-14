@@ -42,6 +42,22 @@ router.post('/:taskId', requireAuth, async (req, res) => {
             ...body,
         };
 
+        // If body explicitly provides one mode, clear the other to avoid mode-switching bugs
+        if (body.cron && !body.frequency) {
+            delete schedule.frequency;
+            delete schedule.intervalMinutes;
+            delete schedule.hour;
+            delete schedule.minute;
+            delete schedule.daysOfWeek;
+            delete schedule.dayOfMonth;
+        } else if (body.frequency && !body.cron) {
+            delete schedule.cron;
+        }
+
+        // Handle explicit nulls (JSON doesn't support undefined, so null is common)
+        if (body.cron === null) delete schedule.cron;
+        if (body.frequency === null) delete schedule.frequency;
+
         // Validate the resulting cron
         const cron = resolveCron(schedule);
         if (schedule.enabled && !cron) {
@@ -67,7 +83,8 @@ router.post('/:taskId', requireAuth, async (req, res) => {
 
         res.json({
             schedule: task.schedule,
-            description: cron ? describeCron(cron) : null
+            description: cron ? describeCron(cron) : null,
+            nextRun: cron ? getNextRun(cron).getTime() : null
         });
     } finally {
         taskMutex.unlock();
