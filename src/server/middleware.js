@@ -94,6 +94,13 @@ const requireAuthForSettings = (req, res, next) => {
     return requireAuth(req, res, next);
 };
 
+const requireAuthOrApiKey = async (req, res, next) => {
+    if (req.session.user) {
+        return next();
+    }
+    return requireApiKey(req, res, next);
+};
+
 const isLoopback = (ip) => {
     const normalized = normalizeIp(ip);
     return normalized === '127.0.0.1' || normalized === '::1';
@@ -150,5 +157,6 @@ module.exports = {
     requireAuth,
     requireAuthForSettings,
     requireApiKey,
+    requireAuthOrApiKey,
     isIpAllowed
 };

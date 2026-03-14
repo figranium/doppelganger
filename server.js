@@ -42,7 +42,8 @@ const {
     requireIpAllowlist,
     requireAuth,
     isIpAllowed,
-    requireApiKey
+    requireApiKey,
+    requireAuthOrApiKey
 } = require('./src/server/middleware');
 
 // Feature Modules (Legacy/Existing)
@@ -112,7 +113,17 @@ setStopChecker((runId) => {
 
 // App Middleware
 app.use(requireIpAllowlist);
-app.use(express.json({ limit: '50mb' }));
+
+// Security Headers
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
+app.use(express.json({ limit: '2mb' }));
 
 const sessionStore = new FileStore({
     path: SESSIONS_DIR,
@@ -361,8 +372,8 @@ if (novncDir) {
 }
 
 // Static Files
-app.use('/captures', express.static(capturesDir));
-app.use('/screenshots', express.static(capturesDir));
+app.use('/captures', requireAuthOrApiKey, express.static(capturesDir));
+app.use('/screenshots', requireAuthOrApiKey, express.static(capturesDir));
 app.use(express.static(DIST_DIR));
 
 // Headful Status Endpoint
