@@ -12,3 +12,4 @@ npm-debug.log
 n8n-nodes-doppelganger/
 .npmignore
 src/components/settings/ThemePanel.tsx
+.gemini/
