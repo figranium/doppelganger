@@ -88,6 +88,7 @@ export interface Task {
     last_opened?: number;
     extractionScript?: string;
     extractionFormat?: 'json' | 'csv';
+    includeHtml?: boolean;
     includeShadowDom?: boolean;
     disableRecording?: boolean;
     statelessExecution?: boolean;

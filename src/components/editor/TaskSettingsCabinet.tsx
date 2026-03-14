@@ -350,6 +350,22 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                 </div>
 
                                 <div className="space-y-4">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Response Options</label>
+                                    <button
+                                        onClick={() => onUpdateTask({ includeHtml: !currentTask.includeHtml })}
+                                        className="w-full flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5 hover:bg-white/5 transition-colors"
+                                    >
+                                        <div className="text-left">
+                                            <span className="text-xs font-medium">Include HTML in response</span>
+                                            <p className="text-[9px] text-gray-500 mt-0.5">When an extraction script is set, also return the raw HTML</p>
+                                        </div>
+                                        <div className={`w-8 h-4 rounded-full relative transition-colors flex-shrink-0 ${currentTask.includeHtml ? 'bg-white' : 'bg-white/10'}`}>
+                                            <div className={`absolute top-1 w-2 h-2 rounded-full transition-all ${currentTask.includeHtml ? 'right-1 bg-black' : 'left-1 bg-white/20'}`} />
+                                        </div>
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
                                     <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Passing Variables</label>
                                     <div className="space-y-2">
                                         <p className="text-[10px] text-gray-500">You can override task variables in the request body:</p>

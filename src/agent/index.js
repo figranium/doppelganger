@@ -592,6 +592,7 @@ async function runAgent(data, options = {}) {
             console.error('Agent Screenshot failed:', e.message);
         }
 
+        const includeHtml = !!(data.includeHtml ?? (data.taskSnapshot && data.taskSnapshot.includeHtml));
         const extractionFormat = String(data.extractionFormat || (data.taskSnapshot && data.taskSnapshot.extractionFormat) || '').toLowerCase() === 'csv'
             ? 'csv'
             : 'json';
@@ -602,7 +603,7 @@ async function runAgent(data, options = {}) {
             final_url: page.url() || url || '',
             downloads: downloads.length > 0 ? downloads : undefined,
             logs: logs || [],
-            html: typeof cleanedHtml === 'string' ? safeFormatHTML(cleanedHtml) : '',
+            html: (extractionScript && !includeHtml) ? undefined : (typeof cleanedHtml === 'string' ? safeFormatHTML(cleanedHtml) : ''),
             data: formattedExtraction,
             screenshot_url: fs.existsSync(screenshotPath) ? `/captures/${screenshotName}` : null
         };

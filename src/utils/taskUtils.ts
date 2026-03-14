@@ -102,6 +102,7 @@ export const buildNewTask = (): Task => {
         actions: [],
         variables: {},
         extractionFormat: 'json',
+        includeHtml: false,
         includeShadowDom: true,
         disableRecording: false,
         statelessExecution: false

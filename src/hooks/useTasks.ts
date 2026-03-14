@@ -66,6 +66,7 @@ export function useTasks(
         if (migratedTask.rotateProxies === undefined) migratedTask.rotateProxies = false;
         if (migratedTask.rotateViewport === undefined) migratedTask.rotateViewport = false;
         if (!migratedTask.extractionFormat) migratedTask.extractionFormat = 'json';
+        if (migratedTask.includeHtml === undefined) migratedTask.includeHtml = false;
         if (migratedTask.includeShadowDom === undefined) migratedTask.includeShadowDom = true;
         if (migratedTask.disableRecording === undefined) migratedTask.disableRecording = false;
         migratedTask.disableRecording = parseBooleanFlag(migratedTask.disableRecording);
