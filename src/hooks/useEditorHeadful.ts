@@ -48,6 +48,7 @@ export const useEditorHeadful = (
                             updateAction(inspectId, { selector: data.selector }, true);
                         }
                         setActiveInspectActionId(null);
+                        onStopHeadfulRef.current?.();
                     }
                 } catch (err) { }
             };

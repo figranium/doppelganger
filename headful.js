@@ -103,7 +103,8 @@ async function runHeadful(data, options = {}) {
                     '--disable-dev-shm-usage',
                     '--disable-gpu',
                     '--window-size=1920,1080',
-                    '--window-position=0,0'
+                    '--window-position=0,0',
+                    '--start-maximized'
                 ]
             };
             const selection = getProxySelection(rotateProxies);
@@ -398,6 +399,9 @@ async function runHeadful(data, options = {}) {
 
                 window._figraniumInspectClickHandler = async (e) => {
                     if (!window._figraniumInspectHandler) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
 
                     const element = e.composedPath ? e.composedPath()[0] : e.target;
                     const selectors = window._figraniumGetSelectors(element);
@@ -458,6 +462,11 @@ async function runHeadful(data, options = {}) {
 
         if (!page) {
             page = await context.newPage();
+            try {
+                const cdp = await context.newCDPSession(page);
+                const { windowId } = await cdp.send('Browser.getWindowForTarget');
+                await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'maximized' } });
+            } catch (e) { }
         } else {
             try { await page.evaluate(inspectInitFn); } catch (e) { }
             try {
