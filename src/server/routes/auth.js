@@ -48,8 +48,14 @@ router.post('/login', authRateLimiter, async (req, res) => {
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const users = await loadUsers();
     const user = users.find(u => String(u.email || '').toLowerCase() === normalizedEmail);
-    if (user && await bcrypt.compare(password, user.password)) {
 
+    // Timing-safe login: Always perform a bcrypt.compare to prevent user enumeration via timing attacks.
+    // If user not found, compare against a dummy hash to maintain consistent response timing.
+    const DUMMY_HASH = '$2b$10$fV2789O9rKz/s1mC0.YpPeu8Pmq/OayFf6XpD8bN5r8H7S2pXU8/y'; // dummy bcrypt hash
+    const hashToCompare = user ? user.password : DUMMY_HASH;
+    const isPasswordValid = await bcrypt.compare(password || '', hashToCompare);
+
+    if (user && isPasswordValid) {
         req.session.regenerate(async (err) => {
             if (err) {
                 console.error('[AUTH] Login session regenerate failed:', err);
