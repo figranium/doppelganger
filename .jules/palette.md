@@ -1,0 +1,3 @@
+## 2025-05-22 - [Keyboard Accessibility for Action Items]
+**Learning:** Interactive elements implemented as `div` or `span` without proper ARIA roles and keyboard listeners are invisible to screen readers and inaccessible to keyboard users. In a complex drag-and-drop interface like the Task Editor, custom interactive targets must also be explicitly excluded from drag operations (e.g., via `isInteractiveTarget` helpers) to prevent interaction conflicts.
+**Action:** Always use `role="button"`, `tabIndex={0}`, and `onKeyDown` (Enter/Space) for custom interactive elements. Ensure they have descriptive `aria-label` and `title` attributes. Update drag-and-drop boundary checks to include these new interactive roles.

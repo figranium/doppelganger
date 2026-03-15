@@ -175,7 +175,7 @@ const ActionItem: React.FC<ActionItemProps> = memo(({
 
     const isInteractiveTarget = (target: EventTarget | null) => {
         if (!target || !(target instanceof HTMLElement)) return false;
-        return !!target.closest('input, textarea, select, button, a, [contenteditable="true"], [data-no-drag="true"]');
+        return !!target.closest('input, textarea, select, button, a, [contenteditable="true"], [data-no-drag="true"], [role="button"]');
     };
 
     // Calculate transform based on isDragging state and passed dragTransformY
@@ -203,7 +203,21 @@ const ActionItem: React.FC<ActionItemProps> = memo(({
                 transform: transformStyle
             }}
         >
-            <div className="flex items-center justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+            <div
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-label={isExpanded ? "Collapse action" : "Expand action"}
+                title={isExpanded ? "Collapse" : "Expand"}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setIsExpanded(!isExpanded);
+                    }
+                }}
+                className="flex items-center justify-between cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-xl"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
                 <div className="flex items-center gap-3">
                     <div className="text-[8px] font-bold text-white/20 font-mono tracking-tighter">{(index + 1).toString().padStart(2, '0')}</div>
                     <div className="w-4 h-4 flex items-center justify-center">
