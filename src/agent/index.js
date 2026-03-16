@@ -124,7 +124,7 @@ async function runAgent(data, options = {}) {
     try {
         const useRotateProxies = String(rotateProxies).toLowerCase() === 'true' || rotateProxies === true;
         const headless = options.headless !== undefined ? options.headless : true;
-        browser = await launchBrowser({ rotateProxies: useRotateProxies, headless });
+        const launchOptions = await launchBrowser({ rotateProxies: useRotateProxies, headless });
 
         const recordingsDir = path.join(__dirname, '../../data/recordings');
         await fs.promises.mkdir(recordingsDir, { recursive: true });
@@ -133,7 +133,7 @@ async function runAgent(data, options = {}) {
         const rotateViewport = String(data.rotateViewport).toLowerCase() === 'true' || data.rotateViewport === true;
         const storageStateFile = getStorageStateFile();
 
-        context = await createBrowserContext(browser, {
+        context = await createBrowserContext(launchOptions, {
             userAgent: selectedUA,
             rotateViewport,
             statelessExecution,
@@ -142,6 +142,7 @@ async function runAgent(data, options = {}) {
             recordingsDir,
             includeShadowDom
         });
+        browser = context.browser();
 
         const logs = [];
         const downloads = [];
@@ -224,7 +225,9 @@ async function runAgent(data, options = {}) {
             });
         });
 
-        page = await context.newPage();
+        // Persistent context auto-creates a blank page; reuse it or open a new one
+        const existingPages = context.pages();
+        page = existingPages.length > 0 ? existingPages[0] : await context.newPage();
 
         if (url) {
             await page.goto(resolveTemplate(url), { waitUntil: 'domcontentloaded', timeout: 60000 });

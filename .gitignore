@@ -13,3 +13,4 @@ n8n-nodes-doppelganger/
 .npmignore
 src/components/settings/ThemePanel.tsx
 .gemini/
+.claude/

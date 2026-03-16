@@ -90,6 +90,24 @@ All automation logic **must** conform to **`AGENT_SPEC.md`**. It defines the Tas
 
 Tests live in `tests/` as standalone Node.js scripts. Exit code `0` = success, `1` = failure. Run with `node tests/<file>.js`.
 
+## Post-Implementation Checklist
+
+After completing any major feature implementation, provide the user with a checklist of things to manually verify. Include items relevant to what was changed. Examples:
+
+- **Build**: Did `npm run build` succeed with no errors or type errors?
+- **Tests**: Did all tests in `tests/` pass (`node tests/<file>.js` and `npm test`)?
+- **Browser launch**: Does the browser actually open (headful) or start headlessly (scrape/agent) without crashing?
+- **Proxy**: If proxies are configured, does traffic route through them correctly?
+- **Storage state**: Is session state still being saved/loaded from `storage_state.json` after the run?
+- **Video recording**: Are `.webm` recordings still being saved to `data/recordings/` when recording is enabled?
+- **Screenshots**: Are screenshots being saved to `public/captures/`?
+- **Selector picker**: Does the VNC inspect overlay still activate and emit selectors via SSE?
+- **Agent handoff**: If a task uses `stopAtActionId`, does the headful session resume at the right point?
+- **Stealth**: Does the browser pass a bot-detection test (e.g. [https://bot.sannysoft.com](https://bot.sannysoft.com))?
+- **Persistent profile**: Is the `data/browser-profile*` directory being created and reused between runs?
+
+Tailor the list to what was actually touched — don't list every item for every change.
+
 ## Key Environment Variables
 
 - `PORT` / `HOST` — Express listen address (default: 11345 / 0.0.0.0)

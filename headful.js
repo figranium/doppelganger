@@ -1,4 +1,5 @@
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
 const { getProxySelection } = require('./proxy-rotation');
@@ -6,6 +7,30 @@ const { selectUserAgent } = require('./user-agent-settings');
 const { validateUrl } = require('./url-utils');
 const { parseBooleanFlag, cookieMatches } = require('./common-utils');
 const { Mutex } = require('./src/server/utils');
+
+const stealth = StealthPlugin();
+stealth.enabledEvasions.clear();
+[
+    'chrome.app',
+    'chrome.csi',
+    'chrome.loadTimes',
+    'chrome.runtime',
+    'defaultArgs',
+    'iframe.contentWindow',
+    'media.codecs',
+    'navigator.hardwareConcurrency',
+    'navigator.languages',
+    'navigator.permissions',
+    'navigator.plugins',
+    'navigator.webdriver',
+    'sourceurl',
+    'user-agent-override',
+    'webgl.vendor',
+    'window.outerdimensions'
+].forEach(e => stealth.enabledEvasions.add(e));
+chromium.use(stealth);
+
+const HEADFUL_PROFILE_DIR = path.join(__dirname, 'data', 'browser-profile-headful');
 
 const headfulMutex = new Mutex();
 
@@ -95,37 +120,45 @@ async function runHeadful(data, options = {}) {
         }
 
         if (!browser) {
-            const launchOptions = {
-                headless: false,
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--window-size=1920,1080',
-                    '--window-position=0,0',
-                    '--start-maximized'
-                ]
-            };
             const selection = getProxySelection(rotateProxies);
-            if (selection.proxy) {
-                launchOptions.proxy = selection.proxy;
+            const hasProxy = !!selection.proxy;
+
+            const args = [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--window-size=1920,1080',
+                '--window-position=0,0',
+                '--start-maximized',
+                '--dns-prefetch-disable'
+            ];
+            if (!hasProxy) {
+                args.push(
+                    '--enable-features=DnsOverHttps',
+                    '--dns-over-https-mode=secure',
+                    '--dns-over-https-templates=https://cloudflare-dns.com/dns-query'
+                );
             }
-            browser = await chromium.launch(launchOptions);
+
+            await fs.promises.mkdir(HEADFUL_PROFILE_DIR, { recursive: true });
 
             const contextOptions = {
+                headless: false,
+                args,
                 viewport: null,
                 userAgent: selectedUA,
                 locale: 'en-US',
-                timezoneId: 'America/New_York'
+                timezoneId: 'America/New_York',
+                permissions: ['clipboard-read', 'clipboard-write']
             };
 
-            if (!statelessExecution && fs.existsSync(STORAGE_STATE_FILE)) {
-                contextOptions.storageState = STORAGE_STATE_FILE;
+            if (selection.proxy) {
+                contextOptions.proxy = selection.proxy;
             }
 
-            contextOptions.permissions = ['clipboard-read', 'clipboard-write'];
-            context = await browser.newContext(contextOptions);
+            context = await chromium.launchPersistentContext(HEADFUL_PROFILE_DIR, contextOptions);
+            browser = context.browser();
         }
 
         let preloadedCookies = [];
@@ -461,7 +494,9 @@ async function runHeadful(data, options = {}) {
         });
 
         if (!page) {
-            page = await context.newPage();
+            // Persistent context auto-creates a blank page; reuse it or open a new one
+            const existingPages = context.pages();
+            page = existingPages.length > 0 ? existingPages[0] : await context.newPage();
             try {
                 const cdp = await context.newCDPSession(page);
                 const { windowId } = await cdp.send('Browser.getWindowForTarget');

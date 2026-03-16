@@ -1,35 +1,78 @@
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
 const { getProxySelection } = require('../../proxy-rotation');
 const { installMouseHelper } = require('./dom-utils');
 
+const stealth = StealthPlugin();
+stealth.enabledEvasions.clear();
+[
+    'chrome.app',
+    'chrome.csi',
+    'chrome.loadTimes',
+    'chrome.runtime',
+    'defaultArgs',
+    'iframe.contentWindow',
+    'media.codecs',
+    'navigator.hardwareConcurrency',
+    'navigator.languages',
+    'navigator.permissions',
+    'navigator.plugins',
+    'navigator.webdriver',
+    'sourceurl',
+    'user-agent-override',
+    'webgl.vendor',
+    'window.outerdimensions'
+].forEach(e => stealth.enabledEvasions.add(e));
+chromium.use(stealth);
+
+const PROFILE_DIR = path.join(__dirname, '../../data/browser-profile');
+
+function buildDnsArgs(hasProxy) {
+    const args = ['--dns-prefetch-disable'];
+    if (!hasProxy) {
+        args.push(
+            '--enable-features=DnsOverHttps',
+            '--dns-over-https-mode=secure',
+            '--dns-over-https-templates=https://cloudflare-dns.com/dns-query'
+        );
+    }
+    return args;
+}
+
 async function launchBrowser(options = {}) {
     const { rotateProxies, headless = true } = options;
-    const launchOptions = {
-        headless: headless,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-blink-features=AutomationControlled',
-            '--hide-scrollbars',
-            '--mute-audio'
-        ]
-    };
-    if (headless === false) {
-        launchOptions.args.push('--disable-gpu');
-    }
     const useRotateProxies = String(rotateProxies).toLowerCase() === 'true' || rotateProxies === true;
     const selection = getProxySelection(useRotateProxies);
+
+    const args = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-blink-features=AutomationControlled',
+        '--hide-scrollbars',
+        '--mute-audio',
+        ...buildDnsArgs(!!selection.proxy)
+    ];
+    if (headless === false) {
+        args.push('--disable-gpu');
+    }
+
+    const launchOptions = { headless, args };
     if (selection.proxy) {
         launchOptions.proxy = selection.proxy;
     }
+
     console.log(`[PROXY] Mode: ${selection.mode}; Target: ${selection.proxy ? selection.proxy.server : 'host_ip'}`);
-    return await chromium.launch(launchOptions);
+
+    await fs.promises.mkdir(PROFILE_DIR, { recursive: true });
+    // Store launch options for createBrowserContext to merge into persistent context
+    launchOptions._proxySelection = selection;
+    return launchOptions;
 }
 
-async function createBrowserContext(browser, options = {}) {
+async function createBrowserContext(launchOptions, options = {}) {
     const {
         userAgent,
         rotateViewport,
@@ -45,6 +88,8 @@ async function createBrowserContext(browser, options = {}) {
         : { width: 1366, height: 768 };
 
     const contextOptions = {
+        headless: launchOptions.headless,
+        args: launchOptions.args,
         userAgent: userAgent,
         viewport,
         deviceScaleFactor: 1,
@@ -55,24 +100,15 @@ async function createBrowserContext(browser, options = {}) {
         acceptDownloads: true,
     };
 
-    if (!statelessExecution && storageStateFile && fs.existsSync(storageStateFile)) {
-        try {
-            const stat = fs.statSync(storageStateFile);
-            if (!stat.isDirectory()) {
-                contextOptions.storageState = storageStateFile;
-            }
-        } catch { }
+    if (launchOptions.proxy) {
+        contextOptions.proxy = launchOptions.proxy;
     }
 
     if (!disableRecording && recordingsDir) {
         contextOptions.recordVideo = { dir: recordingsDir, size: viewport };
     }
 
-    const context = await browser.newContext(contextOptions);
-
-    await context.addInitScript(() => {
-        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    });
+    const context = await chromium.launchPersistentContext(PROFILE_DIR, contextOptions);
 
     await context.addInitScript(installMouseHelper);
 

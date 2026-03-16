@@ -1,4 +1,5 @@
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -8,6 +9,30 @@ const { formatHTML } = require('./html-utils');
 const { validateUrl } = require('./url-utils');
 const { parseBooleanFlag, sanitizeRunId, toCsvString, cookieMatches } = require('./common-utils');
 const { installMouseHelper } = require('./src/agent/dom-utils');
+
+const stealth = StealthPlugin();
+stealth.enabledEvasions.clear();
+[
+    'chrome.app',
+    'chrome.csi',
+    'chrome.loadTimes',
+    'chrome.runtime',
+    'defaultArgs',
+    'iframe.contentWindow',
+    'media.codecs',
+    'navigator.hardwareConcurrency',
+    'navigator.languages',
+    'navigator.permissions',
+    'navigator.plugins',
+    'navigator.webdriver',
+    'sourceurl',
+    'user-agent-override',
+    'webgl.vendor',
+    'window.outerdimensions'
+].forEach(e => stealth.enabledEvasions.add(e));
+chromium.use(stealth);
+
+const PROFILE_DIR = path.join(__dirname, 'data', 'browser-profile-scrape');
 
 const STORAGE_STATE_PATH = path.join(__dirname, 'storage_state.json');
 const STORAGE_STATE_FILE = (() => {
@@ -58,32 +83,37 @@ async function runScrape(data) {
     let context;
     let page;
     try {
-        const launchOptions = {
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-blink-features=AutomationControlled',
-                '--hide-scrollbars',
-                '--mute-audio'
-            ]
-        };
         const selection = getProxySelection(rotateProxies);
-        if (selection.proxy) {
-            launchOptions.proxy = selection.proxy;
-        }
+        const hasProxy = !!selection.proxy;
 
-        browser = await chromium.launch(launchOptions);
+        const args = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-blink-features=AutomationControlled',
+            '--hide-scrollbars',
+            '--mute-audio',
+            '--dns-prefetch-disable'
+        ];
+        if (!hasProxy) {
+            args.push(
+                '--enable-features=DnsOverHttps',
+                '--dns-over-https-mode=secure',
+                '--dns-over-https-templates=https://cloudflare-dns.com/dns-query'
+            );
+        }
 
         const recordingsDir = path.join(__dirname, 'data', 'recordings');
         await fs.promises.mkdir(recordingsDir, { recursive: true });
+        await fs.promises.mkdir(PROFILE_DIR, { recursive: true });
 
         const viewport = rotateViewport
             ? { width: 1280 + Math.floor(Math.random() * 640), height: 720 + Math.floor(Math.random() * 360) }
             : { width: 1366, height: 768 };
 
         const contextOptions = {
+            headless: true,
+            args,
             userAgent: selectedUA,
             extraHTTPHeaders: customHeaders,
             viewport,
@@ -94,16 +124,16 @@ async function runScrape(data) {
             permissions: ['geolocation']
         };
 
-        const shouldUseStorageState = !statelessExecution && await fs.promises.access(STORAGE_STATE_FILE).then(() => true).catch(() => false);
-        if (shouldUseStorageState) {
-            contextOptions.storageState = STORAGE_STATE_FILE;
+        if (selection.proxy) {
+            contextOptions.proxy = selection.proxy;
         }
 
         if (!disableRecording) {
             contextOptions.recordVideo = { dir: recordingsDir, size: viewport };
         }
 
-        context = await browser.newContext(contextOptions);
+        context = await chromium.launchPersistentContext(PROFILE_DIR, contextOptions);
+        browser = context.browser();
 
         let preloadedCookies = [];
         if (!statelessExecution && fs.existsSync(STORAGE_STATE_FILE)) {
@@ -146,9 +176,6 @@ async function runScrape(data) {
             route.continue();
         });
 
-        await context.addInitScript(() => {
-            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        });
         await context.addInitScript(installMouseHelper);
 
         if (includeShadowDom) {
@@ -162,7 +189,9 @@ async function runScrape(data) {
             });
         }
 
-        page = await context.newPage();
+        // Persistent context auto-creates a blank page; reuse it or open a new one
+        const existingPages = context.pages();
+        page = existingPages.length > 0 ? existingPages[0] : await context.newPage();
 
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
@@ -389,7 +418,7 @@ async function runScrape(data) {
             }
         }
 
-        await browser.close();
+        if (browser) await browser.close();
         return resultData;
     } catch (error) {
         if (context && !statelessExecution) {
