@@ -61,6 +61,7 @@ const viewRoutes = require('./src/server/routes/views');
 const scheduleRoutes = require('./src/server/routes/schedules');
 const credentialRoutes = require('./src/server/routes/credentials');
 const { pushOutput } = require('./src/server/outputProviders');
+const { migrateStorageState } = require('./src/server/migrate-storage');
 
 const app = express();
 app.disable('x-powered-by');
@@ -471,6 +472,9 @@ findAvailablePort(port, 20)
             const address = server.address();
             const displayPort = typeof address === 'object' && address ? address.port : availablePort;
             console.log(`Server running at http://localhost:${displayPort}`);
+
+            // One-time migration of storage_state.json cookies into persistent browser profiles
+            migrateStorageState().catch(err => console.error('[MIGRATION] Failed:', err.message));
 
             // Start the cron scheduler
             const { startScheduler } = require('./src/server/scheduler');
