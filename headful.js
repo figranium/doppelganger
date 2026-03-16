@@ -8,8 +8,24 @@ const { parseBooleanFlag } = require('./common-utils');
 const { Mutex } = require('./src/server/utils');
 
 const HEADFUL_PROFILE_DIR = path.join(__dirname, 'data', 'browser-profile-headful');
+const HEADFUL_STATE_PATH = path.join(__dirname, 'data', 'headful-storage-state.json');
 
 const headfulMutex = new Mutex();
+
+async function saveHeadfulStorageState(context) {
+    if (!context) return;
+    try {
+        const state = await context.storageState();
+        const now = Date.now() / 1000;
+        const cookies = (state.cookies || []).filter(c => !c.expires || c.expires === -1 || c.expires > now);
+        if (cookies.length === 0) return;
+        await fs.promises.mkdir(path.join(__dirname, 'data'), { recursive: true });
+        await fs.promises.writeFile(HEADFUL_STATE_PATH, JSON.stringify({ cookies }, null, 2));
+        console.log(`[HEADFUL] Saved ${cookies.length} cookies to headful-storage-state.json`);
+    } catch (e) {
+        console.error('[HEADFUL] Failed to save storage state:', e.message);
+    }
+}
 
 const EventEmitter = require('events');
 const headfulEventEmitter = new EventEmitter();
@@ -21,6 +37,9 @@ const teardownActiveSession = async () => {
     try {
         if (activeSession.interval) clearInterval(activeSession.interval);
     } catch { }
+    if (activeSession.context && !activeSession.statelessExecution) {
+        await saveHeadfulStorageState(activeSession.context);
+    }
     try {
         if (activeSession.browser) {
             await activeSession.browser.close();
@@ -444,7 +463,12 @@ async function runHeadful(data, options = {}) {
             await page.goto(url).catch(() => { });
         }
 
-        activeSession = { browser, context, page, status: 'running', startedAt: activeSession.startedAt, inspectModeEnabled: activeSession.inspectModeEnabled };
+        const syncInterval = statelessExecution ? null : setInterval(() => {
+            if (activeSession && activeSession.context) {
+                saveHeadfulStorageState(activeSession.context).catch(() => {});
+            }
+        }, 30000);
+        activeSession = { browser, context, page, status: 'running', startedAt: activeSession.startedAt, inspectModeEnabled: activeSession.inspectModeEnabled, statelessExecution, interval: syncInterval };
 
         page.on('close', async () => { });
 

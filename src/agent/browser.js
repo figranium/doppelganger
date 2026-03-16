@@ -5,6 +5,22 @@ const { getProxySelection } = require('../../proxy-rotation');
 const { installMouseHelper } = require('./dom-utils');
 
 const PROFILE_DIR = path.join(__dirname, '../../data/browser-profile');
+const HEADFUL_STATE_PATH = path.join(__dirname, '../../data/headful-storage-state.json');
+
+async function injectHeadfulCookies(context) {
+    try {
+        const raw = await fs.promises.readFile(HEADFUL_STATE_PATH, 'utf8');
+        const state = JSON.parse(raw);
+        const now = Date.now() / 1000;
+        const cookies = (state.cookies || []).filter(c => !c.expires || c.expires === -1 || c.expires > now);
+        if (cookies.length > 0) {
+            await context.addCookies(cookies);
+            console.log(`[AGENT] Injected ${cookies.length} cookies from headful session`);
+        }
+    } catch (e) {
+        if (e.code !== 'ENOENT') console.error('[AGENT] Failed to inject headful cookies:', e.message);
+    }
+}
 
 function buildDnsArgs(hasProxy) {
     const args = ['--dns-prefetch-disable'];
@@ -96,6 +112,7 @@ async function createBrowserContext(launchOptions, options = {}) {
             args: launchOptions.args,
             ...contextOptions
         });
+        await injectHeadfulCookies(context);
     }
 
     await context.addInitScript(installMouseHelper);

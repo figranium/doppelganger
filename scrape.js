@@ -10,6 +10,22 @@ const { parseBooleanFlag, sanitizeRunId, toCsvString } = require('./common-utils
 const { installMouseHelper } = require('./src/agent/dom-utils');
 
 const PROFILE_DIR = path.join(__dirname, 'data', 'browser-profile-scrape');
+const HEADFUL_STATE_PATH = path.join(__dirname, 'data', 'headful-storage-state.json');
+
+async function injectHeadfulCookies(context) {
+    try {
+        const raw = await fs.promises.readFile(HEADFUL_STATE_PATH, 'utf8');
+        const state = JSON.parse(raw);
+        const now = Date.now() / 1000;
+        const cookies = (state.cookies || []).filter(c => !c.expires || c.expires === -1 || c.expires > now);
+        if (cookies.length > 0) {
+            await context.addCookies(cookies);
+            console.log(`[SCRAPE] Injected ${cookies.length} cookies from headful session`);
+        }
+    } catch (e) {
+        if (e.code !== 'ENOENT') console.error('[SCRAPE] Failed to inject headful cookies:', e.message);
+    }
+}
 
 async function runScrape(data) {
     const url = data.url;
@@ -105,6 +121,7 @@ async function runScrape(data) {
             await fs.promises.mkdir(PROFILE_DIR, { recursive: true });
             context = await chromium.launchPersistentContext(PROFILE_DIR, { headless: true, args, ...contextOptions });
             browser = context.browser();
+            await injectHeadfulCookies(context);
         }
 
         await context.addInitScript(installMouseHelper);
