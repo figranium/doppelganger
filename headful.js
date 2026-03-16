@@ -1,5 +1,4 @@
-const { chromium } = require('playwright-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const { chromium } = require('./stealth-chromium');
 const fs = require('fs');
 const path = require('path');
 const { getProxySelection } = require('./proxy-rotation');
@@ -7,28 +6,6 @@ const { selectUserAgent } = require('./user-agent-settings');
 const { validateUrl } = require('./url-utils');
 const { parseBooleanFlag } = require('./common-utils');
 const { Mutex } = require('./src/server/utils');
-
-const stealth = StealthPlugin();
-stealth.enabledEvasions.clear();
-[
-    'chrome.app',
-    'chrome.csi',
-    'chrome.loadTimes',
-    'chrome.runtime',
-    'defaultArgs',
-    'iframe.contentWindow',
-    'media.codecs',
-    'navigator.hardwareConcurrency',
-    'navigator.languages',
-    'navigator.permissions',
-    'navigator.plugins',
-    'navigator.webdriver',
-    'sourceurl',
-    'user-agent-override',
-    'webgl.vendor',
-    'window.outerdimensions'
-].forEach(e => stealth.enabledEvasions.add(e));
-chromium.use(stealth);
 
 const HEADFUL_PROFILE_DIR = path.join(__dirname, 'data', 'browser-profile-headful');
 

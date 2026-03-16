@@ -530,7 +530,26 @@ async function runAgent(data, options = {}) {
             } catch (e) { }
         }
 
-        const cleanedHtml = await page.evaluate(cleanHtml, includeShadowDom);
+        let cleanedHtml = '';
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                await page.waitForLoadState('domcontentloaded').catch(() => {});
+                cleanedHtml = await page.evaluate(cleanHtml, includeShadowDom);
+                break;
+            } catch (evalErr) {
+                if (attempt < 2 && /context was destroyed|navigation/i.test(evalErr.message)) {
+                    await page.waitForTimeout(1000);
+                    continue;
+                }
+                // Final fallback: raw page content
+                try {
+                    cleanedHtml = await page.content();
+                } catch {
+                    cleanedHtml = '';
+                }
+                break;
+            }
+        }
 
         const extractionScriptRaw = typeof data.extractionScript === 'string'
             ? data.extractionScript

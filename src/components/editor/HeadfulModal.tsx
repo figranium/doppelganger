@@ -93,7 +93,7 @@ const HeadfulModal: React.FC<HeadfulModalProps> = ({
                             <div className="text-[11px] text-amber-500/80 max-w-md mx-auto bg-amber-500/10 p-4 rounded-xl border border-amber-500/20 text-left">
                                 <div className="flex items-center gap-2 mb-2 font-bold uppercase tracking-widest text-amber-500">
                                     <MaterialIcon name="warning" className="text-base" />
-                                    <span>Disclaimer</span>
+                                    <span>Warning</span>
                                 </div>
                                 Figranium is not optimized for native browser windows. On <strong>Wayland displays</strong>, you <strong>HAVE TO use Docker</strong>, or you will have to deal with the problems of a physical browser losing focus or failing to capture clicks.<br /><br />
                                 For maximum stability, please install the proper tools (Xvfb, x11vnc, websockify) or use the official Docker image.

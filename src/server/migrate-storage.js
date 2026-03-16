@@ -1,5 +1,4 @@
-const { chromium } = require('playwright-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const { chromium } = require('../../stealth-chromium');
 const fs = require('fs');
 const path = require('path');
 const { STORAGE_STATE_PATH } = require('./constants');
@@ -39,17 +38,6 @@ async function migrateStorageState() {
     }
 
     console.log(`[MIGRATION] Migrating ${validCookies.length} cookies from storage_state.json into persistent profiles...`);
-
-    const stealth = StealthPlugin();
-    stealth.enabledEvasions.clear();
-    [
-        'chrome.app', 'chrome.csi', 'chrome.loadTimes', 'chrome.runtime',
-        'defaultArgs', 'iframe.contentWindow', 'media.codecs',
-        'navigator.hardwareConcurrency', 'navigator.languages',
-        'navigator.permissions', 'navigator.plugins', 'navigator.webdriver',
-        'sourceurl', 'user-agent-override', 'webgl.vendor', 'window.outerdimensions'
-    ].forEach(e => stealth.enabledEvasions.add(e));
-    chromium.use(stealth);
 
     let migrated = 0;
     for (const profileDir of PROFILE_DIRS) {
