@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireAuth, requireApiKey } = require('../middleware');
-const { loadExecutions, saveExecutions } = require('../storage');
+const { loadExecutions, saveExecutions, getExecutionById } = require('../storage');
 const { executionStreams, stopRequests, sendExecutionUpdate } = require('../state');
 
 const router = express.Router();
@@ -61,8 +61,8 @@ router.get('/stream', requireAuth, (req, res) => {
 });
 
 router.get('/:id', requireAuth, async (req, res) => {
-    const executions = await loadExecutions();
-    const exec = executions.find(e => e.id === req.params.id);
+    await loadExecutions();
+    const exec = getExecutionById(req.params.id);
     if (!exec) return res.status(404).json({ error: 'EXECUTION_NOT_FOUND' });
     res.json({ execution: exec });
 });

@@ -299,9 +299,23 @@ async function saveTasks(tasks) {
 
 // Execution Storage
 let executionsCache = null;
+let executionsMap = new Map();
 let executionsLoadPromise = null;
 let executionsSaveTimer = null;
 let executionsWritePromise = Promise.resolve();
+
+function syncExecutionsMap() {
+    if (!executionsCache) {
+        executionsMap.clear();
+        return;
+    }
+    executionsMap = new Map(executionsCache.map(exec => [exec.id, exec]));
+}
+
+function getExecutionById(id) {
+    if (!executionsCache) return null;
+    return executionsMap.get(id) || null;
+}
 
 async function performExecutionsWrite(data) {
     const nextWrite = executionsWritePromise.then(() => fs.promises.writeFile(EXECUTIONS_FILE, data));
@@ -336,6 +350,7 @@ async function loadExecutions() {
                 executionsCache = [];
             }
         }
+        syncExecutionsMap();
         executionsLoadPromise = null;
         return executionsCache;
     })();
@@ -350,6 +365,7 @@ async function saveExecutions(executions) {
         executionsSaveTimer = null;
     }
     executionsCache = executions;
+    syncExecutionsMap();
 
     const useDB = await ensureDB();
     if (useDB) {
@@ -381,6 +397,7 @@ async function appendExecution(entry) {
     if (executionsCache.length > MAX_EXECUTIONS) {
         executionsCache.length = MAX_EXECUTIONS;
     }
+    syncExecutionsMap();
 
     const useDB = await ensureDB();
     if (useDB) {
@@ -964,6 +981,7 @@ module.exports = {
     getTaskIndexById,
     loadExecutions,
     saveExecutions,
+    getExecutionById,
     appendExecution,
     loadApiKey,
     saveApiKey,
