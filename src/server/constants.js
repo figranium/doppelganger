@@ -21,7 +21,7 @@ const REQUEST_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_RATE_LIMIT_MAX = Number(process.env.AUTH_RATE_LIMIT_MAX || 10);
 const DATA_RATE_LIMIT_MAX = Number(process.env.DATA_RATE_LIMIT_MAX || 100);
 const ALLOWED_IPS_TTL_MS = 5000;
-const SESSION_TTL_SECONDS = 10 * 365 * 24 * 60 * 60; // 10 years
+const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const NOVNC_PORT = Number(process.env.NOVNC_PORT) || 54311;
 const WEBSOCKIFY_PATH = '/websockify';
 
