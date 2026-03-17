@@ -108,6 +108,10 @@ After completing any major feature implementation, provide the user with a check
 
 Tailor the list to what was actually touched — don't list every item for every change.
 
+## Finalize Convention
+
+When the user says to **finalize** after a task is complete, stage the relevant changed files and create a commit with an appropriate message.
+
 ## Key Environment Variables
 
 - `PORT` / `HOST` — Express listen address (default: 11345 / 0.0.0.0)

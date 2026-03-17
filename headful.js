@@ -482,6 +482,10 @@ async function runHeadful(data, options = {}) {
         }
 
         await new Promise((resolve) => browser.on('disconnected', resolve));
+        if (syncInterval) clearInterval(syncInterval);
+        if (!statelessExecution && context) {
+            await saveHeadfulStorageState(context).catch(() => {});
+        }
         activeSession = null;
         return responseData;
     } catch (error) {
