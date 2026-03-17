@@ -136,13 +136,14 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                         <h2 className="text-4xl font-bold tracking-tighter text-white">Run History</h2>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="flex bg-white/5 rounded-xl p-1 border border-white/5">
+                        <div role="tablist" className="flex bg-white/5 rounded-xl p-1 border border-white/5">
                             {(['all', 'editor', 'api'] as const).map((mode) => (
                                 <button
                                     key={mode}
+                                    role="tab"
+                                    aria-selected={filter === mode}
                                     onClick={() => setFilter(mode)}
-                                    className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${filter === mode ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
-                                    aria-pressed={filter === mode}
+                                    className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all focus:outline-none focus-visible:ring-2 ${filter === mode ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
                                 >
                                     {mode}
                                 </button>

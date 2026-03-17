@@ -593,12 +593,14 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                     </span>
                     <div className="flex items-center gap-2">
                         {activeResults?.downloads && activeResults.downloads.length > 0 && (
-                            <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
+                            <div role="tablist" className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
                                 {(['data', 'downloads'] as const).map((mode) => (
                                     <button
                                         key={mode}
+                                        role="tab"
+                                        aria-selected={mainView === mode}
                                         onClick={() => setMainView(mode)}
-                                        className={`px-3 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-all ${mainView === mode ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+                                        className={`px-3 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-all focus:outline-none focus-visible:ring-2 ${mainView === mode ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
                                     >
                                         {mode}
                                     </button>
@@ -606,12 +608,14 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                             </div>
                         )}
                         {pinnedResults && (
-                            <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
+                            <div role="tablist" className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
                                 {(['latest', 'pinned'] as const).map((mode) => (
                                     <button
                                         key={mode}
+                                        role="tab"
+                                        aria-selected={resultView === mode}
                                         onClick={() => setResultView(mode)}
-                                        className={`px-3 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-all ${resultView === mode ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+                                        className={`px-3 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-all focus:outline-none focus-visible:ring-2 ${resultView === mode ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
                                     >
                                         {mode}
                                     </button>
@@ -619,12 +623,14 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                             </div>
                         )}
                         {tableData && mainView === 'data' && (
-                            <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
+                            <div role="tablist" className="flex bg-white/5 rounded-lg p-0.5 border border-white/10">
                                 {(['table', 'raw'] as const).map((mode) => (
                                     <button
                                         key={mode}
+                                        role="tab"
+                                        aria-selected={dataView === mode}
                                         onClick={() => setDataView(mode)}
-                                        className={`px-3 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-all ${dataView === mode ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+                                        className={`px-3 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-all focus:outline-none focus-visible:ring-2 ${dataView === mode ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
                                     >
                                         {mode}
                                     </button>
