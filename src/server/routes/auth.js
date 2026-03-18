@@ -61,7 +61,8 @@ router.post('/login', authRateLimiter, async (req, res) => {
 
     // Timing-safe login: Always perform a bcrypt.compare to prevent user enumeration via timing attacks.
     // If user not found, compare against a dummy hash to maintain consistent response timing.
-    const DUMMY_HASH = '$2b$10$fV2789O9rKz/s1mC0.YpPeu8Pmq/OayFf6XpD8bN5r8H7S2pXU8/y'; // dummy bcrypt hash
+    // The dummy hash uses 12 rounds to match the rounds used during user setup.
+    const DUMMY_HASH = '$2b$12$ROIlwVQgCzLuLoE6wDpqde0hhUzGqMywgkLIrOE5lom6P2F0fhbBO'; // dummy bcrypt hash (12 rounds)
     const hashToCompare = user ? user.password : DUMMY_HASH;
     const isPasswordValid = await bcrypt.compare(password || '', hashToCompare);
 

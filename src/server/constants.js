@@ -25,7 +25,7 @@ const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 const NOVNC_PORT = Number(process.env.NOVNC_PORT) || 54311;
 const WEBSOCKIFY_PATH = '/websockify';
 
-const ALLOW_PRIVATE_NETWORKS = !['0', 'false', 'no'].includes(String(process.env.ALLOW_PRIVATE_NETWORKS || '').toLowerCase());
+const ALLOW_PRIVATE_NETWORKS = ['1', 'true', 'yes'].includes(String(process.env.ALLOW_PRIVATE_NETWORKS || '').toLowerCase());
 
 module.exports = {
     DEFAULT_PORT,
