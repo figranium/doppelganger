@@ -196,8 +196,14 @@ async function runHeadful(data, options = {}) {
                         if (!id) return true;
                         // Long numbers, UUIDs, explicit long strings
                         if (/\d{4,}/.test(id) || /^[0-9a-f]{8}-/i.test(id) || id.length > 30 || /[0-9]{3,}/.test(id)) return true;
-                        // Google-style obfuscated classes (e.g. gLFyf, APjFqb)
-                        if (/^[a-zA-Z]{4,8}$/.test(id) && /[A-Z]/.test(id) && /[a-z]/.test(id)) return true;
+                        // Google-style obfuscated classes (e.g. gLFyf, APjFqb) — mixed-case letters that don't follow camelCase/PascalCase (with common acronyms allowed)
+                        if (/^[a-zA-Z]{4,8}$/.test(id) && /[A-Z]/.test(id) && /[a-z]/.test(id)) {
+                            const acr = '(?:UI|UX|ID|DB|IO|IP|OS|QA|AI|ML|API|URL|CSS|DOM|RGB|SVG|XML|SQL|SDK|CLI|SSH|DNS|TCP|UDP|HTTP|JSON|HTML)';
+                            const validCamelCase = new RegExp('^(?:' + acr + '|[A-Z]?[a-z]+)(?:' + acr + '|[A-Z][a-z]+)*$');
+                            if (!validCamelCase.test(id)) return true;
+                        }
+                        // Short mixed-case alphanumeric with digits (e.g. A7sPV, tX61Ub, gL3fY)
+                        if (id.length <= 10 && /^[a-zA-Z0-9]+$/.test(id) && /[A-Z]/.test(id) && /[a-z]/.test(id) && /[0-9]/.test(id)) return true;
                         // Styled-components or CSS modules with hashes like css-1n7jcv, style_module__1xyz
                         if (/^css-[a-zA-Z0-9]+/.test(id) || /^sc-[a-zA-Z0-9]+/.test(id) || /_[a-zA-Z0-9]{5,}$/.test(id) || /-[a-zA-Z0-9]{5,}$/.test(id)) return true;
                         // Tailwind arbitrary values or very complex utility classes

@@ -39,7 +39,7 @@ const HeadfulModal: React.FC<HeadfulModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md flex items-center justify-center p-8 pointer-events-auto">
-            <div className="w-full h-full max-w-6xl max-h-[800px] bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
+            <div className="w-full max-w-6xl bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 border-b border-white/10 bg-black/20 gap-4">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-3">
@@ -81,7 +81,7 @@ const HeadfulModal: React.FC<HeadfulModalProps> = ({
                         </button>
                     </div>
                 </div>
-                <div ref={headfulFrameRef} className="flex-1 relative bg-black flex items-center justify-center">
+                <div ref={headfulFrameRef} className="w-full aspect-video relative bg-black flex items-center justify-center">
                     {useNovnc === false ? (
                         <div className="text-center p-8">
                             <MaterialIcon name="open_in_new" className="text-6xl text-white/20 mb-4 block" />

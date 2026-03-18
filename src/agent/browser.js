@@ -50,7 +50,7 @@ async function launchBrowser(options = {}) {
         ...buildDnsArgs(!!selection.proxy)
     ];
     if (headless === false) {
-        args.push('--disable-gpu');
+        args.push('--disable-gpu', '--window-size=1920,1080', '--window-position=0,0', '--start-maximized');
     }
 
     const launchOptions = { headless, args };
@@ -74,9 +74,11 @@ async function createBrowserContext(launchOptions, options = {}) {
         includeShadowDom
     } = options;
 
-    const viewport = rotateViewport
-        ? { width: 1280 + Math.floor(Math.random() * 640), height: 720 + Math.floor(Math.random() * 360) }
-        : { width: 1366, height: 768 };
+    const viewport = launchOptions.headless === false
+        ? null
+        : rotateViewport
+            ? { width: 1280 + Math.floor(Math.random() * 640), height: 720 + Math.floor(Math.random() * 360) }
+            : { width: 1366, height: 768 };
 
     const contextOptions = {
         userAgent: userAgent,
