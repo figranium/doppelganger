@@ -23,6 +23,8 @@ export const useEditorHeadful = (
         if (!isHeadfulOpen) {
             setIsInspectMode(false);
             setIsInspectLoading(false);
+        } else if (activeInspectActionIdRef.current) {
+            setIsInspectMode(true);
         }
     }, [isHeadfulOpen]);
 
