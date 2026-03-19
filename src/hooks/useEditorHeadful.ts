@@ -8,7 +8,7 @@ export const useEditorHeadful = (
     onNotify: (msg: string, tone?: 'success' | 'error') => void,
     onStopHeadful?: () => void
 ) => {
-    const [isInspectMode, setIsInspectMode] = useState(true);
+    const [isInspectMode, setIsInspectMode] = useState(false);
     const [isInspectLoading, setIsInspectLoading] = useState(false);
     const [activeInspectActionId, setActiveInspectActionId] = useState<string | null>(null);
     const [selectorOptionsById, setSelectorOptionsById] = useState<Record<string, string[]>>({});
@@ -21,7 +21,7 @@ export const useEditorHeadful = (
 
     useEffect(() => {
         if (!isHeadfulOpen) {
-            setIsInspectMode(true);
+            setIsInspectMode(false);
             setIsInspectLoading(false);
         }
     }, [isHeadfulOpen]);

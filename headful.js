@@ -43,6 +43,8 @@ const teardownActiveSession = async () => {
     try {
         if (activeSession.browser) {
             await activeSession.browser.close();
+        } else if (activeSession.context) {
+            await activeSession.context.close();
         }
     } catch { }
     activeSession = null;
@@ -63,7 +65,7 @@ async function runHeadful(data, options = {}) {
     const statelessExecutionRaw = data.statelessExecution;
     const statelessExecution = parseBooleanFlag(statelessExecutionRaw);
 
-    const inspectModeEnabled = true;
+    const inspectModeEnabled = false;
 
     activeSession = { status: 'starting', startedAt: Date.now(), inspectModeEnabled };
 
@@ -78,7 +80,7 @@ async function runHeadful(data, options = {}) {
         if (data.targetActionId && data.taskSnapshot) {
             const { runAgent } = require('./src/agent');
             try {
-                const reqScope = { ...data.taskSnapshot, variables: data.variables || data.taskVariables || {} };
+                const reqScope = { ...data.taskSnapshot, variables: data.variables || data.taskVariables || {}, statelessExecution: true, disableRecording: true };
                 if (data.url) reqScope.url = data.url;
 
                 const result = await runAgent(reqScope, {
@@ -491,7 +493,12 @@ async function runHeadful(data, options = {}) {
             res.json(responseData);
         }
 
-        await new Promise((resolve) => browser.on('disconnected', resolve));
+        if (browser) {
+            await new Promise((resolve) => browser.once('disconnected', resolve));
+        } else {
+            // Persistent context: context.browser() returns null; wait for context close instead
+            await new Promise((resolve) => context.once('close', resolve));
+        }
         if (syncInterval) clearInterval(syncInterval);
         if (!statelessExecution && context) {
             await saveHeadfulStorageState(context).catch(() => {});
@@ -500,6 +507,7 @@ async function runHeadful(data, options = {}) {
         return responseData;
     } catch (error) {
         if (browser) await browser.close();
+        else if (context) await context.close().catch(() => {});
         activeSession = null;
         throw error;
     }
