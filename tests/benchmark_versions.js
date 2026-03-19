@@ -1,5 +1,3 @@
-const { cloneTaskForVersion } = require('../src/server/utils');
-
 const task = {
     id: 'test_task',
     name: 'Large Task',
