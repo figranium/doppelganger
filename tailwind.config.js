@@ -13,7 +13,7 @@ module.exports = {
                 accent: '#ffffff',
             },
             fontFamily: {
-                sans: ['Geologica', 'sans-serif'],
+                sans: ['Questrial', 'sans-serif'],
                 mono: ['JetBrains Mono', 'monospace'],
             },
         },
