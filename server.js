@@ -359,13 +359,22 @@ app.all('/agent', requireAuth, dataRateLimiter, (req, res) => {
 });
 app.post('/headful', requireAuth, dataRateLimiter, (req, res) => {
     registerExecution(req, res, { mode: 'headful' });
-    if (req.body && typeof req.body.url === 'string') {
-        const vars = req.body.taskVariables || req.body.variables || {};
-        req.body.url = req.body.url.replace(/\{\$(\w+)\}/g, (_match, name) => {
-            const value = vars[name];
-            if (value === undefined || value === null) return '';
-            return String(value);
-        });
+    if (req.body) {
+        // Flatten variables from {type, value} objects to plain values
+        const rawVars = req.body.taskVariables || req.body.variables || {};
+        const vars = {};
+        for (const [key, v] of Object.entries(rawVars)) {
+            vars[key] = (v && typeof v === 'object' && 'value' in v) ? v.value : v;
+        }
+        if (req.body.variables) req.body.variables = vars;
+        if (req.body.taskVariables) req.body.taskVariables = vars;
+        if (typeof req.body.url === 'string') {
+            req.body.url = req.body.url.replace(/\{\$(\w+)\}/g, (_match, name) => {
+                const value = vars[name];
+                if (value === undefined || value === null) return '';
+                return String(value);
+            });
+        }
     }
     return handleHeadful(req, res);
 });
