@@ -27,7 +27,7 @@ Figranium (formerly Doppelganger) is a self‑hosted, block-first automation con
 2. **Backend**  
    - `server.js` (Express) handles auth (`/api/auth`), task metadata, hooks into Playwright, and exposes `/api/settings/*` for runtime configuration.
    - Requirements: Node 18+ (LTS), Playwright bundled via `npm install`.
-   - Storage is plain‑file: `data/` for proxies and allowlists, `public/captures` for visuals, `storage_state.json` for cookies.
+   - Storage is plain‑file: `data/` for proxies and allowlists, `public/captures` for visuals, and browser session cookies stored internally.
 
 3. **Scripts & automation**  
    - `scripts/postinstall.js` runs when dependencies install (keep an eye if you customize).
@@ -72,7 +72,6 @@ docker run -d \
   -e SESSION_SECRET=replace_with_long_random_value \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/public:/app/public \
-  -v $(pwd)/storage_state.json:/app/storage_state.json \
   figranium/figranium
 ```
 
@@ -114,7 +113,7 @@ npx figranium
 
 If you prefer not to install globally, clone the repo, run `npm install` to pull dependencies, and then run `npx figranium` inside that folder. This ensures `npx` can resolve the package from the local registry/cache while still shipping the same dashboard experience.
 
-Set `SESSION_SECRET` and optionally mount `data/`, `public/`, and `storage_state.json` (match the Docker volume layout). The CLI spins up the same Express/Playwright stack and opens the browser-based dashboard at `http://localhost:11345` unless you override `PORT`.
+Set `SESSION_SECRET` and optionally mount `data/` and `public/` (match the Docker volume layout). The CLI spins up the same Express/Playwright stack and opens the browser-based dashboard at `http://localhost:11345` unless you override `PORT`.
 
 ## Session Secret
 
@@ -218,7 +217,7 @@ If enabled, provide the `x-api-key` header or `Authorization: Bearer <key>`. For
 *   **`GET /api/data/captures`**: List generated screenshots, videos, and downloads.
 *   **`DELETE /api/data/captures/:name`**: Delete a specific capture.
 *   **`POST /api/clear-screenshots`**: Removes all files in `public/captures`.
-*   **`POST /api/clear-cookies`**: Deletes `storage_state.json`.
+*   **`POST /api/clear-cookies`**: Clears stored browser session cookies.
 
 # Task Scripting Tips
 
@@ -263,14 +262,14 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 # Data Lifecycle
 
 - Captures land in `public/captures`; regular cleanups can be scripted via `POST /api/clear-screenshots`.
-- Cookies live in `storage_state.json`. Back up this file before clearing cookies via the UI or `/api/clear-cookies`.
+- Cookies are stored internally; clear them via the UI or `/api/clear-cookies`.
 - Proxy lists, user-agent preferences, and settings persist under `data/` (look for `proxies.json`, `allowed_ips.json`, etc.) — treat this directory as your config source control.
 - Use `Storage` controls in Settings to clear data after experimentation cycles, and keep `layouts` or `version` info tracked via `localStorage` as shown in `src/components/SettingsScreen.tsx`.
 
 # Maintenance
 
 - The project is governed by the **[GNU General Public License v3.0](https://github.com/figranium/figranium/blob/main/LICENSE)**, which grants rights for distribution and modification as per the GPLv3 terms.
-- Keep `data/` and `storage_state.json` backed up if you rely on historical cookies or proxies.
+- Keep `data/` backed up if you rely on historical proxies and settings.
 - Release updates by pulling `figranium/figranium` (Docker) or `npm i figranium` (npm). The Settings view always displays the current package version.
 - Contributions: follow `.github/` templates, respect `CONTRIBUTING.md`, and run available lint/test scripts if you touch critical areas.
 
@@ -286,7 +285,7 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 - [ ] **Click-and-drag block** — add an action that does drag gestures (selecting text, moving items) so tasks can simulate click-and-drag flows.
 - [x] **Recording controls** — Task editor now exposes a “Disable automated recording” switch in the general settings panel so workflows can skip video capture on a per-task basis.
 - [x] **File downloads** — add explicit support for agent tasks to download files (PDFs, CSVs, etc.) directly from target pages, then surface those downloads in the UI so users can preview or export them without sifting through captures.
-- [x] **Stateless mode** — Tasks now have a “Stateless execution” toggle alongside the recording controls so each run can skip `storage_state.json`, ensuring no cookies or local storage persist between executions for that workflow.
+- [x] **Stateless mode** — Tasks now have a “Stateless execution” toggle alongside the recording controls so each run starts with no cookies or local storage, ensuring nothing persists between executions for that workflow.
 - [ ] **Adblocking filters** — add controls so execution contexts can enable built-in ad/malware filtering (e.g., via hosts file overrides or request blocking) to reduce noise on sensitive sites.
 - [ ] **Extraction response mode** — add a Settings switch so users can choose whether the API returns HTML+data (for debugging) or data-only payloads when extraction scripts run.
 - [ ] **Folder organization** — group tasks, assets, and captures into named folders so operators can browse, filter, and download collections per workflow.
@@ -308,7 +307,7 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 
 # Security Considerations
 
-- Never commit your `SESSION_SECRET`, API keys, or `storage_state.json` into shared repositories.
+- Never commit your `SESSION_SECRET` or API keys into shared repositories.
 - Use `ALLOWED_IPS`/`data/allowed_ips.json` to gate the UI when deploying to a network-exposed host.
 - Rotate API keys periodically via Settings, and log all automation runs through the Executions tab for audit purposes.
 - Playwright runs inside the same Node process; keep dependencies up to date and rebuild `node_modules` after significant OS patches.
