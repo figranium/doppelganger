@@ -133,7 +133,7 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
             <div className="max-w-6xl mx-auto space-y-8">
                 <div className="flex items-end justify-between">
                     <div className="space-y-2">
-                        <h2 className="text-base font-medium tracking-[0.25em] text-white uppercase">Run History</h2>
+                        <h2 className="text-base font-heading font-bold tracking-[0.25em] text-white uppercase">Run History</h2>
                     </div>
                     <div className="flex items-center gap-3">
                         <div role="tablist" className="flex bg-white/5 rounded-xl p-1 border border-white/5">

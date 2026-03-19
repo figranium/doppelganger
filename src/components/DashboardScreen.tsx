@@ -51,7 +51,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                 <div className="h-full flex flex-col px-12 py-12 max-w-7xl mx-auto space-y-12 w-full">
                     <div className="flex items-end justify-between">
                         <div className="space-y-2">
-                            <h2 className="text-base font-medium tracking-[0.25em] text-white uppercase">Dashboard</h2>
+                            <h2 className="text-base font-heading font-bold tracking-[0.25em] text-white uppercase">Dashboard</h2>
                         </div>
                         <div className="flex items-center gap-3">
                             <GithubStarPill />
