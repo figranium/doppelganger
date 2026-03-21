@@ -1,10 +1,11 @@
 import { Task } from '../types';
 
 export const serializeTaskSnapshot = (task?: Task | null) => {
+    // ⚡ Bolt: Use object destructuring to exclude 'last_opened' BEFORE serialization.
+    // This avoids O(N) overhead of deep cloning and deleting properties from a large object.
     if (!task) return '';
-    const clone = JSON.parse(JSON.stringify(task));
-    delete clone.last_opened;
-    return JSON.stringify(clone);
+    const { last_opened, ...rest } = task;
+    return JSON.stringify(rest);
 };
 
 export const parseBooleanFlag = (value: any) => {
