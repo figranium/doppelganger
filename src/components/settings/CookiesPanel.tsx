@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import MaterialIcon from '../MaterialIcon';
+import CopyButton from '../CopyButton';
 
 interface CookieEntry {
     name: string;
@@ -100,8 +101,11 @@ const CookiesPanel: React.FC<CookiesPanelProps> = ({ cookies, originsCount, load
                     </div>
                 </div>
                 <button
+                    type="button"
                     onClick={onClear}
-                    className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-yellow-500/5 border border-yellow-500/10 text-yellow-400 hover:bg-yellow-500/10 transition-all"
+                    title="Clear all cookies"
+                    aria-label="Clear all cookies"
+                    className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-yellow-500/5 border border-yellow-500/10 text-yellow-400 hover:bg-yellow-500/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 >
                     Clear Cookies
                 </button>
@@ -131,27 +135,43 @@ const CookiesPanel: React.FC<CookiesPanelProps> = ({ cookies, originsCount, load
                                 <div className="flex items-center gap-2">
                                     {decodedCandidate && (
                                         <button
+                                            type="button"
                                             onClick={() => toggleDecodedCookie(cookie)}
-                                            className="px-3 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                                            title={showDecoded ? "Show raw value" : `Decode ${decodedCandidate.kind}`}
+                                            aria-label={showDecoded ? "Show raw value" : `Decode ${decodedCandidate.kind}`}
+                                            className="px-3 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                         >
                                             {showDecoded ? 'Show Raw' : `Decode ${decodedCandidate.kind}`}
                                         </button>
                                     )}
+                                    <CopyButton
+                                        text={fullValue}
+                                        title="Copy cookie value"
+                                        label="Copy"
+                                        className="px-3 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all"
+                                        iconClassName="text-sm"
+                                    />
                                     <button
+                                        type="button"
                                         onClick={() => onDelete(cookie)}
-                                        className="px-3 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all"
+                                        title={`Delete cookie ${cookie.name}`}
+                                        aria-label={`Delete cookie ${cookie.name}`}
+                                        className="px-3 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                     >
                                         Delete
                                     </button>
                                 </div>
                             </div>
-                            <div
+                            <button
+                                type="button"
                                 onClick={() => toggleCookie(cookie)}
-                                className="cursor-pointer rounded-xl bg-black/40 border border-white/10 px-3 py-2 font-mono text-[10px] text-blue-200/80 whitespace-pre-wrap break-words"
-                                title="Click to expand/collapse"
+                                aria-expanded={isExpanded}
+                                aria-label={isExpanded ? "Collapse cookie value" : "Expand cookie value"}
+                                className="w-full text-left cursor-pointer rounded-xl bg-black/40 border border-white/10 px-3 py-2 font-mono text-[10px] text-blue-200/80 whitespace-pre-wrap break-words focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                title={isExpanded ? "Click to collapse" : "Click to expand"}
                             >
                                 {displayValue || '(empty)'}
-                            </div>
+                            </button>
                         </div>
                     );
                 })}
