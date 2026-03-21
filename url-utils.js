@@ -135,4 +135,20 @@ async function validateUrl(urlStr) {
     }
 }
 
-module.exports = { validateUrl, isPrivateIP };
+/**
+ * Verifies if a WebSocket origin matches the request host (CSWSH protection).
+ * @param {string} origin The Origin header value.
+ * @param {string} host The Host header value.
+ * @returns {boolean} True if the origin is valid or missing.
+ */
+function isValidWebSocketOrigin(origin, host) {
+    if (!origin) return true;
+    try {
+        const originHost = new URL(origin).host;
+        return !!(originHost && host && originHost === host);
+    } catch (e) {
+        return false;
+    }
+}
+
+module.exports = { validateUrl, isPrivateIP, isValidWebSocketOrigin };

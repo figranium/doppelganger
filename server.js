@@ -45,6 +45,7 @@ const {
     proxyWebsockify,
     isPortAvailable
 } = require('./src/server/utils');
+const { isValidWebSocketOrigin } = require('./url-utils');
 
 // Middleware
 const {
@@ -511,6 +512,14 @@ findAvailablePort(port, 20)
                 }
                 return;
             }
+
+            // Cross-Site WebSocket Hijacking (CSWSH) protection: verify Origin header matches Host
+            if (!isValidWebSocketOrigin(req.headers.origin, req.headers.host)) {
+                console.warn(`[SECURITY] CSWSH attempt blocked: Origin ${req.headers.origin} mismatch with Host ${req.headers.host}`);
+                socket.destroy();
+                return;
+            }
+
             const handled = proxyWebsockify(req, socket, head);
             if (!handled) {
                 socket.destroy();

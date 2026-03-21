@@ -17,3 +17,8 @@
 **Vulnerability:** Authentication bypass for internal endpoints using spoofed `X-Forwarded-For` headers.
 **Learning:** The `isLoopback` check in `requireApiKey` relied on `req.ip`. When `TRUST_PROXY` is enabled, `req.ip` is derived from headers like `X-Forwarded-For`, which can be spoofed by external clients to bypass the API key requirement intended for local agents.
 **Prevention:** Use `req.socket.remoteAddress` instead of `req.ip` for security-sensitive loopback checks, as it represents the actual TCP connection source and is not influenced by proxy headers.
+
+## 2025-06-05 - [Cross-Site WebSocket Hijacking (CSWSH)]
+**Vulnerability:** Authenticated WebSocket connections were susceptible to hijacking via malicious cross-site requests.
+**Learning:** WebSocket upgrades (the HTTP `upgrade` event) do not automatically enforce the Same-Origin Policy (SOP). While browsers include the `Origin` header, the server must explicitly validate it against the expected `Host` to prevent cross-site hijacking of authenticated sockets.
+**Prevention:** Always implement an explicit `Origin` vs `Host` check in the `upgrade` handler for browser-accessible WebSocket endpoints. Refactoring this check into a shared utility like `isValidWebSocketOrigin` promotes consistent security across multiple upgrade paths (e.g., standard API and NoVNC/websockify).
