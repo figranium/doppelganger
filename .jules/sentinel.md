@@ -22,3 +22,8 @@
 **Vulnerability:** Authenticated WebSocket connections were susceptible to hijacking via malicious cross-site requests.
 **Learning:** WebSocket upgrades (the HTTP `upgrade` event) do not automatically enforce the Same-Origin Policy (SOP). While browsers include the `Origin` header, the server must explicitly validate it against the expected `Host` to prevent cross-site hijacking of authenticated sockets.
 **Prevention:** Always implement an explicit `Origin` vs `Host` check in the `upgrade` handler for browser-accessible WebSocket endpoints. Refactoring this check into a shared utility like `isValidWebSocketOrigin` promotes consistent security across multiple upgrade paths (e.g., standard API and NoVNC/websockify).
+
+## 2025-06-15 - [Loose Auth Input Validation]
+**Vulnerability:** Authentication endpoints (/setup and /login) accepted non-string inputs and excessively long strings, potentially leading to DoS or unexpected behavior in hashing functions.
+**Learning:** While the login process had timing-safe password checks, it lacked strict type and length validation for inputs. Attackers could send objects or extremely large payloads that might bypass certain checks or exhaust resources. Additionally, failure to maintain timing safety for requests rejected during initial validation could still leak account existence.
+**Prevention:** Implement strict type checks (typeof === 'string') and length limits (e.g., 100-256 characters) for all authentication inputs. When rejecting inputs for validation failures in the login path, perform a dummy hashing operation to maintain a consistent timing profile.
