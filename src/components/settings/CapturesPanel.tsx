@@ -37,14 +37,18 @@ const renderCaptureRow = ({ index, style, data }: ListChildComponentProps<Captur
                         href={capture.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-2 rounded-xl border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all"
+                        className="px-3 py-2 rounded-xl border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         aria-label={`Open ${capture.name}`}
+                        title={`Open ${capture.name}`}
                     >
                         Open
                     </a>
                     <button
+                        type="button"
                         onClick={() => data.onDelete(capture.name)}
-                        className="px-3 py-2 rounded-xl border border-red-500/20 text-[9px] font-bold uppercase tracking-widest text-red-300 hover:bg-red-500/10 transition-all"
+                        className="px-3 py-2 rounded-xl border border-red-500/20 text-[9px] font-bold uppercase tracking-widest text-red-300 hover:bg-red-500/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                        aria-label={`Delete ${capture.name}`}
+                        title={`Delete ${capture.name}`}
                     >
                         Delete
                     </button>
@@ -70,9 +74,12 @@ const CapturesPanel: React.FC<CapturesPanelProps> = ({ captures, loading, onRefr
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Recordings and screenshots</p>
                 </div>
                 <button
+                    type="button"
                     onClick={onRefresh}
                     disabled={loading}
-                    className="px-4 py-2 border border-white/10 text-[9px] font-bold rounded-xl uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50"
+                    className="px-4 py-2 border border-white/10 text-[9px] font-bold rounded-xl uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/5 transition-all disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    aria-label="Refresh captures list"
+                    title="Refresh captures list"
                 >
                     Refresh
                 </button>

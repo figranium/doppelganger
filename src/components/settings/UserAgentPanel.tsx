@@ -18,11 +18,13 @@ const UserAgentPanel: React.FC<UserAgentPanelProps> = ({
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Default browser identity</p>
             </div>
             <div className="space-y-2">
+                <label htmlFor="user-agent-select" className="sr-only">Select Default User Agent</label>
                 <select
+                    id="user-agent-select"
                     value={selection}
                     onChange={(e) => onChange(e.target.value)}
                     disabled={loading}
-                    className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-[10px] text-white uppercase tracking-widest disabled:opacity-60"
+                    className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-[10px] text-white uppercase tracking-widest disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 >
                     <option value="system">System user agent (default)</option>
                     {options.map((agent) => (
