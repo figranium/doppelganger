@@ -13,3 +13,7 @@
 ## 2026-03-20 - [Form Submission Feedback and State Validation]
 **Learning:** Destructive or configuration-heavy actions (like proxy management) without clear submission states or input validation can lead to confusing race conditions or invalid data. Standardizing focus rings across all panel actions improves discoverability for keyboard users.
 **Action:** Always implement `disabled` states and loading spinners for async submission buttons (like "Add Proxy"). Ensure focus rings use high-contrast variants (`blue-500`) for solid light backgrounds and standard variants (`white/50`) for dark/glass surfaces. Add `title` and `aria-label` to provide dual context for mouse and screen-reader users.
+
+## 2026-03-21 - [Password Visibility Toggles and Form Accessibility]
+**Learning:** Password fields without visibility toggles are prone to entry errors, especially in "Confirm Password" flows. Standardizing focus rings (`focus-visible:ring-2`) across all form inputs is critical for keyboard accessibility in dark glass-themed UIs. Toggles must have unique `aria-label` and `title` attributes (e.g., "Show password" vs "Show password confirmation") to ensure they are distinct for screen readers and satisfy strict testing requirements.
+**Action:** Implement visibility toggles as absolute-positioned buttons within relative input containers. Use `pr-12` on the input to prevent text overlap. Always include `focus-visible:ring-white/50` for inputs on dark backgrounds.
