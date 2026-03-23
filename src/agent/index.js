@@ -247,10 +247,43 @@ async function runAgent(data, options = {}) {
             return subActions.some(sub => JSON.stringify(sub).includes('loop.html'));
         });
 
+        // ⚡ Bolt: Hoist static action options out of the execution loop to avoid redundant object spreading (O(N))
+        const actionOptions = {
+            ...data,
+            api_key: data.apiKey || data.key,
+            deadClicks,
+            humanTyping,
+            allowTypos,
+            naturalTyping,
+            fatigue,
+            idleMovements,
+            overscroll,
+            cursorGlide,
+            randomizeClicks
+        };
+
         let index = 0;
         const maxSteps = Math.max(actions.length * 20, 1000);
         let steps = 0;
         let lastMouse = null;
+
+        const sharedActionContext = {
+            page,
+            logs,
+            runtimeVars,
+            resolveTemplate,
+            captureScreenshot,
+            baseDelay,
+            options: actionOptions,
+            baseUrl,
+            setStopOutcome: (out) => { stopOutcome = out; },
+            setStopRequested: (req) => { stopRequested = req; },
+            pendingDownloads,
+            waitForNewDownload: () => new Promise(res => {
+                newDownloadListeners.add(res);
+                setTimeout(() => newDownloadListeners.delete(res), 15000);
+            })
+        };
 
         while (index < actions.length) {
             if (isStopRequested(runId)) {
@@ -459,37 +492,12 @@ async function runAgent(data, options = {}) {
 
             try {
                 reportProgress(runId, { actionId: act.id, status: 'running' });
+                // ⚡ Bolt: Re-use pre-calculated context and only attach loop-varying lastBlockOutput and lastMouse accessors
                 const actionContext = {
-                    page,
-                    logs,
-                    runtimeVars,
-                    resolveTemplate,
-                    captureScreenshot,
-                    baseDelay,
-                    options: {
-                        ...data,
-                        api_key: data.apiKey || data.key,
-                        deadClicks,
-                        humanTyping,
-                        allowTypos,
-                        naturalTyping,
-                        fatigue,
-                        idleMovements,
-                        overscroll,
-                        cursorGlide,
-                        randomizeClicks
-                    },
-                    baseUrl,
+                    ...sharedActionContext,
                     lastBlockOutput,
                     get lastMouse() { return lastMouse; },
-                    set lastMouse(val) { lastMouse = val; },
-                    setStopOutcome: (out) => { stopOutcome = out; },
-                    setStopRequested: (req) => { stopRequested = req; },
-                    pendingDownloads,
-                    waitForNewDownload: () => new Promise(res => {
-                        newDownloadListeners.add(res);
-                        setTimeout(() => newDownloadListeners.delete(res), 15000);
-                    })
+                    set lastMouse(val) { lastMouse = val; }
                 };
                 const result = await executeAction(act, actionContext);
 
