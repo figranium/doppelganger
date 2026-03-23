@@ -27,11 +27,16 @@ router.get('/api-key', requireAuthForSettings, async (req, res) => {
     }
 });
 
-router.post('/api-key', requireAuthForSettings, (req, res) => {
+router.post('/api-key', requireAuthForSettings, async (req, res) => {
     try {
         const bodyKey = req.body && typeof req.body.apiKey === 'string' ? req.body.apiKey.trim() : '';
+
+        if (bodyKey.length > 512) {
+            return res.status(400).json({ error: 'API_KEY_TOO_LONG', message: 'API key must be 512 characters or less.' });
+        }
+
         const newKey = bodyKey || createNewApiKey();
-        saveApiKey(newKey);
+        await saveApiKey(newKey);
         res.json({ apiKey: newKey });
     } catch (e) {
         console.error('[API_KEY] Save failed:', e);
@@ -82,6 +87,11 @@ router.post('/gemini-api-key', requireAuthForSettings, async (req, res) => {
             const bodyKey = req.body.geminiApiKey.trim();
             if (bodyKey) keys.push(bodyKey);
         }
+
+        if (keys.some(k => k.length > 512)) {
+            return res.status(400).json({ error: 'API_KEY_TOO_LONG', message: 'API keys must be 512 characters or less.' });
+        }
+
         await saveGeminiApiKey(keys);
         res.json({ geminiApiKeys: keys });
     } catch (e) {
@@ -110,6 +120,11 @@ router.post('/openai-api-key', requireAuthForSettings, async (req, res) => {
             const bodyKey = req.body.openAiApiKey.trim();
             if (bodyKey) keys.push(bodyKey);
         }
+
+        if (keys.some(k => k.length > 512)) {
+            return res.status(400).json({ error: 'API_KEY_TOO_LONG', message: 'API keys must be 512 characters or less.' });
+        }
+
         await saveOpenAiApiKey(keys);
         res.json({ openAiApiKeys: keys });
     } catch (e) {
@@ -138,6 +153,11 @@ router.post('/claude-api-key', requireAuthForSettings, async (req, res) => {
             const bodyKey = req.body.claudeApiKey.trim();
             if (bodyKey) keys.push(bodyKey);
         }
+
+        if (keys.some(k => k.length > 512)) {
+            return res.status(400).json({ error: 'API_KEY_TOO_LONG', message: 'API keys must be 512 characters or less.' });
+        }
+
         await saveClaudeApiKey(keys);
         res.json({ claudeApiKeys: keys });
     } catch (e) {
