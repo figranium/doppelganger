@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const { requireAuthForSettings, csrfProtection } = require('../middleware');
+const { requireAuthForSettings, csrfProtection, authRateLimiter } = require('../middleware');
 const {
     loadApiKey, saveApiKey,
     loadGeminiApiKey, saveGeminiApiKey,
@@ -27,14 +27,10 @@ router.get('/api-key', requireAuthForSettings, async (req, res) => {
     }
 });
 
-router.post('/api-key', requireAuthForSettings, async (req, res) => {
+router.post('/api-key', authRateLimiter, requireAuthForSettings, async (req, res) => {
     try {
         const bodyKey = req.body && typeof req.body.apiKey === 'string' ? req.body.apiKey.trim() : '';
-
-        if (bodyKey.length > 512) {
-            return res.status(400).json({ error: 'API_KEY_TOO_LONG', message: 'API key must be 512 characters or less.' });
-        }
-
+        if (bodyKey.length > 512) return res.status(400).json({ error: 'API_KEY_TOO_LONG' });
         const newKey = bodyKey || createNewApiKey();
         await saveApiKey(newKey);
         res.json({ apiKey: newKey });
@@ -78,7 +74,7 @@ router.get('/gemini-api-key', requireAuthForSettings, async (req, res) => {
     }
 });
 
-router.post('/gemini-api-key', requireAuthForSettings, async (req, res) => {
+router.post('/gemini-api-key', authRateLimiter, requireAuthForSettings, async (req, res) => {
     try {
         let keys = [];
         if (req.body && Array.isArray(req.body.geminiApiKeys)) {
@@ -87,11 +83,7 @@ router.post('/gemini-api-key', requireAuthForSettings, async (req, res) => {
             const bodyKey = req.body.geminiApiKey.trim();
             if (bodyKey) keys.push(bodyKey);
         }
-
-        if (keys.some(k => k.length > 512)) {
-            return res.status(400).json({ error: 'API_KEY_TOO_LONG', message: 'API keys must be 512 characters or less.' });
-        }
-
+        if (keys.some(k => k.length > 512)) return res.status(400).json({ error: 'API_KEY_TOO_LONG' });
         await saveGeminiApiKey(keys);
         res.json({ geminiApiKeys: keys });
     } catch (e) {
@@ -111,7 +103,7 @@ router.get('/openai-api-key', requireAuthForSettings, async (req, res) => {
     }
 });
 
-router.post('/openai-api-key', requireAuthForSettings, async (req, res) => {
+router.post('/openai-api-key', authRateLimiter, requireAuthForSettings, async (req, res) => {
     try {
         let keys = [];
         if (req.body && Array.isArray(req.body.openAiApiKeys)) {
@@ -120,11 +112,7 @@ router.post('/openai-api-key', requireAuthForSettings, async (req, res) => {
             const bodyKey = req.body.openAiApiKey.trim();
             if (bodyKey) keys.push(bodyKey);
         }
-
-        if (keys.some(k => k.length > 512)) {
-            return res.status(400).json({ error: 'API_KEY_TOO_LONG', message: 'API keys must be 512 characters or less.' });
-        }
-
+        if (keys.some(k => k.length > 512)) return res.status(400).json({ error: 'API_KEY_TOO_LONG' });
         await saveOpenAiApiKey(keys);
         res.json({ openAiApiKeys: keys });
     } catch (e) {
@@ -144,7 +132,7 @@ router.get('/claude-api-key', requireAuthForSettings, async (req, res) => {
     }
 });
 
-router.post('/claude-api-key', requireAuthForSettings, async (req, res) => {
+router.post('/claude-api-key', authRateLimiter, requireAuthForSettings, async (req, res) => {
     try {
         let keys = [];
         if (req.body && Array.isArray(req.body.claudeApiKeys)) {
@@ -153,11 +141,7 @@ router.post('/claude-api-key', requireAuthForSettings, async (req, res) => {
             const bodyKey = req.body.claudeApiKey.trim();
             if (bodyKey) keys.push(bodyKey);
         }
-
-        if (keys.some(k => k.length > 512)) {
-            return res.status(400).json({ error: 'API_KEY_TOO_LONG', message: 'API keys must be 512 characters or less.' });
-        }
-
+        if (keys.some(k => k.length > 512)) return res.status(400).json({ error: 'API_KEY_TOO_LONG' });
         await saveClaudeApiKey(keys);
         res.json({ claudeApiKeys: keys });
     } catch (e) {
