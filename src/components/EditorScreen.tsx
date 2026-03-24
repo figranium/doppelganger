@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction } from 'react';
+import { useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction, useRef } from 'react';
 import MaterialIcon from './MaterialIcon';
 import { Task, Action, Results, ConfirmRequest, ViewMode } from '../types';
 import ActionPalette from './editor/ActionPalette';
@@ -73,6 +73,9 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     const { proxyList, proxyListLoaded } = useEditorProxies();
 
     // Local State
+    const currentTaskRef = useRef(currentTask);
+    useEffect(() => { currentTaskRef.current = currentTask; }, [currentTask]);
+
     const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
     const [, setActionClipboard] = useState<Action | null>(null);
     const [actionPaletteOpen, setActionPaletteOpen] = useState(false);
@@ -104,8 +107,8 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
 
     // Handlers
     const handleAutoSave = useCallback((task?: Task) => {
-        onSave(task || currentTask, false);
-    }, [onSave, currentTask]);
+        onSave(task || currentTaskRef.current, false);
+    }, [onSave]);
 
     const handleOpenCabinet = (tab: typeof cabinetTab = 'mode') => {
         setCabinetTab(tab);
@@ -237,10 +240,10 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 openActionPalette={openActionPalette}
                 openContextMenu={openContextMenu}
                 handleActionPointerDown={actions.handleActionPointerDown}
-                onOpenHeadful={(url, id) => {
+                onOpenHeadful={useCallback((url: string, id?: string) => {
                     headful.setActiveInspectActionId(id || null);
-                    onOpenHeadful?.(url, id, currentTask, currentTask.variables);
-                }}
+                    onOpenHeadful?.(url, id, currentTaskRef.current, currentTaskRef.current.variables);
+                }, [onOpenHeadful, headful.setActiveInspectActionId])}
                 isHeadfulOpen={isHeadfulOpen}
                 onPointerDown={(e) => {
                     if (e.button === 1 || (e.button === 0 && canvas.spaceHeldRef.current)) {

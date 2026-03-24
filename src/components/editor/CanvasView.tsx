@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import MaterialIcon from '../MaterialIcon';
 import RichInput from '../RichInput';
 import ActionItem from './ActionItem';
@@ -62,6 +62,11 @@ const CanvasView: React.FC<CanvasViewProps> = ({
     onPointerCancel,
     selectionBox,
 }) => {
+    const onStartInspect = useCallback((id: string) => {
+        if (!isHeadfulOpen) {
+            onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTask, currentTask.variables);
+        }
+    }, [isHeadfulOpen, onOpenHeadful, currentTask.url, currentTask.variables]);
 
     const buildAst = (startIndex: number, endIndex: number, _depth: number = 0): React.ReactNode[] => {
         const nodes: React.ReactNode[] = [];
@@ -115,11 +120,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 onOpenPalette={openActionPalette}
                                 onOpenContextMenu={openContextMenu}
                                 onPointerDown={handleActionPointerDown}
-                                onStartInspect={(id: string) => {
-                                    if (!isHeadfulOpen) {
-                                        onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTask, currentTask.variables);
-                                    }
-                                }}
+                                onStartInspect={onStartInspect}
                             />
                         </div>
                         <div className="flex gap-16 mt-4 relative">
@@ -213,11 +214,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 onOpenPalette={openActionPalette}
                                 onOpenContextMenu={openContextMenu}
                                 onPointerDown={handleActionPointerDown}
-                                onStartInspect={(id) => {
-                                    if (!isHeadfulOpen) {
-                                        onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTask, currentTask.variables);
-                                    }
-                                }}
+                                onStartInspect={onStartInspect}
                             />
                         </div>
                         {i < endIndex - 1 && currentTask.actions[i + 1]?.type !== 'end' && (
