@@ -118,7 +118,7 @@ interface ActionItemProps {
     selectorOptions?: string[];
 }
 
-const ActionItem: React.FC<ActionItemProps> = ({
+const ActionItem: React.FC<ActionItemProps> = React.memo(({
     action,
     index,
     status,
@@ -747,6 +747,6 @@ const ActionItem: React.FC<ActionItemProps> = ({
             </>)}
         </div >
     );
-};
+});
 
 export default ActionItem;

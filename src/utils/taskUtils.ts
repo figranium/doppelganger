@@ -1,10 +1,10 @@
 import { Task } from '../types';
 
 export const serializeTaskSnapshot = (task?: Task | null) => {
-    // ⚡ Bolt: Use object destructuring to exclude 'last_opened' BEFORE serialization.
-    // This avoids O(N) overhead of deep cloning and deleting properties from a large object.
+    // ⚡ Bolt: Use object destructuring to exclude 'last_opened' and 'versions' BEFORE serialization.
+    // This avoids O(N) overhead of stringifying potentially large version histories on every change.
     if (!task) return '';
-    const { last_opened, ...rest } = task;
+    const { last_opened, versions, ...rest } = task;
     return JSON.stringify(rest);
 };
 
