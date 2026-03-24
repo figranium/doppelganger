@@ -27,3 +27,8 @@
 **Vulnerability:** Authentication endpoints (/setup and /login) accepted non-string inputs and excessively long strings, potentially leading to DoS or unexpected behavior in hashing functions.
 **Learning:** While the login process had timing-safe password checks, it lacked strict type and length validation for inputs. Attackers could send objects or extremely large payloads that might bypass certain checks or exhaust resources. Additionally, failure to maintain timing safety for requests rejected during initial validation could still leak account existence.
 **Prevention:** Implement strict type checks (typeof === 'string') and length limits (e.g., 100-256 characters) for all authentication inputs. When rejecting inputs for validation failures in the login path, perform a dummy hashing operation to maintain a consistent timing profile.
+
+## 2025-06-20 - [Sandbox Escape via "this" Context]
+**Vulnerability:** Sandbox escape in extraction scripts via unproxied `this` in callback wrappers.
+**Learning:** The `createSafeProxy` implementation wrapped arguments and return values but failed to wrap the `this` context when a host function invoked a sandboxed callback. This allowed the sandbox to access the raw host object and its `constructor`, eventually reaching the host's global scope (e.g., `this.constructor.constructor('return process')()`).
+**Prevention:** Always wrap the `this` context with the security proxy before applying callbacks passed from a sandbox to host functions. Consistently applying this pattern across `get`, `apply`, and `construct` traps ensures a robust security boundary.
