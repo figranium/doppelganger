@@ -73,13 +73,12 @@ const CanvasView: React.FC<CanvasViewProps> = ({
     onDuplicateStickyNote,
     selectedNoteIds,
 }) => {
-<<<<<<< HEAD
     const onStartInspect = useCallback((id: string) => {
         if (!isHeadfulOpen) {
             onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTask, currentTask.variables);
         }
     }, [isHeadfulOpen, onOpenHeadful, currentTask.url, currentTask.variables]);
-=======
+
     const [canvasContextMenu, setCanvasContextMenu] = useState<{ x: number; y: number; worldX: number; worldY: number } | null>(null);
 
     const handleCanvasContextMenu = useCallback((e: React.MouseEvent) => {
@@ -97,7 +96,6 @@ const CanvasView: React.FC<CanvasViewProps> = ({
         const y = Math.min(Math.max(e.clientY + 12, padding), window.innerHeight - menuH - padding);
         setCanvasContextMenu({ x, y, worldX, worldY });
     }, [canvasOffset, canvasScale]);
->>>>>>> abef065 (Add sticky notes with markdown, drag, resize, color picker & selection)
 
     const buildAst = (startIndex: number, endIndex: number, _depth: number = 0): React.ReactNode[] => {
         const nodes: React.ReactNode[] = [];
