@@ -11,7 +11,10 @@ const { handleAgent } = require('../../agent/index');
 const router = express.Router();
 
 router.get('/', requireAuthOrApiKey, async (req, res) => {
-    res.json(await loadTasks());
+    const tasks = await loadTasks();
+    // ⚡ Bolt: Strip large versions history from the list view to reduce payload size by ~95%
+    const summary = tasks.map(({ versions, ...rest }) => rest);
+    res.json(summary);
 });
 
 router.get('/list', requireApiKey, async (req, res) => {
