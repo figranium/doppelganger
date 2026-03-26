@@ -71,6 +71,12 @@ function isPrivateIP(ip) {
     return false;
 }
 
+// Fast in-memory cache for validated hostnames to reduce DNS overhead
+const VALID_HOSTNAME_CACHE = new Set();
+const INVALID_HOSTNAME_CACHE = new Set();
+const CACHE_TTL = 30000; // 30 seconds
+let lastCacheClear = Date.now();
+
 /**
  * Validates a URL to prevent SSRF by blocking private IP ranges.
  * @param {string} urlStr The URL to validate.
@@ -98,34 +104,48 @@ async function validateUrl(urlStr) {
         hostname = hostname.substring(1, hostname.length - 1);
     }
 
-    // Direct check for common private hostnames
     const lowerHost = hostname.toLowerCase();
+
+    // Cache management
+    if (Date.now() - lastCacheClear > CACHE_TTL) {
+        VALID_HOSTNAME_CACHE.clear();
+        INVALID_HOSTNAME_CACHE.clear();
+        lastCacheClear = Date.now();
+    }
+
+    if (VALID_HOSTNAME_CACHE.has(lowerHost)) return;
+    if (INVALID_HOSTNAME_CACHE.has(lowerHost)) {
+        throw new Error('Access to private network is restricted');
+    }
+
+    // Direct check for common private hostnames
     if (lowerHost === 'localhost' || lowerHost.endsWith('.localhost')) {
+        INVALID_HOSTNAME_CACHE.add(lowerHost);
         throw new Error('Access to private network is restricted');
     }
 
     // Resolve hostname to IP
     try {
+        // If it's already an IP address, check it directly
+        if (net.isIP(hostname)) {
+            if (isPrivateIP(hostname)) {
+                INVALID_HOSTNAME_CACHE.add(lowerHost);
+                throw new Error('Access to private network is restricted');
+            }
+            VALID_HOSTNAME_CACHE.add(lowerHost);
+            return;
+        }
+
         // dns.lookup follows /etc/hosts and is what's typically used for connecting
         const addresses = await dns.lookup(hostname, { all: true });
         for (const addr of addresses) {
             if (isPrivateIP(addr.address)) {
+                INVALID_HOSTNAME_CACHE.add(lowerHost);
                 throw new Error('Access to private network is restricted');
             }
         }
+        VALID_HOSTNAME_CACHE.add(lowerHost);
     } catch (e) {
-        if (e.message === 'Access to private network is restricted') {
-            throw e;
-        }
-
-        // If it's already an IP address, check it directly
-        if (net.isIP(hostname)) {
-            if (isPrivateIP(hostname)) {
-                throw new Error('Access to private network is restricted');
-            }
-        }
-
-        // Rethrow if it's the specific restricted error
         if (e.message === 'Access to private network is restricted') {
             throw e;
         }
@@ -133,6 +153,77 @@ async function validateUrl(urlStr) {
         // If we can't resolve it and it's not an IP, we allow it to proceed
         // to the browser where it will likely fail normally.
     }
+}
+
+/**
+ * Perform a fetch with manual redirect following and validation at each hop.
+ * @param {string} urlStr Initial URL.
+ * @param {object} options Fetch options.
+ * @param {number} maxRedirects Maximum number of redirects to follow.
+ */
+async function fetchWithRedirectValidation(urlStr, options = {}, maxRedirects = 5) {
+    let currentUrl = urlStr;
+    let redirectCount = 0;
+
+    while (redirectCount <= maxRedirects) {
+        // validateUrl respects ALLOW_PRIVATE_NETWORKS internally
+        await validateUrl(currentUrl);
+
+        const response = await fetch(currentUrl, {
+            ...options,
+            redirect: 'manual'
+        });
+
+        if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get('location');
+            if (!location) return response;
+
+            const nextUrl = new URL(location, currentUrl).toString();
+            currentUrl = nextUrl;
+            redirectCount++;
+            continue;
+        }
+
+        return response;
+    }
+
+    throw new Error('Too many redirects');
+}
+
+/**
+ * Sets up navigation protection for a Playwright context.
+ * Intercepts requests and validates destination URLs.
+ * @param {object} context Playwright context.
+ */
+async function setupNavigationProtection(context) {
+    if (ALLOW_PRIVATE_NETWORKS) return;
+
+    await context.route('**/*', async (route) => {
+        const request = route.request();
+        // Only validate main frame navigations for performance and to avoid breaking sub-resources
+        if (request.isNavigationRequest() && request.frame() === request.frame().page().mainFrame()) {
+            const url = request.url();
+            const currentUrl = request.frame().url();
+
+            try {
+                // If it's a same-origin navigation, skip validation for speed
+                if (currentUrl && currentUrl !== 'about:blank') {
+                    const u1 = new URL(url);
+                    const u2 = new URL(currentUrl);
+                    if (u1.origin === u2.origin) {
+                        return route.continue();
+                    }
+                }
+
+                await validateUrl(url);
+                return route.continue();
+            } catch (err) {
+                console.error(`[SECURITY] Navigation to ${url} blocked: ${err.message}`);
+                return route.abort('blockedbyclient');
+            }
+        }
+        return route.continue();
+    });
 }
 
 /**
@@ -151,4 +242,4 @@ function isValidWebSocketOrigin(origin, host) {
     }
 }
 
-module.exports = { validateUrl, isPrivateIP, isValidWebSocketOrigin };
+module.exports = { validateUrl, isPrivateIP, isValidWebSocketOrigin, fetchWithRedirectValidation, setupNavigationProtection };

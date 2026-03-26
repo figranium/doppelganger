@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const { getProxySelection } = require('./proxy-rotation');
 const { selectUserAgent } = require('./user-agent-settings');
 const { formatHTML } = require('./html-utils');
-const { validateUrl } = require('./url-utils');
+const { validateUrl, setupNavigationProtection } = require('./url-utils');
 const { parseBooleanFlag, sanitizeRunId, toCsvString } = require('./common-utils');
 const { installMouseHelper } = require('./src/agent/dom-utils');
 
@@ -124,6 +124,7 @@ async function runScrape(data) {
             await injectHeadfulCookies(context);
         }
 
+        await setupNavigationProtection(context);
         await context.addInitScript(installMouseHelper);
 
         if (includeShadowDom) {

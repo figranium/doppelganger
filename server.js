@@ -45,7 +45,7 @@ const {
     proxyWebsockify,
     isPortAvailable
 } = require('./src/server/utils');
-const { isValidWebSocketOrigin } = require('./url-utils');
+const { isValidWebSocketOrigin, fetchWithRedirectValidation } = require('./url-utils');
 
 // Middleware
 const {
@@ -245,7 +245,7 @@ const registerExecution = (req, res, baseMeta = {}) => {
                 durationMs: entry.durationMs,
                 result: entry.result
             });
-            fetch(webhookUrl, {
+            fetchWithRedirectValidation(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: payload,

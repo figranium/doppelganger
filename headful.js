@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { getProxySelection } = require('./proxy-rotation');
 const { selectUserAgent } = require('./user-agent-settings');
-const { validateUrl } = require('./url-utils');
+const { validateUrl, setupNavigationProtection } = require('./url-utils');
 const { parseBooleanFlag } = require('./common-utils');
 const { Mutex } = require('./src/server/utils');
 
@@ -432,6 +432,7 @@ async function runHeadful(data, options = {}) {
             });
         };
 
+        await setupNavigationProtection(context);
         await context.addInitScript(inspectInitFn);
 
         await context.exposeBinding('__figraniumIsInspectEnabled', () => {

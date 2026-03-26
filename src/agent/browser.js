@@ -2,6 +2,7 @@ const { chromium } = require('../../stealth-chromium');
 const fs = require('fs');
 const path = require('path');
 const { getProxySelection } = require('../../proxy-rotation');
+const { setupNavigationProtection } = require('../../url-utils');
 const { installMouseHelper } = require('./dom-utils');
 
 const PROFILE_DIR = path.join(__dirname, '../../data/browser-profile');
@@ -117,6 +118,7 @@ async function createBrowserContext(launchOptions, options = {}) {
         await injectHeadfulCookies(context);
     }
 
+    await setupNavigationProtection(context);
     await context.addInitScript(installMouseHelper);
 
     if (includeShadowDom) {
