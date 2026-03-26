@@ -249,6 +249,7 @@ const registerExecution = (req, res, baseMeta = {}) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: payload,
+                redirect: 'error',
                 signal: AbortSignal.timeout(10000)
             }).catch(err => console.error('[WEBHOOK] Failed to deliver:', err.message));
         }
