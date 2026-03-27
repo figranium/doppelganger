@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { StickyNote as StickyNoteType, StickyNoteColor } from '../../types';
+import MaterialIcon from '../MaterialIcon';
+import CopyButton from '../CopyButton';
 
 interface StickyNoteProps {
     note: StickyNoteType;
@@ -52,7 +54,6 @@ const ALL_COLORS: StickyNoteColor[] = ['default', 'yellow', 'pink', 'green', 'pu
 const StickyNote: React.FC<StickyNoteProps> = ({ note, canvasScale, isSelected, onUpdate, onDelete, onDuplicate }) => {
     const [isEditing, setIsEditing] = useState(note.content === '');
     const [draft, setDraft] = useState(note.content);
-    const [isHovered, setIsHovered] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -134,7 +135,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({ note, canvasScale, isSelected, 
         <>
         <div
             data-sticky-note-id={note.id}
-            className="absolute select-none"
+            className="absolute select-none group"
             style={{
                 left: note.x,
                 top: note.y,
@@ -142,8 +143,6 @@ const StickyNote: React.FC<StickyNoteProps> = ({ note, canvasScale, isSelected, 
                 height: note.height,
                 zIndex: 5,
             }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
             onPointerDown={(e) => e.stopPropagation()}
             onContextMenu={(e) => {
                 e.preventDefault();
@@ -176,7 +175,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({ note, canvasScale, isSelected, 
                         {ALL_COLORS.map((c) => (
                             <button
                                 key={c}
-                                className="w-3 h-3 rounded-full transition-transform hover:scale-125 focus:outline-none"
+                                className="w-3 h-3 rounded-full transition-all hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                 style={{
                                     background: COLOR_DOT[c],
                                     opacity: note.color === c ? 1 : 0.35,
@@ -186,28 +185,37 @@ const StickyNote: React.FC<StickyNoteProps> = ({ note, canvasScale, isSelected, 
                                 onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => { e.stopPropagation(); onUpdate(note.id, { color: c }); }}
-                                title={c}
+                                title={`Set color to ${c}`}
+                                aria-label={`Set color to ${c}`}
                             />
                         ))}
                     </div>
 
-                    {/* Edit / delete buttons */}
-                    <div className="flex items-center gap-0.5" style={{ opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}>
+                    {/* Edit / copy / delete buttons */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200">
                         <button
-                            className="w-5 h-5 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
+                            className="w-6 h-6 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                             onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => { e.stopPropagation(); setIsEditing(true); setDraft(note.content); }}
-                            title="Edit"
+                            title="Edit note"
+                            aria-label="Edit note"
                         >
-                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span>
+                            <MaterialIcon name="edit" className="text-[14px]" />
                         </button>
+                        <CopyButton
+                            text={note.content}
+                            title="Copy note"
+                            className="w-6 h-6 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                            iconClassName="text-[14px]"
+                        />
                         <button
-                            className="w-5 h-5 rounded flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-white/10 transition-colors focus:outline-none"
+                            className="w-6 h-6 rounded flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                             onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => { e.stopPropagation(); onDelete(note.id); }}
-                            title="Delete"
+                            title="Delete note"
+                            aria-label="Delete note"
                         >
-                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                            <MaterialIcon name="close" className="text-[14px]" />
                         </button>
                     </div>
                 </div>

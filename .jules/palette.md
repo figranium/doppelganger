@@ -21,3 +21,7 @@
 ## 2026-03-22 - [Interactive Headers as Buttons]
 **Learning:** Structural headers that act as toggles (like "On Execution" in the Canvas) must be implemented as `<button>` elements rather than `<div>` with `onClick`. This ensures they are reachable via keyboard and properly identified by screen readers. Using `aria-expanded` provides necessary state feedback.
 **Action:** Use `<button type="button">` for all interactive section headers. Include `aria-expanded`, `aria-label`, and `title`. Ensure high-contrast focus rings (`focus-visible:ring-white/50` for dark themes) are applied.
+
+## 2026-03-23 - [Sticky Note Header Actions and Accessibility]
+**Learning:** Manual hover state management for header actions is prone to accessibility gaps (invisible to keyboard users). Using Tailwind's `group-hover` combined with `group-focus-within` ensures actions are visible both on mouse hover and when a keyboard user tabs into the component. Standardizing icons with `MaterialIcon` and focus rings with `focus-visible:ring-white/50` maintains consistency across the glass-morphism design system.
+**Action:** Use `group-focus-within` for all hover-triggered action bars. Standardize focus indicators on dark backgrounds with `white/50` rings.
