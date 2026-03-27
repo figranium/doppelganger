@@ -267,7 +267,9 @@ async function runAgent(data, options = {}) {
         let steps = 0;
         let lastMouse = null;
 
-        const sharedActionContext = {
+        // ⚡ Bolt: Hoist full actionContext out of loop to eliminate O(N) object creation and spread overhead.
+        // Using getters for lastBlockOutput and lastMouse ensures they stay in sync with the loop's state.
+        const actionContext = {
             page,
             logs,
             runtimeVars,
@@ -276,6 +278,9 @@ async function runAgent(data, options = {}) {
             baseDelay,
             options: actionOptions,
             baseUrl,
+            get lastBlockOutput() { return lastBlockOutput; },
+            get lastMouse() { return lastMouse; },
+            set lastMouse(val) { lastMouse = val; },
             setStopOutcome: (out) => { stopOutcome = out; },
             setStopRequested: (req) => { stopRequested = req; },
             pendingDownloads,
@@ -492,13 +497,6 @@ async function runAgent(data, options = {}) {
 
             try {
                 reportProgress(runId, { actionId: act.id, status: 'running' });
-                // ⚡ Bolt: Re-use pre-calculated context and only attach loop-varying lastBlockOutput and lastMouse accessors
-                const actionContext = {
-                    ...sharedActionContext,
-                    lastBlockOutput,
-                    get lastMouse() { return lastMouse; },
-                    set lastMouse(val) { lastMouse = val; }
-                };
                 const result = await executeAction(act, actionContext);
 
                 if (stopRequested) {
