@@ -139,6 +139,9 @@ app.use((req, res, next) => {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    if (SESSION_COOKIE_SECURE) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
     next();
 });
 
@@ -167,6 +170,7 @@ app.use(session({
     rolling: true,
     saveUninitialized: false,
     cookie: {
+        httpOnly: true,
         secure: SESSION_COOKIE_SECURE,
         sameSite: 'strict',
         maxAge: SESSION_TTL_SECONDS * 1000
@@ -443,7 +447,7 @@ app.use('/screenshots', requireAuthOrApiKey, express.static(capturesDir));
 app.use(express.static(DIST_DIR));
 
 // Headful Status Endpoint
-app.get('/api/headful/status', async (req, res) => {
+app.get('/api/headful/status', requireAuth, async (req, res) => {
     if (!novncEnabled) {
         return res.json({ useNovnc: false });
     }
