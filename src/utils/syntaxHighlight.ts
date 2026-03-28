@@ -1,12 +1,18 @@
 export type SyntaxLanguage = 'plain' | 'javascript' | 'json' | 'html';
 
+const HTML_ESCAPE_MAP: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+};
+
 const escapeHtml = (text: string) => {
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    // ⚡ Bolt: Fast-path for simple values that don't need escaping.
+    // Also use a single-pass regex replacement to avoid multiple string traversals.
+    if (!/[&<>"']/.test(text)) return text;
+    return text.replace(/[&<>"']/g, (m) => HTML_ESCAPE_MAP[m]);
 };
 
 const jsKeywords = new Set([
@@ -17,6 +23,9 @@ const jsKeywords = new Set([
 ]);
 
 const highlightVariables = (text: string, variables?: Record<string, any>) => {
+    // ⚡ Bolt: Fast-path for text that doesn't contain variable placeholders.
+    if (!text.includes('{$')) return escapeHtml(text);
+
     const regex = /\{\$(\w+)\}/g;
     let html = '';
     let lastIndex = 0;
@@ -89,6 +98,7 @@ const highlightJavascript = (text: string, variables?: Record<string, any>) => {
         }
         const token = match[0];
         if (match[1]) {
+            // ⚡ Bolt: highlightVariables now accepts the variables map to support placeholder highlighting within JS.
             html += highlightVariables(token, variables);
         } else if (match[2]) {
             html += `<span class="code-token-comment">${escapeHtml(token)}</span>`;
@@ -110,7 +120,7 @@ const highlightJavascript = (text: string, variables?: Record<string, any>) => {
     return html;
 };
 
-const highlightHtml = (text: string) => {
+const highlightHtml = (text: string, variables?: Record<string, any>) => {
     const tagRegex = /<\/?[^>]+>/g;
     let html = '';
     let lastIndex = 0;
@@ -118,7 +128,8 @@ const highlightHtml = (text: string) => {
 
     while ((match = tagRegex.exec(text)) !== null) {
         if (match.index > lastIndex) {
-            html += escapeHtml(text.substring(lastIndex, match.index));
+            // ⚡ Bolt: highlightVariables is now used for non-tag content in HTML to support variable highlighting.
+            html += highlightVariables(text.substring(lastIndex, match.index), variables);
         }
         const rawTag = match[0];
         const m = rawTag.match(/^<(\/?[A-Za-z0-9-]+)([\s\S]*?)>$/);
@@ -143,13 +154,19 @@ const highlightHtml = (text: string) => {
         }
         lastIndex = tagRegex.lastIndex;
     }
-    html += escapeHtml(text.substring(lastIndex));
+
+    const remaining = text.substring(lastIndex);
+    if (remaining) {
+        // ⚡ Bolt: highlightVariables is now used for non-tag content in HTML to support variable highlighting.
+        html += highlightVariables(remaining, variables);
+    }
+
     return html;
 };
 
 export const highlightCode = (text: string, language: SyntaxLanguage, variables?: Record<string, any>) => {
     if (language === 'javascript') return highlightJavascript(text, variables);
     if (language === 'json') return highlightJson(text);
-    if (language === 'html') return highlightHtml(text);
+    if (language === 'html') return highlightHtml(text, variables);
     return highlightVariables(text, variables);
 };
