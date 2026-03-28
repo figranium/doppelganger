@@ -58,6 +58,9 @@ const RichInput: React.FC<RichInputProps> = ({ value, onChange, onBlur, placehol
         <div
             ref={ref}
             contentEditable
+            role="textbox"
+            aria-multiline="true"
+            aria-label={placeholder || 'Text input'}
             className={`rich-input-content w-full bg-transparent focus:outline-none text-white min-h-[1.5rem] ${className}`}
             data-placeholder={placeholder}
             onInput={(e) => onChange(e.currentTarget.textContent || '')}

@@ -25,3 +25,7 @@
 ## 2026-03-23 - [Sticky Note Header Actions and Accessibility]
 **Learning:** Manual hover state management for header actions is prone to accessibility gaps (invisible to keyboard users). Using Tailwind's `group-hover` combined with `group-focus-within` ensures actions are visible both on mouse hover and when a keyboard user tabs into the component. Standardizing icons with `MaterialIcon` and focus rings with `focus-visible:ring-white/50` maintains consistency across the glass-morphism design system.
 **Action:** Use `group-focus-within` for all hover-triggered action bars. Standardize focus indicators on dark backgrounds with `white/50` rings.
+
+## 2026-03-28 - [Utility Shortcuts and Accessible Custom Inputs]
+**Learning:** For developer-focused interfaces, providing quick actions for common operations (like copying activity logs) significantly reduces friction. Custom `contentEditable` inputs, while powerful, are often invisible to screen readers unless explicitly marked with `role="textbox"`, `aria-multiline`, and descriptive labels.
+**Action:** Always look for high-value copy targets and provide a "Copy" button with immediate visual feedback. Ensure all custom-built input components have full ARIA coverage to match native form elements.

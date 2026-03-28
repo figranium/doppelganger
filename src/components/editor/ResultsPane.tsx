@@ -531,7 +531,18 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                     </div>
                 </div>
                 <div className="glass-card rounded-[32px] p-8 flex flex-col h-[400px]">
-                    <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-white/5 pb-4">Activity Log</span>
+                    <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                        <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Activity Log</span>
+                        <button
+                            onClick={() => handleCopy((activeResults?.logs || []).join('\n'), 'logs')}
+                            className={`px-3 py-1.5 border text-[7px] font-bold rounded-lg uppercase transition-all flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${copied === 'logs' ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:bg-white/10'}`}
+                            title="Copy activity log"
+                            aria-label="Copy activity log"
+                        >
+                            <MaterialIcon name={copied === 'logs' ? "check" : "content_copy"} className="text-[12px]" />
+                            {copied === 'logs' ? 'Copied' : 'Copy'}
+                        </button>
+                    </div>
                     <div className="flex-1 font-mono text-[10px] text-gray-400 space-y-2 overflow-y-auto custom-scrollbar pr-2">
                         {activeResults?.logs?.map((log: string, i: number) => (
                             <div key={i} className="flex gap-2">
