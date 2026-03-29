@@ -71,7 +71,6 @@ function isPrivateIP(ip) {
     return false;
 }
 
-// Fast in-memory cache for validated hostnames to reduce DNS overhead
 const VALID_HOSTNAME_CACHE = new Set();
 const INVALID_HOSTNAME_CACHE = new Set();
 const CACHE_TTL = 30000; // 30 seconds
@@ -132,7 +131,6 @@ async function validateUrl(urlStr) {
                 INVALID_HOSTNAME_CACHE.add(lowerHost);
                 throw new Error('Access to private network is restricted');
             }
-            VALID_HOSTNAME_CACHE.add(lowerHost);
             return;
         }
 
@@ -157,29 +155,70 @@ async function validateUrl(urlStr) {
 
 /**
  * Perform a fetch with manual redirect following and validation at each hop.
+ * Ensures sensitive headers (Authorization, Token) are stripped on cross-origin redirects.
  * @param {string} urlStr Initial URL.
  * @param {object} options Fetch options.
  * @param {number} maxRedirects Maximum number of redirects to follow.
  */
 async function fetchWithRedirectValidation(urlStr, options = {}, maxRedirects = 5) {
-    let currentUrl = urlStr;
+    let currentUrl;
+    try {
+        currentUrl = new URL(urlStr);
+    } catch (e) {
+        throw new Error('Invalid URL');
+    }
+
+    let currentOptions = { ...options };
     let redirectCount = 0;
 
     while (redirectCount <= maxRedirects) {
-        // validateUrl respects ALLOW_PRIVATE_NETWORKS internally
-        await validateUrl(currentUrl);
+        const href = currentUrl.href;
 
-        const response = await fetch(currentUrl, {
-            ...options,
+        // validateUrl respects ALLOW_PRIVATE_NETWORKS internally
+        await validateUrl(href);
+
+        const response = await fetch(href, {
+            ...currentOptions,
             redirect: 'manual'
         });
 
+        // Handle redirects (301, 302, 303, 307, 308)
         if (response.status >= 300 && response.status < 400) {
             const location = response.headers.get('location');
             if (!location) return response;
 
-            const nextUrl = new URL(location, currentUrl).toString();
+            const nextUrl = new URL(location, currentUrl.href);
+            const isCrossOrigin = nextUrl.origin !== currentUrl.origin;
+
+            // Update options for the next request
+            const nextOptions = { ...currentOptions };
+
+            // Strip sensitive headers and body on cross-origin redirects
+            if (isCrossOrigin) {
+                if (nextOptions.headers) {
+                    const headers = { ...nextOptions.headers };
+                    const sensitiveHeaders = ['authorization', 'x-api-key', 'token', 'cookie', 'proxy-authorization'];
+                    for (const h of Object.keys(headers)) {
+                        if (sensitiveHeaders.includes(h.toLowerCase())) {
+                            delete headers[h];
+                        }
+                    }
+                    nextOptions.headers = headers;
+                }
+            }
+
+            // Standards compliance: 301, 302, 303 redirects switch to GET and drop body
+            if ([301, 302, 303].includes(response.status)) {
+                nextOptions.method = 'GET';
+                delete nextOptions.body;
+                if (nextOptions.headers) {
+                    delete nextOptions.headers['content-type'];
+                    delete nextOptions.headers['content-length'];
+                }
+            }
+
             currentUrl = nextUrl;
+            currentOptions = nextOptions;
             redirectCount++;
             continue;
         }
