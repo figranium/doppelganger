@@ -151,10 +151,11 @@ const getResultsPreview = (payload: Results | null): { text: string; truncated: 
     }
     const raw = payload.data;
     if (typeof raw === 'string') {
-        const trimmed = raw.trim();
-        const language: SyntaxLanguage = trimmed.startsWith('<') && trimmed.includes('>')
+        // ⚡ Bolt: Use a small sample (2000 chars) for language detection to avoid O(N) trim/includes on large strings.
+        const sample = raw.slice(0, 2000).trim();
+        const language: SyntaxLanguage = sample.startsWith('<') && sample.includes('>')
             ? 'html'
-            : (trimmed.startsWith('{') || trimmed.startsWith('['))
+            : (sample.startsWith('{') || sample.startsWith('['))
                 ? 'json'
                 : 'plain';
         const clamped = clampText(raw, MAX_PREVIEW_CHARS);
@@ -230,8 +231,13 @@ const parseCsvRows = (text: string) => {
 const getTableData = (raw: any) => {
     if (!raw) return null;
     if (typeof raw === 'string') {
+        // ⚡ Bolt: Fast-path skip for strings that look like JSON (starting with { or [).
+        // Also use a small sample (2000 chars) for comma/newline checks to avoid O(N) scanning.
+        const sample = raw.slice(0, 2000).trim();
+        if (sample.startsWith('{') || sample.startsWith('[')) return null;
+        if (!sample.includes(',') || !sample.includes('\n')) return null;
+
         const text = raw.trim();
-        if (!text.includes(',') || !text.includes('\n')) return null;
         const rows = parseCsvRows(text).filter((r) => r.some((cell) => String(cell || '').trim() !== ''));
         if (rows.length < 2) return null;
         const header = rows[0].map((cell, idx) => {
@@ -312,7 +318,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
     const tableData = useMemo(() => getTableData(activeResults?.data), [activeResults?.data]);
     const preview = useMemo(() => activeResults && activeResults.data !== undefined && activeResults.data !== null && activeResults.data !== ''
         ? getResultsPreview(activeResults)
-        : null, [activeResults]);
+        : null, [activeResults?.data]);
     // ⚡ Bolt: Cache bust screenshotUrl only when the url itself changes, not when other activeResults fields (like logs) update
     const screenshotSrc = useMemo(() => activeResults?.screenshotUrl
         ? `${activeResults.screenshotUrl}${resultView === 'latest' ? `?t=${Date.now()}` : ''}`
