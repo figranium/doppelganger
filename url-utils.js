@@ -79,10 +79,11 @@ let lastCacheClear = Date.now();
 /**
  * Validates a URL to prevent SSRF by blocking private IP ranges.
  * @param {string} urlStr The URL to validate.
+ * @returns {string} The validated URL string.
  * @throws {Error} If the URL is invalid or points to a private network.
  */
 async function validateUrl(urlStr) {
-    if (!urlStr) return;
+    if (!urlStr) return '';
 
     let url;
     try {
@@ -95,7 +96,7 @@ async function validateUrl(urlStr) {
         throw new Error('Only HTTP and HTTPS protocols are allowed');
     }
 
-    if (ALLOW_PRIVATE_NETWORKS) return;
+    if (ALLOW_PRIVATE_NETWORKS) return url.href;
 
     let hostname = url.hostname;
     // Strip brackets from IPv6 hostnames
@@ -112,7 +113,7 @@ async function validateUrl(urlStr) {
         lastCacheClear = Date.now();
     }
 
-    if (VALID_HOSTNAME_CACHE.has(lowerHost)) return;
+    if (VALID_HOSTNAME_CACHE.has(lowerHost)) return url.href;
     if (INVALID_HOSTNAME_CACHE.has(lowerHost)) {
         throw new Error('Access to private network is restricted');
     }
@@ -131,7 +132,7 @@ async function validateUrl(urlStr) {
                 INVALID_HOSTNAME_CACHE.add(lowerHost);
                 throw new Error('Access to private network is restricted');
             }
-            return;
+            return url.href;
         }
 
         // dns.lookup follows /etc/hosts and is what's typically used for connecting
@@ -151,6 +152,8 @@ async function validateUrl(urlStr) {
         // If we can't resolve it and it's not an IP, we allow it to proceed
         // to the browser where it will likely fail normally.
     }
+
+    return url.href;
 }
 
 /**
@@ -173,14 +176,17 @@ async function fetchWithRedirectValidation(urlStr, options = {}, maxRedirects = 
 
     while (redirectCount <= maxRedirects) {
         // validateUrl respects ALLOW_PRIVATE_NETWORKS internally
-        await validateUrl(currentUrl.href);
+        const validatedHref = await validateUrl(currentUrl.href);
+
+        // Explicitly reconstruct URL from validated href to ensure taint is cleared
+        const safeUrl = new URL(validatedHref);
 
         // CodeQL mitigation: strictly verify protocol and pass URL object to fetch
-        if (currentUrl.protocol !== 'http:' && currentUrl.protocol !== 'https:') {
+        if (safeUrl.protocol !== 'http:' && safeUrl.protocol !== 'https:') {
             throw new Error('Only HTTP and HTTPS protocols are allowed');
         }
 
-        const response = await fetch(currentUrl, {
+        const response = await fetch(safeUrl, {
             ...currentOptions,
             redirect: 'manual'
         });
@@ -190,7 +196,7 @@ async function fetchWithRedirectValidation(urlStr, options = {}, maxRedirects = 
             const location = response.headers.get('location');
             if (!location) return response;
 
-            const nextUrl = new URL(location, currentUrl.href);
+            const nextUrl = new URL(location, safeUrl.href);
             const isCrossOrigin = nextUrl.origin !== currentUrl.origin;
 
             // Update options for the next request (shallow copy)
