@@ -2,6 +2,7 @@ import React, { useRef, memo } from 'react';
 import { Task } from '../types';
 import MaterialIcon from './MaterialIcon';
 import GithubStarPill from './GithubStarPill';
+import CopyButton from './CopyButton';
 
 interface DashboardScreenProps {
     tasks: Task[];
@@ -61,6 +62,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                                     setIsExportModalOpen(true);
                                 }}
                                 className="px-4 py-3 rounded-2xl border border-white/10 text-white text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                title="Export tasks"
+                                aria-label="Export tasks"
                             >
                                 <MaterialIcon name="download" className="w-4 h-4 inline-block mr-2 text-[16px] align-sub" />
                                 Export
@@ -68,6 +71,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                             <button
                                 onClick={handleImportClick}
                                 className="px-4 py-3 rounded-2xl border border-white/10 text-white text-[9px] font-bold uppercase tracking-[0.3em] hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                title="Import tasks"
+                                aria-label="Import tasks"
                             >
                                 <MaterialIcon name="upload" className="w-4 h-4 inline-block mr-2 text-[16px] align-sub" />
                                 Import
@@ -76,6 +81,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                                 onClick={onNewTask}
                                 className="shine-effect bg-white text-black px-8 py-3 rounded-2xl font-bold text-[10px] tracking-[0.2em] uppercase transition-all hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                 aria-label="Create new task"
+                                title="Create new task"
                             >
                                 + New Task
                             </button>
@@ -112,7 +118,16 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                                                     <MaterialIcon name="public" className="text-gray-500 text-xl" />
                                                 )}
                                             </div>
-                                            <div className="px-3 py-1 rounded-lg bg-white/5 text-[7px] font-bold uppercase tracking-widest text-white/60">{task.mode}</div>
+                                            <div className="flex items-center gap-2">
+                                                <CopyButton
+                                                    text={task.url}
+                                                    title="Copy URL"
+                                                    label=""
+                                                    className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity p-2 rounded-lg bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10"
+                                                    iconClassName="text-[12px]"
+                                                />
+                                                <div className="px-3 py-1 rounded-lg bg-white/5 text-[7px] font-bold uppercase tracking-widest text-white/60">{task.mode}</div>
+                                            </div>
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-white truncate">{task.name || 'Untitled'}</h3>
@@ -145,6 +160,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                             <button
                                 onClick={onNewTask}
                                 className="w-full max-w-[400px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-2xl p-8 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-4 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                title="Create first task"
+                                aria-label="Create first task"
                             >
                                 <div className="w-12 h-12 rounded-xl bg-white/5 group-hover:bg-white/10 transition-all flex items-center justify-center border border-white/5">
                                     <MaterialIcon name="add" className="text-3xl text-gray-500 group-hover:text-white transition-colors" />

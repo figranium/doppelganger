@@ -29,3 +29,7 @@
 ## 2026-03-28 - [Utility Shortcuts and Accessible Custom Inputs]
 **Learning:** For developer-focused interfaces, providing quick actions for common operations (like copying activity logs) significantly reduces friction. Custom `contentEditable` inputs, while powerful, are often invisible to screen readers unless explicitly marked with `role="textbox"`, `aria-multiline`, and descriptive labels.
 **Action:** Always look for high-value copy targets and provide a "Copy" button with immediate visual feedback. Ensure all custom-built input components have full ARIA coverage to match native form elements.
+
+## 2026-04-10 - [Dashboard Accessibility and Quick Actions]
+**Learning:** High-level overview screens like the Dashboard benefit greatly from "quick actions" (e.g., copying a task URL) that appear on hover/focus, reducing the need to enter the full editor for simple metadata retrieval. Consistent accessibility attributes (title/aria-label) across all primary navigation buttons ensure parity between mouse and screen-reader users.
+**Action:** Implement 'group-hover' and 'focus-within' patterns for secondary actions on list items. Always include dual 'title' and 'aria-label' attributes for parity across all interactive elements in the primary dashboard view.
