@@ -186,7 +186,7 @@ const getResultsPreview = (payload: Results | null): { text: string; truncated: 
     return { text: clamped.text, truncated: clamped.truncated, language: 'plain' as const };
 };
 
-const parseCsvRows = (text: string) => {
+const parseCsvRows = (text: string, limit?: number) => {
     const rows: string[][] = [];
     let row: string[] = [];
     let current = '';
@@ -214,6 +214,7 @@ const parseCsvRows = (text: string) => {
             } else if (char === '\n') {
                 row.push(current);
                 rows.push(row);
+                if (limit && rows.length >= limit) return rows;
                 row = [];
                 current = '';
             } else if (char === '\r') {
@@ -238,13 +239,14 @@ const getTableData = (raw: any) => {
         if (!sample.includes(',') || !sample.includes('\n')) return null;
 
         const text = raw.trim();
-        const rows = parseCsvRows(text).filter((r) => r.some((cell) => String(cell || '').trim() !== ''));
+        // ⚡ Bolt: Limit CSV parsing to MAX_PREVIEW_ITEMS + 1 (header) to avoid O(N) overhead on large files.
+        const rows = parseCsvRows(text, MAX_PREVIEW_ITEMS + 1).filter((r) => r.some((cell) => String(cell || '').trim() !== ''));
         if (rows.length < 2) return null;
         const header = rows[0].map((cell, idx) => {
             const trimmed = String(cell || '').trim();
             return trimmed || `column_${idx + 1}`;
         });
-        const body = rows.slice(1);
+        const body = rows.slice(1, MAX_PREVIEW_ITEMS + 1);
         if (header.length < 2) return null;
         return { headers: header, rows: body };
     }
@@ -252,19 +254,23 @@ const getTableData = (raw: any) => {
         if (raw.length === 0) return null;
         if (raw.every((item) => item && typeof item === 'object' && !Array.isArray(item))) {
             const headers: string[] = [];
-            raw.forEach((item) => {
+            // ⚡ Bolt: Limit header discovery and row mapping to MAX_PREVIEW_ITEMS to ensure UI responsiveness.
+            const sample = raw.slice(0, MAX_PREVIEW_ITEMS);
+            sample.forEach((item) => {
                 Object.keys(item).forEach((key) => {
                     if (!headers.includes(key)) headers.push(key);
                 });
             });
             if (headers.length === 0) return null;
-            const rows = raw.map((item) => headers.map((key) => item[key] ?? ''));
+            const rows = sample.map((item) => headers.map((key) => item[key] ?? ''));
             return { headers, rows };
         }
         if (raw.every((item) => Array.isArray(item))) {
-            const maxCols = Math.max(...raw.map((item) => item.length));
+            // ⚡ Bolt: Limit array mapping to MAX_PREVIEW_ITEMS to ensure UI responsiveness.
+            const sample = raw.slice(0, MAX_PREVIEW_ITEMS);
+            const maxCols = Math.max(...sample.map((item) => item.length));
             const headers = Array.from({ length: maxCols }, (_, idx) => `column_${idx + 1}`);
-            return { headers, rows: raw };
+            return { headers, rows: sample };
         }
         return null;
     }
