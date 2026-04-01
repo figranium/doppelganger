@@ -32,3 +32,8 @@
 **Vulnerability:** Sandbox escape in extraction scripts via unproxied `this` in callback wrappers.
 **Learning:** The `createSafeProxy` implementation wrapped arguments and return values but failed to wrap the `this` context when a host function invoked a sandboxed callback. This allowed the sandbox to access the raw host object and its `constructor`, eventually reaching the host's global scope (e.g., `this.constructor.constructor('return process')()`).
 **Prevention:** Always wrap the `this` context with the security proxy before applying callbacks passed from a sandbox to host functions. Consistently applying this pattern across `get`, `apply`, and `construct` traps ensures a robust security boundary.
+
+## 2025-07-02 - [Insecure Default for SSRF Protection]
+**Vulnerability:** Access to private networks was enabled by default when `ALLOW_PRIVATE_NETWORKS` was unset.
+**Learning:** Using a blacklist approach to validate configuration flags (e.g., checking for '0', 'false', 'no') can lead to insecure-by-default behavior if the variable is missing or malformed.
+**Prevention:** Use a whitelist-based approach for security-sensitive flags. Ensure the default state (when the environment variable is empty or undefined) is the most restrictive/secure one (e.g., only evaluating to `true` if explicitly set to '1', 'true', or 'yes').
