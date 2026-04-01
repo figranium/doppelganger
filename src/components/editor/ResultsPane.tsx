@@ -252,22 +252,27 @@ const getTableData = (raw: any) => {
     }
     if (Array.isArray(raw)) {
         if (raw.length === 0) return null;
-        if (raw.every((item) => item && typeof item === 'object' && !Array.isArray(item))) {
+        // ⚡ Bolt: Limit type detection to MAX_PREVIEW_ITEMS to avoid O(N) overhead on large arrays.
+        const sample = raw.slice(0, MAX_PREVIEW_ITEMS);
+        if (sample.every((item) => item && typeof item === 'object' && !Array.isArray(item))) {
             const headers: string[] = [];
+            const headerSet = new Set<string>();
             // ⚡ Bolt: Limit header discovery and row mapping to MAX_PREVIEW_ITEMS to ensure UI responsiveness.
-            const sample = raw.slice(0, MAX_PREVIEW_ITEMS);
+            // Using a Set for header tracking improves lookup from O(H) to O(1).
             sample.forEach((item) => {
                 Object.keys(item).forEach((key) => {
-                    if (!headers.includes(key)) headers.push(key);
+                    if (!headerSet.has(key)) {
+                        headerSet.add(key);
+                        headers.push(key);
+                    }
                 });
             });
             if (headers.length === 0) return null;
             const rows = sample.map((item) => headers.map((key) => item[key] ?? ''));
             return { headers, rows };
         }
-        if (raw.every((item) => Array.isArray(item))) {
+        if (sample.every((item) => Array.isArray(item))) {
             // ⚡ Bolt: Limit array mapping to MAX_PREVIEW_ITEMS to ensure UI responsiveness.
-            const sample = raw.slice(0, MAX_PREVIEW_ITEMS);
             const maxCols = Math.max(...sample.map((item) => item.length));
             const headers = Array.from({ length: maxCols }, (_, idx) => `column_${idx + 1}`);
             return { headers, rows: sample };
