@@ -166,8 +166,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     <button
                                         onClick={() => openActionPalette(undefined, trueEnd)}
                                         className="w-12 h-12 border border-dashed border-white/15 rounded-xl hover:border-white/30 hover:bg-white/5 transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                        aria-label="Add action"
-                                        title="Add action"
+                                        aria-label="Add action (Ctrl + K)"
+                                        title="Add action (Ctrl + K)"
                                     >
                                         <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
                                     </button>
@@ -196,8 +196,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                                 }
                                             }}
                                             className="w-12 h-12 border border-dashed border-white/15 rounded-xl hover:border-white/30 hover:bg-white/5 transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                            aria-label="Add action"
-                                            title="Add action"
+                                            aria-label="Add action (Ctrl + K)"
+                                            title="Add action (Ctrl + K)"
                                         >
                                             <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
                                         </button>
@@ -210,8 +210,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                             <button
                                 onClick={() => openActionPalette(undefined, blockEnd + 1)}
                                 className="w-8 h-8 border border-dashed border-white/10 rounded-lg hover:border-white/30 hover:bg-white/5 transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                aria-label="Add action"
-                                title="Add action"
+                                aria-label="Add action (Ctrl + K)"
+                                title="Add action (Ctrl + K)"
                             >
                                 <MaterialIcon name="add" className="text-sm text-gray-600 group-hover:text-white transition-colors" />
                             </button>
@@ -252,8 +252,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <button
                                     onClick={() => openActionPalette(undefined, currentIndex + 1)}
                                     className="w-8 h-8 border border-dashed border-white/10 rounded-lg hover:border-white/30 hover:bg-white/5 transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                    aria-label="Add action"
-                                    title="Add action"
+                                    aria-label="Add action (Ctrl + K)"
+                                    title="Add action (Ctrl + K)"
                                 >
                                     <MaterialIcon name="add" className="text-sm text-gray-600 group-hover:text-white transition-colors" />
                                 </button>
@@ -373,6 +373,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     <button
                                         onClick={() => openActionPalette()}
                                         className="w-[360px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-2xl p-6 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                        aria-label="Add action (Ctrl + K)"
+                                        title="Add action (Ctrl + K)"
                                     >
                                         <div className="w-10 h-10 rounded-xl bg-white/5 group-hover:bg-white/10 transition-all flex items-center justify-center">
                                             <MaterialIcon name="add" className="text-2xl text-gray-500 group-hover:text-white transition-colors" />
