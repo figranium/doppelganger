@@ -9,3 +9,7 @@
 ## 2025-05-22 - [Callback stabilization for memoized lists]
 **Learning:** Wrapping complex components in `React.memo` is ineffective if parent callbacks are redefined on every render. In the Task Editor, `ActionItem` re-renders were triggered by `currentTask` updates because handlers like `handleAutoSave` captured the task in their closure.
 **Action:** Use the `useRef` + `useCallback` pattern to stabilize handlers. Store volatile state (like `currentTask`) in a ref and reference it within a stable callback to maintain $O(1)$ re-render complexity for unchanged list items.
+
+## 2025-05-22 - [Conditional DOM cleaning]
+**Learning:** DOM cleaning via `page.evaluate(cleanHtml, ...)` is an $O(N)$ operation (where $N$ is DOM size) that involves heavy serialization and cross-process overhead. Executing it unconditionally during agent finalization adds 50-300ms of unnecessary latency for tasks that don't require the cleaned HTML for extraction or output.
+**Action:** Gate expensive context-switching operations behind strict requirement checks. Verify if optional results (like cleaned HTML) are actually needed by extraction scripts or output settings before invoking heavy-weight processing.

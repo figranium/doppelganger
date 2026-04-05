@@ -157,9 +157,9 @@ async function runAgent(data, options = {}) {
                         const safeName = originalName.replace(/[^a-zA-Z0-9_.-]/g, '_');
                         const downloadName = `${captureRunId}_dl_${Date.now()}_${safeName}`;
                         const customCapturesDir = path.join(__dirname, '../../public', 'captures');
-                        if (!fs.existsSync(customCapturesDir)) {
-                            fs.mkdirSync(customCapturesDir, { recursive: true });
-                        }
+                        // ⚡ Bolt: Use non-blocking directory creation
+                        await fs.promises.mkdir(customCapturesDir, { recursive: true });
+
                         const downloadPath = path.join(customCapturesDir, downloadName);
 
                         await download.saveAs(downloadPath);
@@ -217,16 +217,15 @@ async function runAgent(data, options = {}) {
             }
         };
 
-        const ensureCapturesDir = () => {
+        const ensureCapturesDir = async () => {
             const capturesDir = path.join(__dirname, '../../public', 'captures');
-            if (!fs.existsSync(capturesDir)) {
-                fs.mkdirSync(capturesDir, { recursive: true });
-            }
+            // ⚡ Bolt: Use non-blocking directory creation
+            await fs.promises.mkdir(capturesDir, { recursive: true });
             return capturesDir;
         };
 
         const captureScreenshot = async (label) => {
-            const capturesDir = ensureCapturesDir();
+            const capturesDir = await ensureCapturesDir();
             const safeLabel = label ? String(label).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) : '';
             const nameSuffix = safeLabel ? `_${safeLabel}` : '';
             const screenshotName = `${captureRunId}_agent_${Date.now()}${nameSuffix}.png`;
@@ -536,30 +535,35 @@ async function runAgent(data, options = {}) {
             } catch (e) { }
         }
 
-        let cleanedHtml = '';
-        for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-                await page.waitForLoadState('domcontentloaded').catch(() => {});
-                cleanedHtml = await page.evaluate(cleanHtml, includeShadowDom);
-                break;
-            } catch (evalErr) {
-                if (attempt < 2 && /context was destroyed|navigation/i.test(evalErr.message)) {
-                    await page.waitForTimeout(1000);
-                    continue;
-                }
-                // Final fallback: raw page content
-                try {
-                    cleanedHtml = await page.content();
-                } catch {
-                    cleanedHtml = '';
-                }
-                break;
-            }
-        }
-
         const extractionScriptRaw = typeof data.extractionScript === 'string'
             ? data.extractionScript
             : (data.taskSnapshot && typeof data.taskSnapshot.extractionScript === 'string' ? data.taskSnapshot.extractionScript : undefined);
+
+        const includeHtml = !!(data.includeHtml ?? (data.taskSnapshot && data.taskSnapshot.includeHtml));
+
+        let cleanedHtml = '';
+        // ⚡ Bolt: Only perform expensive DOM cleaning if we actually need the HTML for extraction or output
+        if (extractionScriptRaw || includeHtml) {
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    await page.waitForLoadState('domcontentloaded').catch(() => { });
+                    cleanedHtml = await page.evaluate(cleanHtml, includeShadowDom);
+                    break;
+                } catch (evalErr) {
+                    if (attempt < 2 && /context was destroyed|navigation/i.test(evalErr.message)) {
+                        await page.waitForTimeout(1000);
+                        continue;
+                    }
+                    // Final fallback: raw page content
+                    try {
+                        cleanedHtml = await page.content();
+                    } catch {
+                        cleanedHtml = '';
+                    }
+                    break;
+                }
+            }
+        }
 
         if (extractionScriptRaw && extractionScriptRaw.includes('{$html}')) {
             try {
@@ -573,19 +577,19 @@ async function runAgent(data, options = {}) {
         const extraction = await runExtractionScript(extractionScript, cleanedHtml, page.url(), includeShadowDom);
 
         const capturesDir = path.join(__dirname, '../../public', 'captures');
-        if (!fs.existsSync(capturesDir)) {
-            fs.mkdirSync(capturesDir, { recursive: true });
-        }
+        // ⚡ Bolt: Use non-blocking directory creation
+        await fs.promises.mkdir(capturesDir, { recursive: true });
 
         const screenshotName = `${captureRunId}_agent_${Date.now()}.png`;
         const screenshotPath = path.join(capturesDir, screenshotName);
+        let screenshotSuccess = false;
         try {
             await page.screenshot({ path: screenshotPath, fullPage: false });
+            screenshotSuccess = true;
         } catch (e) {
             console.error('Agent Screenshot failed:', e.message);
         }
 
-        const includeHtml = !!(data.includeHtml ?? (data.taskSnapshot && data.taskSnapshot.includeHtml));
         const extractionFormat = String(data.extractionFormat || (data.taskSnapshot && data.taskSnapshot.extractionFormat) || '').toLowerCase() === 'csv'
             ? 'csv'
             : 'json';
@@ -598,7 +602,7 @@ async function runAgent(data, options = {}) {
             logs: logs || [],
             html: (extractionScript && !includeHtml) ? undefined : (typeof cleanedHtml === 'string' ? safeFormatHTML(cleanedHtml) : ''),
             data: formattedExtraction,
-            screenshot_url: fs.existsSync(screenshotPath) ? `/captures/${screenshotName}` : null
+            screenshot_url: screenshotSuccess ? `/captures/${screenshotName}` : null
         };
 
         const video = page.video();
@@ -609,15 +613,19 @@ async function runAgent(data, options = {}) {
         if (video) {
             try {
                 const videoPath = await video.path();
-                if (videoPath && fs.existsSync(videoPath)) {
+                // ⚡ Bolt: Use non-blocking existence check
+                const videoExists = videoPath && await fs.promises.access(videoPath).then(() => true).catch(() => false);
+                if (videoExists) {
                     const recordingName = `${captureRunId}_agent_${Date.now()}.webm`;
                     const recordingPath = path.join(capturesDir, recordingName);
                     try {
-                        fs.renameSync(videoPath, recordingPath);
+                        // ⚡ Bolt: Use non-blocking move
+                        await fs.promises.rename(videoPath, recordingPath);
                     } catch (err) {
                         if (err && err.code === 'EXDEV') {
-                            fs.copyFileSync(videoPath, recordingPath);
-                            fs.unlinkSync(videoPath);
+                            // ⚡ Bolt: Use non-blocking copy/unlink if move across filesystems fails
+                            await fs.promises.copyFile(videoPath, recordingPath);
+                            await fs.promises.unlink(videoPath);
                         } else {
                             throw err;
                         }
