@@ -19,7 +19,7 @@ async function runTests() {
         console.log('✓ SUCCESS: localhost blocked as expected');
     }
 
-    console.log('\nScenario 2: Flag DEFAULT (should be enabled)');
+    console.log('\nScenario 2: Flag DEFAULT (should be disabled)');
     delete process.env.ALLOW_PRIVATE_NETWORKS;
     delete require.cache[require.resolve('../src/server/constants')];
     delete require.cache[require.resolve('../url-utils')];
@@ -27,11 +27,10 @@ async function runTests() {
 
     try {
         await validateUrlDefault('http://localhost');
-        console.log('✓ SUCCESS: localhost allowed by default');
-    } catch (e) {
-        console.error('FAILED: localhost should be allowed by default');
-        console.error(e.message);
+        console.error('FAILED: localhost should be blocked by default');
         process.exit(1);
+    } catch (e) {
+        console.log('✓ SUCCESS: localhost blocked by default');
     }
 
     console.log('\nScenario 3: Flag EXPLICITLY ENABLED');
