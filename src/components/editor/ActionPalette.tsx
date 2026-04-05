@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import MaterialIcon from '../MaterialIcon';
 import { Action } from '../../types';
 import { ACTION_CATALOG } from './actionCatalog';
@@ -13,9 +13,12 @@ interface ActionPaletteProps {
 
 const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChange, onClose, onSelect }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+    const [activeIndex, setActiveIndex] = useState(0);
 
     useEffect(() => {
         if (open) {
+            setActiveIndex(0);
             const timer = setTimeout(() => inputRef.current?.focus(), 50);
             return () => clearTimeout(timer);
         }
@@ -23,11 +26,51 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
-        if (!q) return ACTION_CATALOG;
-        return ACTION_CATALOG.filter((item) =>
+        return !q ? ACTION_CATALOG : ACTION_CATALOG.filter((item) =>
             item.label.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
         );
     }, [query]);
+
+    useEffect(() => {
+        setActiveIndex(0);
+    }, [query]);
+
+    useEffect(() => {
+        if (open && scrollContainerRef.current) {
+            const activeEl = scrollContainerRef.current.querySelector(`[data-index="${activeIndex}"]`) as HTMLElement;
+            if (activeEl) {
+                activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }
+    }, [activeIndex, open]);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            if (query) {
+                e.stopPropagation();
+                onQueryChange('');
+            } else {
+                onClose();
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveIndex(prev => (prev + 2 < filtered.length ? prev + 2 : prev));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveIndex(prev => (prev - 2 >= 0 ? prev - 2 : prev));
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            setActiveIndex(prev => (prev + 1 < filtered.length ? prev + 1 : prev));
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            setActiveIndex(prev => (prev - 1 >= 0 ? prev - 1 : prev));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (filtered[activeIndex]) {
+                onSelect(filtered[activeIndex].type);
+            }
+        }
+    };
 
     if (!open) return null;
 
@@ -59,18 +102,10 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
                         ref={inputRef}
                         value={query}
                         onChange={(e) => onQueryChange(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Escape') {
-                                if (query) {
-                                    e.stopPropagation();
-                                    onQueryChange('');
-                                } else {
-                                    onClose();
-                                }
-                            }
-                        }}
+                        onKeyDown={handleKeyDown}
                         placeholder="Type to filter (e.g., if, click, while)"
                         aria-label="Search actions"
+                        aria-activedescendant={filtered[activeIndex] ? `action-item-${filtered[activeIndex].type}` : undefined}
                         className="w-full rounded-xl bg-black/40 border border-white/10 px-4 py-3 pr-10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-all focus-visible:ring-2 focus-visible:ring-white/20"
                     />
                     {query && (
@@ -84,13 +119,17 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
                         </button>
                     )}
                 </div>
-                <div className="mt-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                    <div className="grid grid-cols-2 gap-3 pb-2">
-                        {filtered.map((item) => (
+                <div ref={scrollContainerRef} className="mt-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                    <div className="grid grid-cols-2 gap-3 pb-2" role="listbox">
+                        {filtered.map((item, idx) => (
                             <button
                                 key={item.type}
+                                id={`action-item-${item.type}`}
+                                data-index={idx}
+                                role="option"
+                                aria-selected={idx === activeIndex}
                                 onClick={() => onSelect(item.type)}
-                                className="flex flex-col items-start gap-2 text-left p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/20 transition-all hover:scale-[1.02] active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+                                className={`flex flex-col items-start gap-2 text-left p-4 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${idx === activeIndex ? 'bg-white/10 border-white/30 ring-1 ring-white/20' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/20'}`}
                             >
                                 <MaterialIcon name={item.icon || 'extension'} className="text-2xl text-white/80 group-hover:text-white transition-colors shrink-0 mb-1" />
                                 <div>

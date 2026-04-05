@@ -24,6 +24,8 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
                 onClick={onRun}
                 disabled={isExecuting || isHeadfulOpen}
                 className="shine-effect bg-white text-black px-8 py-4 rounded-2xl font-bold text-[10px] tracking-[0.3em] uppercase transition-all shadow-xl shadow-white/5 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed min-w-[200px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                title="Run Task (Ctrl + Enter)"
+                aria-label="Run Task (Ctrl + Enter)"
             >
                 {isExecuting ? (
                     <div className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin" />
