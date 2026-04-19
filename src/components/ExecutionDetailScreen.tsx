@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import MaterialIcon from './MaterialIcon';
 import { Execution, Results, ConfirmRequest } from '../types';
 import ResultsPane from './editor/ResultsPane';
 import { useHeadfulStatus } from '../hooks/useHeadfulStatus';
@@ -62,8 +63,9 @@ const ExecutionDetailScreen: React.FC<ExecutionDetailScreenProps> = ({ onConfirm
                 <div className="max-w-6xl mx-auto space-y-6">
                     <button
                         onClick={() => navigate('/executions')}
-                        className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all"
+                        className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2"
                     >
+                        <MaterialIcon name="arrow_back" className="text-base" />
                         Back
                     </button>
                     <div className="text-[9px] text-gray-600 uppercase tracking-widest">Execution not found.</div>
@@ -86,8 +88,9 @@ const ExecutionDetailScreen: React.FC<ExecutionDetailScreenProps> = ({ onConfirm
                     </div>
                     <button
                         onClick={() => navigate('/executions')}
-                        className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all"
+                        className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2"
                     >
+                        <MaterialIcon name="arrow_back" className="text-base" />
                         Back
                     </button>
                 </div>

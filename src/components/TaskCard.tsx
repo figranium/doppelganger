@@ -59,8 +59,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEditTask, onDeleteTask }) =
             <div className="flex gap-3 pt-4 border-t border-white/5">
                 <button
                     onClick={() => onEditTask(task)}
-                    className="flex-1 py-2 rounded-lg bg-white text-black text-[9px] font-bold uppercase tracking-widest hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="flex-1 py-2 rounded-lg bg-white text-black text-[9px] font-bold uppercase tracking-widest hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 flex items-center justify-center gap-2"
                 >
+                    <MaterialIcon name="edit" className="text-base" />
                     Edit Task
                 </button>
                 <button
