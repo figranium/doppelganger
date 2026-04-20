@@ -211,9 +211,12 @@ router.post('/generate-selector', requireAuth, async (req, res) => {
         // Try Gemini
         for (const key of geminiKeys) {
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModels.gemini}:generateContent?key=${key}`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModels.gemini}:generateContent`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': key
+                    },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: llmPrompt }] }]
                     })
@@ -369,9 +372,12 @@ Only reply with the raw JavaScript code, no markdown, no backticks, no explanati
 
     for (const key of geminiKeys) {
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModels.gemini}:generateContent?key=${key}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModels.gemini}:generateContent`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': key
+                },
                 body: JSON.stringify({ contents: [{ parts: [{ text: llmPrompt }] }] })
             });
             if (response.ok) {
