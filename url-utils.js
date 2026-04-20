@@ -41,32 +41,43 @@ const { ALLOW_PRIVATE_NETWORKS } = require('./src/server/constants');
  */
 function isPrivateIP(ip) {
     if (net.isIPv4(ip)) {
-        const parts = ip.split('.').map(Number);
-        return (
-            parts[0] === 0 ||
-            parts[0] === 10 ||
-            (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-            (parts[0] === 192 && parts[1] === 168) ||
-            parts[0] === 127 ||
-            (parts[0] === 169 && parts[1] === 254) ||
-            (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) ||
-            (parts[0] === 192 && parts[1] === 0 && parts[2] === 0) || // 192.0.0.0/24
-            (parts[0] === 192 && parts[1] === 0 && parts[2] === 2) || // 192.0.2.0/24
-            (parts[0] === 198 && parts[1] >= 18 && parts[1] <= 19) || // 198.18.0.0/15
-            (parts[0] === 198 && parts[1] === 51 && parts[2] === 100) || // 198.51.100.0/24
-            (parts[0] === 203 && parts[1] === 0 && parts[2] === 113) || // 203.0.113.0/24
-            parts[0] >= 224 // 224.0.0.0/4 (Multicast) and 240.0.0.0/4 (Reserved)
-        );
+        // ⚡ Bolt: Use early returns and avoid .map(Number) to reduce allocations (O(1) extra space vs O(N))
+        const parts = ip.split('.');
+        const p0 = parseInt(parts[0], 10);
+        if (p0 === 0 || p0 === 10 || p0 === 127 || p0 >= 224) return true;
+
+        const p1 = parseInt(parts[1], 10);
+        if (p0 === 172 && p1 >= 16 && p1 <= 31) return true;
+        if (p0 === 192 && p1 === 168) return true;
+        if (p0 === 169 && p1 === 254) return true;
+        if (p0 === 100 && p1 >= 64 && p1 <= 127) return true;
+
+        const p2 = parseInt(parts[2], 10);
+        if (p0 === 192 && p1 === 0 && (p2 === 0 || p2 === 2)) return true;
+        if (p0 === 198 && p1 >= 18 && p1 <= 19) return true;
+        if (p0 === 198 && p1 === 51 && p2 === 100) return true;
+        if (p0 === 203 && p1 === 0 && p2 === 113) return true;
+
+        return false;
     }
     if (net.isIPv6(ip)) {
         const lower = ip.toLowerCase();
         const parts = lower.split(':');
         const last = parts[parts.length - 1];
 
+        // ⚡ Bolt: Avoid expensive array methods like .slice() and .every() in hot path
         // Handle IPv4-mapped IPv6 addresses (::ffff:1.2.3.4 or ::ffff:7f00:1)
         const ffffIndex = parts.indexOf('ffff');
         if (ffffIndex !== -1) {
-            const prefixAllZeros = parts.slice(0, ffffIndex).every(p => p === '' || p === '0');
+            let prefixAllZeros = true;
+            for (let i = 0; i < ffffIndex; i++) {
+                const p = parts[i];
+                if (p !== '' && p !== '0' && p !== '0000') {
+                    prefixAllZeros = false;
+                    break;
+                }
+            }
+
             if (prefixAllZeros) {
                 if (net.isIPv4(last)) {
                     return isPrivateIP(last);
@@ -81,7 +92,15 @@ function isPrivateIP(ip) {
 
         // Handle IPv4-compatible IPv6 addresses (::1.2.3.4 or ::7f00:1)
         if (ffffIndex === -1) {
-            const prefixAllZeros = parts.slice(0, -2).every(p => p === '' || p === '0');
+            let prefixAllZeros = true;
+            for (let i = 0; i < parts.length - 2; i++) {
+                const p = parts[i];
+                if (p !== '' && p !== '0' && p !== '0000') {
+                    prefixAllZeros = false;
+                    break;
+                }
+            }
+
             if (prefixAllZeros) {
                 if (net.isIPv4(last)) {
                     return isPrivateIP(last);
@@ -95,11 +114,22 @@ function isPrivateIP(ip) {
         }
 
         // Native IPv6 checks (Unspecified, Loopback, Link-Local, Unique Local, Multicast)
-        const isUnspecified = parts.every(p => p === '0' || p === '0000' || p === '');
-        const isLoopback = parts.slice(0, -1).every(p => p === '0' || p === '0000' || p === '') &&
-            (parts[parts.length - 1] === '1' || parts[parts.length - 1] === '0001');
+        let allExceptLastZero = true;
+        for (let i = 0; i < parts.length - 1; i++) {
+            const p = parts[i];
+            if (p !== '' && p !== '0' && p !== '0000') {
+                allExceptLastZero = false;
+                break;
+            }
+        }
 
-        if (isUnspecified || isLoopback) return true;
+        const lastPart = parts[parts.length - 1];
+        const isLastZero = lastPart === '0' || lastPart === '0000' || (lastPart === '' && parts.length > 1);
+        const isLastOne = lastPart === '1' || lastPart === '0001';
+
+        if (allExceptLastZero) {
+            if (isLastZero || isLastOne) return true;
+        }
 
         const firstHex = parseInt(parts[0], 16);
         if (!isNaN(firstHex)) {
