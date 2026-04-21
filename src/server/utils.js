@@ -153,6 +153,45 @@ const parseIpList = (input) => {
     return [];
 };
 
+/**
+ * Executes multiple AI provider requests in parallel and returns the first successful one.
+ * Uses AbortController to cancel remaining requests once one succeeds.
+ * @param {Array<Function>} tasks Array of functions that return a Promise and accept an AbortSignal.
+ * @returns {Promise<any>} The result of the first successful task.
+ */
+async function tryAiProviders(tasks) {
+    if (!tasks || tasks.length === 0) {
+        throw new Error('No AI providers configured.');
+    }
+
+    const controller = new AbortController();
+    const promises = tasks.map(async (task) => {
+        try {
+            const result = await task(controller.signal);
+            if (result) {
+                controller.abort();
+                return result;
+            }
+            throw new Error('Provider returned empty result.');
+        } catch (err) {
+            // If the error is an AbortError, it means another task already succeeded.
+            // We don't want to log this as a "failure" of this provider.
+            if (err.name === 'AbortError') throw err;
+            throw err;
+        }
+    });
+
+    try {
+        return await Promise.any(promises);
+    } catch (aggregateError) {
+        // If all providers fail, aggregateError.errors contains all reasons
+        const messages = aggregateError.errors
+            .filter(e => e.name !== 'AbortError')
+            .map(e => e.message);
+        throw new Error(messages.join(' | ') || 'All AI providers failed.');
+    }
+}
+
 module.exports = {
     Mutex,
     cloneTaskForVersion,
@@ -161,5 +200,6 @@ module.exports = {
     findAvailablePort,
     proxyWebsockify,
     normalizeIp,
-    parseIpList
+    parseIpList,
+    tryAiProviders
 };

@@ -6,7 +6,7 @@ const {
     loadAiModels
 } = require('../storage');
 const { taskMutex } = require('../state');
-const { appendTaskVersion, cloneTaskForVersion } = require('../utils');
+const { appendTaskVersion, cloneTaskForVersion, tryAiProviders } = require('../utils');
 const { handleAgent } = require('../../agent/index');
 const { fetchWithRedirectValidation } = require('../../../url-utils');
 
@@ -205,120 +205,71 @@ router.post('/generate-selector', requireAuth, dataRateLimiter, async (req, res)
 
         const llmPrompt = `Given this HTML:\n${agentResult.html}\n\nFind a reliable CSS selector for: "${prompt}"\n\nCRITICAL RULES:\n- Content-based selectors (e.g., using placeholder text, aria-labels, or has-text filters) are the MOST reliable.\n- NEVER use dynamic, numeric, or random-looking IDs (e.g., #APjFqb, #popup-170970, #id-9812).\n- NEVER use auto-generated utility classes that look like hashes (e.g., .css-1h2p).\n- Avoid long, fragile element chains (e.g., body > div > div > span).\n- Prefer specific, semantic, human-readable classes or data attributes (\`[data-testid="xyz"]\`, \`[aria-label="xyz"]\`).\n- If no good class/id exists, prefer structural pseudo-classes (e.g., \`button:nth-of-type(2)\`) or nearby stable anchors.\n\nOnly reply with the exact CSS selector, nothing else. Do not include markdown formatting or backticks.`;
 
-        let selector = null;
-        let errors = [];
+        const providerTasks = [];
 
-        // Try Gemini
-        for (const key of geminiKeys) {
-            try {
+        // ⚡ Bolt: Execute AI provider requests in parallel to reduce latency in failover scenarios.
+        geminiKeys.forEach(key => {
+            providerTasks.push(async (signal) => {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModels.gemini}:generateContent`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-goog-api-key': key
-                    },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: llmPrompt }] }]
-                    })
+                    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: llmPrompt }] }] }),
+                    signal
                 });
-                if (response.ok) {
-                    const data = await response.json();
-                    selector = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (selector) break;
-                    errors.push(`Gemini: Success response but no selector found in data.`);
-                } else {
-                    const text = await response.text();
-                    errors.push(`Gemini (Status ${response.status}): ${text}`);
-                }
-            } catch (e) { errors.push(`Gemini Error: ${e.message}`); }
-        }
-
-        // Try OpenAI if no selector yet
-        if (!selector) {
-            for (const key of openAiKeys) {
-                try {
-                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${key}`
-                        },
-                        body: JSON.stringify({
-                            model: aiModels.openai,
-                            messages: [{ role: 'user', content: llmPrompt }]
-                        })
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        selector = data.choices?.[0]?.message?.content;
-                        if (selector) break;
-                        errors.push(`OpenAI: Success response but no selector found in data.`);
-                    } else {
-                        const text = await response.text();
-                        errors.push(`OpenAI (Status ${response.status}): ${text}`);
-                    }
-                } catch (e) { errors.push(`OpenAI Error: ${e.message}`); }
-            }
-        }
-
-        // Try Claude if no selector yet
-        if (!selector) {
-            for (const key of claudeKeys) {
-                try {
-                    const response = await fetch('https://api.anthropic.com/v1/messages', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': key,
-                            'anthropic-version': '2023-06-01'
-                        },
-                        body: JSON.stringify({
-                            model: aiModels.claude,
-                            max_tokens: 1024,
-                            messages: [{ role: 'user', content: llmPrompt }]
-                        })
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        selector = data.content?.[0]?.text;
-                        if (selector) break;
-                        errors.push(`Claude: Success response but no selector found in data.`);
-                    } else {
-                        const text = await response.text();
-                        errors.push(`Claude (Status ${response.status}): ${text}`);
-                    }
-                } catch (e) { errors.push(`Claude Error: ${e.message}`); }
-            }
-        }
-
-        // Try Ollama if no selector yet
-        if (!selector) {
-            for (const raw of ollamaBaseUrls) {
-                try {
-                    const { url: baseUrl } = parseOllamaEntry(raw);
-                    const response = await fetchWithRedirectValidation(baseUrl + '/v1/chat/completions', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ollama' },
-                        body: JSON.stringify({ model: aiModels.ollama, messages: [{ role: 'user', content: llmPrompt }] })
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        selector = data.choices?.[0]?.message?.content;
-                        if (selector) break;
-                        errors.push(`Ollama: Success response but no selector found in data.`);
-                    } else {
-                        const text = await response.text();
-                        errors.push(`Ollama (Status ${response.status}): ${text}`);
-                    }
-                } catch (e) { errors.push(`Ollama Error: ${e.message}`); }
-            }
-        }
-
-        if (!selector) {
-            return res.status(500).json({
-                error: 'Failed to generate selector using configured AI keys.',
-                details: errors.join(' | ')
+                if (!response.ok) throw new Error(`Gemini (${response.status}): ${await response.text()}`);
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text;
             });
+        });
+
+        openAiKeys.forEach(key => {
+            providerTasks.push(async (signal) => {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({ model: aiModels.openai, messages: [{ role: 'user', content: llmPrompt }] }),
+                    signal
+                });
+                if (!response.ok) throw new Error(`OpenAI (${response.status}): ${await response.text()}`);
+                const data = await response.json();
+                return data.choices?.[0]?.message?.content;
+            });
+        });
+
+        claudeKeys.forEach(key => {
+            providerTasks.push(async (signal) => {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+                    body: JSON.stringify({ model: aiModels.claude, max_tokens: 1024, messages: [{ role: 'user', content: llmPrompt }] }),
+                    signal
+                });
+                if (!response.ok) throw new Error(`Claude (${response.status}): ${await response.text()}`);
+                const data = await response.json();
+                return data.content?.[0]?.text;
+            });
+        });
+
+        ollamaBaseUrls.forEach(raw => {
+            providerTasks.push(async (signal) => {
+                const { url: baseUrl } = parseOllamaEntry(raw);
+                const response = await fetchWithRedirectValidation(baseUrl + '/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ollama' },
+                    body: JSON.stringify({ model: aiModels.ollama, messages: [{ role: 'user', content: llmPrompt }] }),
+                    signal
+                });
+                if (!response.ok) throw new Error(`Ollama (${response.status}): ${await response.text()}`);
+                const data = await response.json();
+                return data.choices?.[0]?.message?.content;
+            });
+        });
+
+        let selector;
+        try {
+            selector = await tryAiProviders(providerTasks);
+        } catch (err) {
+            return res.status(500).json({ error: 'Failed to generate selector.', details: err.message });
         }
 
         selector = selector.trim();
@@ -367,89 +318,71 @@ RULES:
 
 Only reply with the raw JavaScript code, no markdown, no backticks, no explanation.`;
 
-    let script = null;
-    let errors = [];
+    const providerTasks = [];
 
-    for (const key of geminiKeys) {
-        try {
+    // ⚡ Bolt: Execute AI provider requests in parallel to reduce latency in failover scenarios.
+    geminiKeys.forEach(key => {
+        providerTasks.push(async (signal) => {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModels.gemini}:generateContent`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': key
-                },
-                body: JSON.stringify({ contents: [{ parts: [{ text: llmPrompt }] }] })
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+                body: JSON.stringify({ contents: [{ parts: [{ text: llmPrompt }] }] }),
+                signal
             });
-            if (response.ok) {
-                const data = await response.json();
-                script = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (script) break;
-            } else {
-                errors.push(`Gemini (${response.status}): ${await response.text()}`);
-            }
-        } catch (e) { errors.push(`Gemini Error: ${e.message}`); }
-    }
+            if (!response.ok) throw new Error(`Gemini (${response.status}): ${await response.text()}`);
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text;
+        });
+    });
 
-    if (!script) {
-        for (const key of openAiKeys) {
-            try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-                    body: JSON.stringify({ model: aiModels.openai, messages: [{ role: 'user', content: llmPrompt }] })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    script = data.choices?.[0]?.message?.content;
-                    if (script) break;
-                } else {
-                    errors.push(`OpenAI (${response.status}): ${await response.text()}`);
-                }
-            } catch (e) { errors.push(`OpenAI Error: ${e.message}`); }
-        }
-    }
+    openAiKeys.forEach(key => {
+        providerTasks.push(async (signal) => {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                body: JSON.stringify({ model: aiModels.openai, messages: [{ role: 'user', content: llmPrompt }] }),
+                signal
+            });
+            if (!response.ok) throw new Error(`OpenAI (${response.status}): ${await response.text()}`);
+            const data = await response.json();
+            return data.choices?.[0]?.message?.content;
+        });
+    });
 
-    if (!script) {
-        for (const key of claudeKeys) {
-            try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-                    body: JSON.stringify({ model: aiModels.claude, max_tokens: 1024, messages: [{ role: 'user', content: llmPrompt }] })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    script = data.content?.[0]?.text;
-                    if (script) break;
-                } else {
-                    errors.push(`Claude (${response.status}): ${await response.text()}`);
-                }
-            } catch (e) { errors.push(`Claude Error: ${e.message}`); }
-        }
-    }
+    claudeKeys.forEach(key => {
+        providerTasks.push(async (signal) => {
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+                body: JSON.stringify({ model: aiModels.claude, max_tokens: 1024, messages: [{ role: 'user', content: llmPrompt }] }),
+                signal
+            });
+            if (!response.ok) throw new Error(`Claude (${response.status}): ${await response.text()}`);
+            const data = await response.json();
+            return data.content?.[0]?.text;
+        });
+    });
 
-    if (!script) {
-        for (const raw of ollamaBaseUrls) {
-            try {
-                const { url: baseUrl, model } = parseOllamaEntry(raw);
-                const response = await fetchWithRedirectValidation(baseUrl + '/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ollama' },
-                    body: JSON.stringify({ model, messages: [{ role: 'user', content: llmPrompt }] })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    script = data.choices?.[0]?.message?.content;
-                    if (script) break;
-                } else {
-                    errors.push(`Ollama (${response.status}): ${await response.text()}`);
-                }
-            } catch (e) { errors.push(`Ollama Error: ${e.message}`); }
-        }
-    }
+    ollamaBaseUrls.forEach(raw => {
+        providerTasks.push(async (signal) => {
+            const { url: baseUrl, model } = parseOllamaEntry(raw);
+            const response = await fetchWithRedirectValidation(baseUrl + '/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ollama' },
+                body: JSON.stringify({ model, messages: [{ role: 'user', content: llmPrompt }] }),
+                signal
+            });
+            if (!response.ok) throw new Error(`Ollama (${response.status}): ${await response.text()}`);
+            const data = await response.json();
+            return data.choices?.[0]?.message?.content;
+        });
+    });
 
-    if (!script) {
-        return res.status(502).json({ error: 'All AI providers failed.', details: errors.join(' | ') });
+    let script;
+    try {
+        script = await tryAiProviders(providerTasks);
+    } catch (err) {
+        return res.status(502).json({ error: 'All AI providers failed.', details: err.message });
     }
 
     // Strip markdown code fences if any provider wrapped the output
