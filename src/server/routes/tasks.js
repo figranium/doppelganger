@@ -22,14 +22,14 @@ function parseOllamaEntry(raw) {
     }
 }
 
-router.get('/', requireAuthOrApiKey, async (req, res) => {
+router.get('/', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     const tasks = await loadTasks();
     // ⚡ Bolt: Strip large versions history from the list view to reduce payload size by ~95%
     const summary = tasks.map(({ versions, ...rest }) => rest);
     res.json(summary);
 });
 
-router.get('/list', requireApiKey, async (req, res) => {
+router.get('/list', requireApiKey, dataRateLimiter, async (req, res) => {
     const tasks = await loadTasks();
     const summary = tasks.map((task) => ({
         id: task.id,
@@ -39,7 +39,7 @@ router.get('/list', requireApiKey, async (req, res) => {
     res.json({ tasks: summary });
 });
 
-router.post('/', requireAuthOrApiKey, async (req, res) => {
+router.post('/', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     await taskMutex.lock();
     try {
         const tasks = await loadTasks();
@@ -67,7 +67,7 @@ router.post('/', requireAuthOrApiKey, async (req, res) => {
     }
 });
 
-router.post('/:id/touch', requireAuth, async (req, res) => {
+router.post('/:id/touch', requireAuth, dataRateLimiter, async (req, res) => {
     await taskMutex.lock();
     try {
         const tasks = await loadTasks();
@@ -81,7 +81,7 @@ router.post('/:id/touch', requireAuth, async (req, res) => {
     }
 });
 
-router.delete('/:id', requireAuthOrApiKey, async (req, res) => {
+router.delete('/:id', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     await taskMutex.lock();
     try {
         let tasks = await loadTasks();
@@ -93,7 +93,7 @@ router.delete('/:id', requireAuthOrApiKey, async (req, res) => {
     }
 });
 
-router.get('/:id/versions', requireAuth, async (req, res) => {
+router.get('/:id/versions', requireAuth, dataRateLimiter, async (req, res) => {
     await loadTasks();
     const task = getTaskById(req.params.id);
     if (!task) return res.status(404).json({ error: 'TASK_NOT_FOUND' });
@@ -106,7 +106,7 @@ router.get('/:id/versions', requireAuth, async (req, res) => {
     res.json({ versions });
 });
 
-router.get('/:id/versions/:versionId', requireAuth, async (req, res) => {
+router.get('/:id/versions/:versionId', requireAuth, dataRateLimiter, async (req, res) => {
     await loadTasks();
     const task = getTaskById(req.params.id);
     if (!task) return res.status(404).json({ error: 'TASK_NOT_FOUND' });
@@ -116,7 +116,7 @@ router.get('/:id/versions/:versionId', requireAuth, async (req, res) => {
     res.json({ snapshot: version.snapshot, metadata: { id: version.id, timestamp: version.timestamp } });
 });
 
-router.post('/:id/versions/clear', requireAuth, async (req, res) => {
+router.post('/:id/versions/clear', requireAuth, dataRateLimiter, async (req, res) => {
     await taskMutex.lock();
     try {
         const tasks = await loadTasks();
@@ -130,7 +130,7 @@ router.post('/:id/versions/clear', requireAuth, async (req, res) => {
     }
 });
 
-router.post('/:id/rollback', requireAuth, async (req, res) => {
+router.post('/:id/rollback', requireAuth, dataRateLimiter, async (req, res) => {
     await taskMutex.lock();
     try {
         const { versionId } = req.body || {};

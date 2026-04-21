@@ -1,13 +1,13 @@
 const express = require('express');
 const crypto = require('crypto');
-const { requireAuthOrApiKey } = require('../middleware');
+const { requireAuthOrApiKey, dataRateLimiter } = require('../middleware');
 const { loadCredentials, saveCredentials } = require('../storage');
 const { validateUrl, fetchWithRedirectValidation } = require('../../../url-utils');
 
 const router = express.Router();
 
 // GET /api/credentials
-router.get('/', requireAuthOrApiKey, async (req, res) => {
+router.get('/', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     try {
         const credentials = await loadCredentials();
         // Redact tokens before sending to client
@@ -22,7 +22,7 @@ router.get('/', requireAuthOrApiKey, async (req, res) => {
 });
 
 // POST /api/credentials
-router.post('/', requireAuthOrApiKey, async (req, res) => {
+router.post('/', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     const { name, provider, config } = req.body;
     if (!name || !provider || !config) {
         return res.status(400).json({ error: 'MISSING_FIELDS' });
@@ -59,7 +59,7 @@ router.post('/', requireAuthOrApiKey, async (req, res) => {
 });
 
 // PUT /api/credentials/:id
-router.put('/:id', requireAuthOrApiKey, async (req, res) => {
+router.put('/:id', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     const { name, config } = req.body;
     if (config && config.baseUrl) {
         try {
@@ -91,7 +91,7 @@ router.put('/:id', requireAuthOrApiKey, async (req, res) => {
 
 // GET /api/credentials/:id/proxy/baserow/databases
 // Lists all Baserow databases (applications of type "database") accessible by the credential.
-router.get('/:id/proxy/baserow/databases', requireAuthOrApiKey, async (req, res) => {
+router.get('/:id/proxy/baserow/databases', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     try {
         const credentials = await loadCredentials();
         const credential = credentials.find(c => c.id === req.params.id);
@@ -139,7 +139,7 @@ router.get('/:id/proxy/baserow/databases', requireAuthOrApiKey, async (req, res)
 
 // GET /api/credentials/:id/proxy/baserow/databases/:dbId/tables
 // Lists all tables within a Baserow database.
-router.get('/:id/proxy/baserow/databases/:dbId/tables', requireAuthOrApiKey, async (req, res) => {
+router.get('/:id/proxy/baserow/databases/:dbId/tables', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     // Security: Validate dbId to prevent path traversal via URL manipulation.
     if (!/^\d+$/.test(req.params.dbId)) {
         return res.status(400).json({ error: 'INVALID_DATABASE_ID' });
@@ -166,7 +166,7 @@ router.get('/:id/proxy/baserow/databases/:dbId/tables', requireAuthOrApiKey, asy
 });
 
 // DELETE /api/credentials/:id
-router.delete('/:id', requireAuthOrApiKey, async (req, res) => {
+router.delete('/:id', requireAuthOrApiKey, dataRateLimiter, async (req, res) => {
     try {
         const credentials = await loadCredentials();
         const filtered = credentials.filter(c => c.id !== req.params.id);
