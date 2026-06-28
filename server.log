@@ -1,5 +1,0 @@
-Server running at http://localhost:11345
-[SCHEDULER] Loaded 0 scheduled task(s).
-[SHUTDOWN] Received SIGTERM, shutting down gracefully...
-[SHUTDOWN] HTTP server closed.
-[SHUTDOWN] Cleanup complete.
