@@ -1,4 +1,4 @@
-const { parseValue } = require('../../common-utils');
+const { parseValue } = require('../../../common-utils');
 const vm = require('vm');
 
 const normalizeVarRef = (raw) => {

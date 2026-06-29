@@ -1,7 +1,7 @@
-const { validateUrl, fetchWithRedirectValidation } = require('../../url-utils');
-const { parseCoords, parseValue, parseCsv, sanitizeRunId } = require('../../common-utils');
+const { validateUrl, fetchWithRedirectValidation } = require('../../../url-utils');
+const { parseCoords, parseValue, parseCsv, sanitizeRunId } = require('../../../common-utils');
 const { moveMouseHumanlike, idleMouse, overshootScroll, humanType } = require('./human-interaction');
-const { loadApiKey } = require('../server/storage'); // Need to access server storage for internal API key loading
+const { loadApiKey } = require('../../server/storage'); // Need to access server storage for internal API key loading
 
 const normalizeVarRef = (raw) => {
     if (!raw) return '';
@@ -144,7 +144,7 @@ const executeAction = async (act, context) => {
             } catch (e) {
                 throw new Error(`Access to private network is restricted`);
             }
-            logs.push(`Navigating to: ${targetUrl}`);
+            logs.push(`[FIGRANITE] Navigating to: ${targetUrl}`);
             await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
             result = page.url();
             break;
@@ -152,7 +152,7 @@ const executeAction = async (act, context) => {
         case 'click': {
             const selectorValue = resolveMaybe(act.selector);
             const coords = parseCoords(String(selectorValue || ''));
-            logs.push(`Clicking: ${selectorValue}`);
+            logs.push(`[FIGRANITE] Clicking: ${selectorValue}`);
             if (coords) {
                 await moveMouseHumanlike(page, coords.x, coords.y, { cursorGlide, startX: context.lastMouse?.x, startY: context.lastMouse?.y });
                 await page.mouse.click(coords.x, coords.y, { delay: baseDelay(50) });
@@ -169,7 +169,7 @@ const executeAction = async (act, context) => {
 
             // Neutral Dead Click
             if (deadClicks && Math.random() < 0.4) {
-                logs.push('Performing neutral dead-click...');
+                logs.push('[FIGRANITE] Performing neutral dead-click...');
                 const viewport = page.viewportSize() || { width: 1280, height: 720 };
                 const dcX = 10 + Math.random() * (viewport.width * 0.2);
                 const dcY = 10 + Math.random() * (viewport.height * 0.2);
@@ -222,7 +222,7 @@ const executeAction = async (act, context) => {
                     }
 
                     if (clickMissed) {
-                        logs.push('Click may have missed, falling back to Playwright click.');
+                        logs.push('[FIGRANITE] Click may have missed, falling back to Playwright click.');
                         await page.click(selectorValue, { delay: baseDelay(50) });
                     }
                     // Update lastMouse after center click
@@ -304,7 +304,7 @@ const executeAction = async (act, context) => {
 
             if (selectorValue) {
                 const coords = parseCoords(String(selectorValue));
-                logs.push(`Typing into ${selectorValue}: ${valueText}`);
+                logs.push(`[FIGRANITE] Typing into ${selectorValue}: ${valueText}`);
                 if (coords) {
                     await moveMouseHumanlike(page, coords.x, coords.y, { cursorGlide, startX: context.lastMouse?.x, startY: context.lastMouse?.y });
                     await page.mouse.click(coords.x, coords.y, { delay: baseDelay(50) });
@@ -316,7 +316,7 @@ const executeAction = async (act, context) => {
                 await page.waitForSelector(selectorValue, { timeout: actionTimeout });
                 await typeIntoSelector();
             } else {
-                logs.push(`Typing (global): ${valueText}`);
+                logs.push(`[FIGRANITE] Typing (global): ${valueText}`);
                 if (humanTyping) {
                     await humanType(page, null, valueText, humanOptions);
                 } else {
@@ -329,7 +329,7 @@ const executeAction = async (act, context) => {
         case 'hover': {
             const selectorValue = resolveMaybe(act.selector);
             const coords = parseCoords(String(selectorValue || ''));
-            logs.push(`Hovering: ${selectorValue}`);
+            logs.push(`[FIGRANITE] Hovering: ${selectorValue}`);
             if (coords) {
                 await moveMouseHumanlike(page, coords.x, coords.y, { cursorGlide, startX: context.lastMouse?.x, startY: context.lastMouse?.y });
                 context.lastMouse = { x: coords.x, y: coords.y };

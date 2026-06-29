@@ -195,7 +195,7 @@ async function executeScheduledTask(taskId) {
     if (!task) throw new Error('Task not found: ' + taskId);
 
     // Lazy-require to avoid circular deps
-    const { handleAgent } = require('../../agent');
+    const { handleAgent } = require('../../agent/figranite');
     const { handleScrape } = require('../../scrape');
 
     // Build runtime variables

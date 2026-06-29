@@ -19,6 +19,17 @@ Figranium is a self‑hosted, block-first automation control plane built for tea
 
 # Architecture Snapshot
 
+## The Figranite Engine
+At the core of Figranium lies **Figranite**, a high-performance, deterministic workflow interpreter designed for stateful browser automation. It is the project's primary execution kernel, responsible for transforming abstract block definitions into sentient-like browser behavior.
+
+Key capabilities of **Figranite** include:
+- **Stateful Execution:** Manages complex variables and loop contexts across blocks.
+- **Human Physics Simulation:** Implements Bezier-curve cursor movements, randomized jitter, and fatigue-aware typing.
+- **Stealth Integration:** Works in tandem with the Stealth Browser engine to bypass modern bot detection.
+- **Recursive Logic:** Handles nested if/else, while, and foreach blocks with custom jump-map optimization.
+- **Security-First:** Executes within a protected context with built-in SSRF and private network protection.
+
+
 1. **Frontend**  
    - Vite with React (TypeScript) drives `/dashboard`, `/tasks`, `/settings`, `/executions`, and `/captures`.
    - The Settings screen is tabbed (`System`, `Data`, `Proxies`) and houses panels for API keys, user agents, layout, storage, and version info.
@@ -31,7 +42,7 @@ Figranium is a self‑hosted, block-first automation control plane built for tea
 
 3. **Scripts & automation**  
    - `scripts/postinstall.js` runs when dependencies install (keep an eye if you customize).
-   - `agent.js`, `headful.js`, `scrape.js` expose specialized runners; the CLI binary `bin/cli.js` wires them for `npx figranium`.
+   - `agent.js` (powered by the **Figranite Engine**), `headful.js`, and `scrape.js` expose specialized runners; the CLI binary `bin/cli.js` wires them for `npx figranium`.
 
 4. **Code layout highlights**
    - `src/App.tsx` glues together routing, alerts, and the sidebar that links dashboards, tasks, and settings.

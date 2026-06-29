@@ -1,1 +1,1 @@
-module.exports = require('./src/agent/index');
+module.exports = require('./src/agent/figranite/index');
