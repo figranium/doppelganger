@@ -51,9 +51,46 @@ Key capabilities of **Figranite** include:
 
 # Getting Started
 
-## Docker (Recommended)
+This starts the app on `http://localhost:11345` and the VNC viewer on `http://localhost:54311`.
 
-### Docker Compose (Multi-arch / ARM / Apple Silicon)
+
+## Docker Compose (Standard)
+
+### 1. Create a Project Directory
+
+Create a directory for your Figranium installation and navigate into it:
+```bash
+mkdir figranium-server
+cd figranium-server
+```
+### 2. Create docker-compose.yml
+
+Create a docker-compose.yml file in your project directory:
+```bash
+services:
+  figranium:
+    image: ghcr.io/figranium/figranium:latest
+    container_name: figranium
+    ports:
+      - "11345:11345"
+      - "54311:54311"
+    volumes:
+      - ./data:/app/data
+      - ./captures:/app/public/captures
+    environment:
+      - PORT=11345
+      - SESSION_SECRET=your_secure_random_string
+    restart: unless-stopped
+```
+### 3. Start with Docker Compose
+
+Run the following command to start the application in detached mode:
+```bash
+docker compose up -d
+```
+
+
+## Git Clone (Multi-arch / ARM / Apple Silicon)
 
 The easiest way to run Figranium on any architecture (including M1/M2/M3 Macs) is via Docker Compose.
 
@@ -70,61 +107,9 @@ cd figranium
 docker compose up --build -d
 ```
 
-This starts the app on `http://localhost:11345` and the VNC viewer on `http://localhost:54311`.
-
-### Docker Run (Standard)
-
-```bash
-docker pull ghcr.io/figranium/figranium
-docker run -d \
-  --name figranium \
-  -p 11345:11345 \
-  -p 54311:54311 \
-  -e SESSION_SECRET=replace_with_long_random_value \
-  -v $(pwd)/data:/app/data \
-  -v $(pwd)/public:/app/public \
-  figranium/figranium
-```
-
-Visit `http://localhost:11345`. Stop/start with `docker stop/start figranium`.
+Visit `http://localhost:11345`.
 
 > The first visit loads the login/setup screen. After you create the admin account and sign in, the dashboard replaces the login view and stays visible for as long as the session remains valid; returning users are redirected straight to the dashboard until they explicitly log out or the session expires.
-
-## Local Development (npm)
-
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Launch backend + frontend:
-
-```bash
-npm run server
-npm run dev
-```
-
-Frontend calls `/api` via the Vite proxy defined in `vite.config.mts`; the backend listens on `process.env.VITE_BACKEND_PORT` (default `11345`).
-
-## Install Release via npm
-
-If you just want to run the packaged release (no source checkout), install the published npm package and run `figranium` directly.
-
-```bash
-npm install -g figranium
-figranium
-```
-
-Or use `npx`:
-
-```bash
-npx figranium
-```
-
-If you prefer not to install globally, clone the repo, run `npm install` to pull dependencies, and then run `npx figranium` inside that folder. This ensures `npx` can resolve the package from the local registry/cache while still shipping the same dashboard experience.
-
-Set `SESSION_SECRET` and optionally mount `data/` and `public/` (match the Docker volume layout). The CLI spins up the same Express/Playwright stack and opens the browser-based dashboard at `http://localhost:11345` unless you override `PORT`.
 
 ## Session Secret
 
