@@ -16,10 +16,10 @@ async function injectHeadfulCookies(context) {
         const cookies = (state.cookies || []).filter(c => !c.expires || c.expires === -1 || c.expires > now);
         if (cookies.length > 0) {
             await context.addCookies(cookies);
-            console.log(`[AGENT] Injected ${cookies.length} cookies from headful session`);
+            console.log(`[FIGRANITE] Injected ${cookies.length} cookies from headful session`);
         }
     } catch (e) {
-        if (e.code !== 'ENOENT') console.error('[AGENT] Failed to inject headful cookies:', e.message);
+        if (e.code !== 'ENOENT') console.error('[FIGRANITE] Failed to inject headful cookies:', e.message);
     }
 }
 

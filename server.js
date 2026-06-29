@@ -61,7 +61,7 @@ const {
 
 // Feature Modules (Legacy/Existing)
 const { handleScrape } = require('./scrape');
-const { handleAgent, setProgressReporter, setStopChecker } = require('./agent');
+const { handleAgent, setProgressReporter, setStopChecker } = require('./src/agent/figranite');
 const { handleHeadful, stopHeadful, toggleInspectMode, headfulEventEmitter } = require('./headful');
 
 // Routes

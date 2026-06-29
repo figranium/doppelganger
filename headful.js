@@ -83,12 +83,12 @@ async function runHeadful(data, options = {}) {
 
     try {
         if (data.targetActionId && data.taskSnapshot) {
-            const { runAgent } = require('./src/agent');
+            const { runFigranite } = require('./src/agent/figranite');
             try {
                 const reqScope = { ...data.taskSnapshot, variables: data.variables || data.taskVariables || {}, statelessExecution: true, disableRecording: true };
                 if (data.url) reqScope.url = data.url;
 
-                const result = await runAgent(reqScope, {
+                const result = await runFigranite(reqScope, {
                     headless: false,
                     handoffContext: true,
                     stopAtActionId: data.targetActionId

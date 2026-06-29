@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const { selectUserAgent } = require('../../user-agent-settings');
-const { safeFormatHTML } = require('../../html-utils');
-const { validateUrl } = require('../../url-utils');
-const { parseBooleanFlag, sanitizeRunId, toCsvString } = require('../../common-utils');
-const { runExtractionScript } = require('./sandbox');
-const { cleanHtml } = require('./dom-utils');
-const { launchBrowser, createBrowserContext } = require('./browser');
+const { selectUserAgent } = require('../../../user-agent-settings');
+const { safeFormatHTML } = require('../../../html-utils');
+const { validateUrl } = require('../../../url-utils');
+const { parseBooleanFlag, sanitizeRunId, toCsvString } = require('../../../common-utils');
+const { runExtractionScript } = require('../sandbox');
+const { cleanHtml } = require('../dom-utils');
+const { launchBrowser, createBrowserContext } = require('../browser');
 
 // New Modules
 const { buildBlockMap, randomBetween, getForeachItems } = require('./helpers');
@@ -42,7 +42,7 @@ const isStopRequested = (runId) => {
     }
 };
 
-async function runAgent(data, options = {}) {
+async function runFigranite(data, options = {}) {
     let { url, actions, wait: globalWait, rotateUserAgents, rotateProxies, humanTyping, stealth = {} } = data;
 
     const runtimeVars = { ...(data.taskVariables || data.variables || {}) };
@@ -515,7 +515,7 @@ async function runAgent(data, options = {}) {
                 if (result !== undefined) setBlockOutput(result);
                 reportProgress(runId, { actionId: act.id, status: 'success' });
             } catch (err) {
-                logs.push(`FAILED action ${act.type}: ${err.message}`);
+                logs.push(`[FIGRANITE] FAILED action ${act.type}: ${err.message}`);
                 reportProgress(runId, { actionId: act.id, status: 'error' });
                 if (errorHandler && !inErrorHandler) {
                     inErrorHandler = true;
@@ -534,7 +534,7 @@ async function runAgent(data, options = {}) {
         await page.waitForTimeout(baseDelay(500));
 
         if (pendingDownloads.size > 0) {
-            logs.push(`Waiting for ${pendingDownloads.size} pending download(s)...`);
+            logs.push(`[FIGRANITE] Waiting for ${pendingDownloads.size} pending download(s)...`);
             try {
                 await Promise.race([
                     Promise.all(Array.from(pendingDownloads)),
@@ -661,7 +661,7 @@ async function runAgent(data, options = {}) {
         try { await browser.close(); } catch { }
         return outputData;
     } catch (error) {
-        console.error('Agent Error:', error);
+        console.error('[FIGRANITE] Engine Error:', error);
         try {
             if (context) await context.close();
         } catch { }
@@ -678,11 +678,11 @@ async function handleAgent(req, res) {
     };
 
     try {
-        const result = await runAgent(data, options);
+        const result = await runFigranite(data, options);
         res.json(result);
     } catch (error) {
-        res.status(500).json({ error: 'Agent failed', details: error.message });
+        res.status(500).json({ error: 'Figranite Engine failed', details: error.message });
     }
 }
 
-module.exports = { runAgent, handleAgent, setProgressReporter, setStopChecker };
+module.exports = { runFigranite, handleAgent, setProgressReporter, setStopChecker };
