@@ -7,6 +7,7 @@ const {
     normalizeProxy,
     normalizeRotationMode
 } = require('./proxy-utils');
+const { getPool, initDB } = require('./src/server/db');
 
 const DATA_PROXY_FILE = path.join(__dirname, 'data', 'proxies.json');
 const PROXY_FILES = [
@@ -38,7 +39,33 @@ const loadProxyFile = (filePath) => {
     }
 };
 
+let dbInitPromise = null;
+let usingDisk = true;
+
+async function ensureDB() {
+    if (dbInitPromise) return dbInitPromise;
+    dbInitPromise = (async () => {
+        try {
+            const pool = await initDB();
+            if (pool) usingDisk = false;
+        } catch (err) {
+            console.error('[PROXIES] Database initialization failed:', err.message);
+            usingDisk = true;
+        }
+        return !usingDisk;
+    })();
+    return dbInitPromise;
+}
+
 const loadProxyConfig = () => {
+    const pool = getPool();
+    if (pool && !usingDisk) {
+        // Since loadProxyConfig is synchronous in current architecture,
+        // we use a cached version if DB is being used.
+        // The first load will have been triggered by something calling initDB or ensureDB.
+        if (cached.file === 'db' && cached.config) return cached.config;
+    }
+
     const filePath = PROXY_FILES.find((candidate) => {
         try {
             return fs.existsSync(candidate);
@@ -77,14 +104,52 @@ const loadProxyConfig = () => {
     }
 };
 
+// Async version for initialization and DB usage
+const loadProxyConfigAsync = async () => {
+    const useDB = await ensureDB();
+    if (useDB) {
+        try {
+            const pool = getPool();
+            const res = await pool.query('SELECT data FROM proxies_config WHERE id = 1');
+            let config;
+            if (res.rows.length > 0) {
+                const rawConfig = res.rows[0].data;
+                const proxies = (rawConfig.proxies || []).map(normalizeProxy).filter(Boolean);
+                config = {
+                    proxies,
+                    defaultProxyId: rawConfig.defaultProxyId || null,
+                    includeDefaultInRotation: !!rawConfig.includeDefaultInRotation,
+                    rotationMode: normalizeRotationMode(rawConfig.rotationMode)
+                };
+            } else {
+                config = { proxies: [], defaultProxyId: null, includeDefaultInRotation: false, rotationMode: 'round-robin' };
+            }
+            cached = { file: 'db', mtimeMs: Date.now(), config };
+            return config;
+        } catch (e) {
+            console.error('[PROXIES] Failed to load config from DB:', e.message);
+        }
+    }
+    return loadProxyConfig();
+};
+
 const saveProxyConfig = (config) => {
-    const target = DATA_PROXY_FILE;
     const payload = {
         defaultProxyId: config.defaultProxyId || null,
         proxies: Array.isArray(config.proxies) ? config.proxies : [],
         includeDefaultInRotation: !!config.includeDefaultInRotation,
         rotationMode: normalizeRotationMode(config.rotationMode)
     };
+
+    const pool = getPool();
+    if (pool && !usingDisk) {
+        pool.query('INSERT INTO proxies_config (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data', [payload])
+            .catch(e => console.error('[PROXIES] Failed to save config to DB:', e.message));
+        cached = { file: 'db', mtimeMs: Date.now(), config: payload };
+        return payload;
+    }
+
+    const target = DATA_PROXY_FILE;
     fs.writeFileSync(target, JSON.stringify(payload, null, 2));
     try {
         const stat = fs.statSync(target);
@@ -248,6 +313,8 @@ const getProxySelection = (rotateProxies) => {
 };
 
 module.exports = {
+    ensureDB,
+    loadProxyConfigAsync,
     getProxySelection,
     listProxies,
     addProxy,
