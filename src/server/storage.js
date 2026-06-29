@@ -907,7 +907,30 @@ let ollamaKeysLastCheck = 0;
 let ollamaKeysLoadPromise = null;
 
 async function loadOllamaApiKey() {
+    const useDB = await ensureDB();
     const now = Date.now();
+
+    if (useDB) {
+        if (ollamaKeysCache && (now - ollamaKeysLastCheck < STORAGE_CACHE_TTL)) return ollamaKeysCache;
+        if (ollamaKeysLoadPromise) return await ollamaKeysLoadPromise;
+
+        ollamaKeysLoadPromise = (async () => {
+            try {
+                const pool = getPool();
+                const res = await pool.query('SELECT key FROM ollama_api_key ORDER BY id ASC');
+                ollamaKeysCache = res.rows.map(row => row.key ? row.key.trim() : '').filter(k => k);
+                ollamaKeysLastCheck = Date.now();
+            } catch (e) {
+                console.error('[STORAGE] Failed to load Ollama keys from DB:', e.message);
+                ollamaKeysCache = ollamaKeysCache || [];
+            }
+            ollamaKeysLoadPromise = null;
+            return ollamaKeysCache;
+        })();
+
+        return await ollamaKeysLoadPromise;
+    }
+
     if (ollamaKeysCache && (now - ollamaKeysLastCheck < STORAGE_CACHE_TTL)) return ollamaKeysCache;
     if (ollamaKeysLoadPromise) return await ollamaKeysLoadPromise;
 
@@ -924,8 +947,6 @@ async function loadOllamaApiKey() {
         ollamaKeysLastCheck = now;
         return ollamaKeysCache;
     }
-
-    if (ollamaKeysLoadPromise) return await ollamaKeysLoadPromise;
 
     ollamaKeysLoadPromise = (async () => {
         try {
@@ -958,6 +979,25 @@ async function saveOllamaApiKey(keysArg) {
     ollamaKeysCache = keys;
     ollamaKeysLastCheck = Date.now();
 
+    const useDB = await ensureDB();
+    if (useDB) {
+        const pool = getPool();
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('TRUNCATE ollama_api_key');
+            const rows = keys.map((key, i) => ({ id: i + 1, key }));
+            await bulkInsert(client, 'ollama_api_key', ['id', 'key'], rows);
+            await client.query('COMMIT');
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error('[STORAGE] Failed to save Ollama keys to DB:', e.message);
+        } finally {
+            client.release();
+        }
+        return;
+    }
+
     try {
         await fs.promises.writeFile(OLLAMA_API_KEY_FILE, JSON.stringify({ ollamaApiKeys: keys }, null, 2));
         const stat = await fs.promises.stat(OLLAMA_API_KEY_FILE);
@@ -972,6 +1012,18 @@ let credentialsCache = null;
 
 async function loadCredentials() {
     if (credentialsCache) return credentialsCache;
+    const useDB = await ensureDB();
+    if (useDB) {
+        try {
+            const pool = getPool();
+            const res = await pool.query('SELECT data FROM credentials ORDER BY id ASC');
+            credentialsCache = res.rows.map(r => r.data);
+        } catch (e) {
+            console.error('[STORAGE] Failed to load credentials from DB:', e.message);
+            credentialsCache = [];
+        }
+        return credentialsCache;
+    }
     try {
         const raw = await fs.promises.readFile(CREDENTIALS_FILE, 'utf8');
         credentialsCache = JSON.parse(raw);
@@ -983,6 +1035,24 @@ async function loadCredentials() {
 
 async function saveCredentials(credentials) {
     credentialsCache = credentials;
+    const useDB = await ensureDB();
+    if (useDB) {
+        const pool = getPool();
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('TRUNCATE credentials');
+            const rows = credentials.map((data, i) => ({ id: i + 1, data }));
+            await bulkInsert(client, 'credentials', ['id', 'data'], rows);
+            await client.query('COMMIT');
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error('[STORAGE] Failed to save credentials to DB:', e.message);
+        } finally {
+            client.release();
+        }
+        return;
+    }
     await fs.promises.writeFile(CREDENTIALS_FILE, JSON.stringify(credentials, null, 2));
 }
 
@@ -1093,6 +1163,22 @@ let aiModelsCache = null;
 
 async function loadAiModels() {
     if (aiModelsCache) return aiModelsCache;
+    const useDB = await ensureDB();
+    if (useDB) {
+        try {
+            const pool = getPool();
+            const res = await pool.query('SELECT data FROM ai_models WHERE id = 1');
+            if (res.rows.length > 0) {
+                aiModelsCache = { ...DEFAULT_AI_MODELS, ...res.rows[0].data };
+            } else {
+                aiModelsCache = { ...DEFAULT_AI_MODELS };
+            }
+        } catch (e) {
+            console.error('[STORAGE] Failed to load AI models from DB:', e.message);
+            aiModelsCache = { ...DEFAULT_AI_MODELS };
+        }
+        return aiModelsCache;
+    }
     try {
         const raw = await fs.promises.readFile(AI_MODELS_FILE, 'utf8');
         aiModelsCache = { ...DEFAULT_AI_MODELS, ...JSON.parse(raw) };
@@ -1104,6 +1190,16 @@ async function loadAiModels() {
 
 async function saveAiModels(models) {
     aiModelsCache = { ...DEFAULT_AI_MODELS, ...models };
+    const useDB = await ensureDB();
+    if (useDB) {
+        const pool = getPool();
+        try {
+            await pool.query('INSERT INTO ai_models (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data', [aiModelsCache]);
+        } catch (e) {
+            console.error('[STORAGE] Failed to save AI models to DB:', e.message);
+        }
+        return;
+    }
     await fs.promises.writeFile(AI_MODELS_FILE, JSON.stringify(aiModelsCache, null, 2));
 }
 

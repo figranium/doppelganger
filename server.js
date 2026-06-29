@@ -554,6 +554,10 @@ findAvailablePort(port, 20)
             // Start the cron scheduler
             const { startScheduler } = require('./src/server/scheduler');
             startScheduler().catch(err => console.error('[SCHEDULER] Failed to start:', err.message));
+
+            // Initialize proxies from DB if available
+            const { loadProxyConfigAsync } = require('./proxy-rotation');
+            loadProxyConfigAsync().catch(err => console.error('[PROXIES] Initial DB load failed:', err.message));
         });
         server.on('upgrade', async (req, socket, head) => {
             if (!await isIpAllowed(req.socket?.remoteAddress)) {
