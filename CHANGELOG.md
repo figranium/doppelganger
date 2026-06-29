@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.13.0] - 2026-06-29
+
+### Critical Architectural Pivot
+* **Retired NPM Distribution:** The figranium NPM package is officially retired. Local Node.js and Playwright binary management are no longer supported.
+* **Strict Containerization:** Figranium has migrated entirely to an isolated Docker-first architecture. The full Express backend, Vite/React UI, and execution layers are now deployed together via uniform container sandboxes to guarantee 100% execution determinism across all environments.
+
+### Core Backend & Engine Fixes
+* **Restored AI Selector Generation:** Fixed a silent backend orchestration failure that caused the legacy AI selector tool to stall. The engine now reliably analyzes DOM structural fragments and returns clean, human-readable selector strings.
+* **Added Selector Mode Toggle:** Introduced a configuration switch directly inside the action block panel. Users can now seamlessly toggle between AI Selector Generation Mode for rapid prototyping and the Native Browser Selection Tool for exact viewport inspection.
+* **Codebase Optimization:** Executed a massive code refactor to strip out dead utility paths, unused backend modules, and legacy NPM setup configurations.
+
+### UI & Layout Ergonomics
+* **Tablet Layout Responsiveness:** Resolved an interface bug on tablet and iPad viewports where the dashboard header container compressed elements. The task filter search bar and export action buttons now utilize responsive breakpoints to prevent layout overlaps.
+
+### Database Infrastructure Enhancements
+* **Schema Robustness:** Updated API key columns in src/server/db.js from VARCHAR(255) to TEXT, including automated migration logic to update existing installations seamlessly.
+* **Feature Parity:** Implemented missing table definitions and storage logic for Ollama API keys, Credentials, AI Models, and Proxy configurations to ensure full parity with disk-based storage.
+* **Cloud SSL Support:** Integrated PostgreSQL SSL support toggled via the DB_POSTGRESDB_SSL environment variable, enabling secure connections to managed cloud database providers like Aiven.
+* **Architectural Integration:** Refactored proxy-rotation.js to natively support database storage and integrated the routine directly into the main application initialization flow within server.js.
+* **Integration Testing:** Added tests/db-integration.test.js using a mocked PostgreSQL pool to thoroughly verify database interactions across all storage modules.
+
 ## [0.12.2] - 2026-04-11
 
 ### Security
