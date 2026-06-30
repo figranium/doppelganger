@@ -8,7 +8,8 @@ const authRateLimiter = rateLimit({
     windowMs: REQUEST_LIMIT_WINDOW_MS,
     max: AUTH_RATE_LIMIT_MAX,
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, trustProxy: false }
 });
 
 const dataRateLimiter = rateLimit({
@@ -16,7 +17,8 @@ const dataRateLimiter = rateLimit({
     max: DATA_RATE_LIMIT_MAX,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'TOO_MANY_REQUESTS' }
+    message: { error: 'TOO_MANY_REQUESTS' },
+    validate: { xForwardedForHeader: false, trustProxy: false }
 });
 
 const csrfProtection = (req, res, next) => {
