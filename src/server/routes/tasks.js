@@ -7,7 +7,7 @@ const {
 } = require('../storage');
 const { taskMutex } = require('../state');
 const { appendTaskVersion, cloneTaskForVersion } = require('../utils');
-const { handleAgent } = require('../../agent/index');
+const { handleAgent } = require('../../agent/figranite/index');
 const { fetchWithRedirectValidation } = require('../../../url-utils');
 
 const router = express.Router();
