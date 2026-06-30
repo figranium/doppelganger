@@ -8,28 +8,32 @@ async function initDB() {
     if (initialized) return pool;
     initialized = true;
 
-    const dbType = process.env.DB_TYPE;
     const host = process.env.DB_POSTGRESDB_HOST;
     const port = process.env.DB_POSTGRESDB_PORT;
     const user = process.env.DB_POSTGRESDB_USER;
     const password = process.env.DB_POSTGRESDB_PASSWORD;
     const database = process.env.DB_POSTGRESDB_DATABASE || 'postgres';
-    const ssl = ['1', 'true', 'yes'].includes(String(process.env.DB_POSTGRESDB_SSL || '').toLowerCase());
 
-    if (dbType && dbType.toLowerCase() !== 'postgres' && dbType.toLowerCase() !== 'pg') {
+    // Parse SSL safely as a string, checking for 'true' and '1'
+    const sslEnv = String(process.env.DB_POSTGRESDB_SSL || '').toLowerCase();
+    const sslEnabled = sslEnv === 'true' || sslEnv === '1';
+
+    // Handle database type check
+    const dbType = process.env.DB_TYPE;
+    if (dbType && !['postgres', 'pg'].includes(dbType.toLowerCase())) {
         initError = new Error('Only postgres is supported as a cloud database.');
         throw initError;
     }
 
     const hasAnyVar = dbType || host || port || user || password;
-    const hasAllVars = dbType && host && port && user && password;
+    const hasAllVars = host && port && user && password;
 
     if (!hasAnyVar) {
         return null;
     }
 
     if (!hasAllVars) {
-        initError = new Error('Missing PostgreSQL environment variables. DB_TYPE, DB_POSTGRESDB_HOST, DB_POSTGRESDB_PORT, DB_POSTGRESDB_USER, and DB_POSTGRESDB_PASSWORD are all required.');
+        initError = new Error('Missing PostgreSQL environment variables. DB_POSTGRESDB_HOST, DB_POSTGRESDB_PORT, DB_POSTGRESDB_USER, and DB_POSTGRESDB_PASSWORD are all required.');
         throw initError;
     }
 
@@ -40,7 +44,8 @@ async function initDB() {
             user,
             password,
             database,
-            ssl: ssl ? { rejectUnauthorized: false } : false
+            // Set rejectUnauthorized: false if active, otherwise set to false
+            ssl: sslEnabled ? { rejectUnauthorized: false } : false
         });
 
         // Test connection and create tables
