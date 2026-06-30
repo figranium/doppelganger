@@ -81,10 +81,12 @@ async function loadUsers() {
         usersLoadPromise = (async () => {
             try {
                 const pool = getPool();
+                if (!pool) throw new Error('Database pool not available');
                 const res = await pool.query('SELECT data FROM users ORDER BY id ASC');
                 usersCache = res.rows.map(r => r.data);
                 usersLastCheck = Date.now();
             } catch (e) {
+                console.error('[STORAGE] loadUsers DB error:', e.message);
                 usersCache = usersCache || [];
             }
             usersLoadPromise = null;
@@ -226,6 +228,7 @@ async function loadTasks() {
         tasksLoadPromise = (async () => {
             try {
                 const pool = getPool();
+                if (!pool) throw new Error('Database pool not available');
                 const res = await pool.query('SELECT data FROM tasks');
                 const raw = res.rows.map(r => r.data);
                 const { tasks: migrated, changed } = migrateTaskScripts(raw);
@@ -234,6 +237,7 @@ async function loadTasks() {
                 syncTasksMap();
                 if (changed) saveTasks(migrated).catch(e => console.error('[MIGRATE] Failed to save migrated tasks:', e));
             } catch (e) {
+                console.error('[STORAGE] loadTasks DB error:', e.message);
                 tasksCache = tasksCache || [];
                 syncTasksMap();
             }
@@ -359,6 +363,7 @@ async function loadExecutions() {
         if (useDB) {
             try {
                 const pool = getPool();
+                if (!pool) throw new Error('Database pool not available');
                 // order by timestamp descending in postgres JSONB field
                 const res = await pool.query("SELECT data FROM executions ORDER BY CAST(data->>'timestamp' AS BIGINT) DESC LIMIT $1", [MAX_EXECUTIONS]);
                 executionsCache = res.rows.map(r => r.data);
@@ -367,6 +372,7 @@ async function loadExecutions() {
                     dbExecutionsCount = executionsCache.length;
                 }
             } catch (e) {
+                console.error('[STORAGE] loadExecutions DB error:', e.message);
                 executionsCache = [];
             }
         } else {
@@ -491,9 +497,12 @@ async function loadApiKey() {
         if (useDB) {
             try {
                 const pool = getPool();
+                if (!pool) throw new Error('Database pool not available');
                 const res = await pool.query('SELECT key FROM api_key WHERE id = 1');
                 if (res.rows.length > 0) apiKey = res.rows[0].key;
-            } catch (e) { }
+            } catch (e) {
+                console.error('[STORAGE] loadApiKey DB error:', e.message);
+            }
         } else {
             try {
                 const raw = await fs.promises.readFile(API_KEY_FILE, 'utf8');
@@ -583,6 +592,7 @@ async function loadGeminiApiKey() {
         geminiKeysLoadPromise = (async () => {
             try {
                 const pool = getPool();
+                if (!pool) throw new Error('Database pool not available');
                 const res = await pool.query('SELECT key FROM gemini_api_key ORDER BY id ASC');
                 geminiKeysCache = res.rows.map(row => row.key ? row.key.trim() : '').filter(k => k);
                 geminiKeysLastCheck = Date.now();
@@ -695,6 +705,7 @@ async function loadOpenAiApiKey() {
         openAiKeysLoadPromise = (async () => {
             try {
                 const pool = getPool();
+                if (!pool) throw new Error('Database pool not available');
                 const res = await pool.query('SELECT key FROM openai_api_key ORDER BY id ASC');
                 openAiKeysCache = res.rows.map(row => row.key ? row.key.trim() : '').filter(k => k);
                 openAiKeysLastCheck = Date.now();
@@ -807,6 +818,7 @@ async function loadClaudeApiKey() {
         claudeKeysLoadPromise = (async () => {
             try {
                 const pool = getPool();
+                if (!pool) throw new Error('Database pool not available');
                 const res = await pool.query('SELECT key FROM claude_api_key ORDER BY id ASC');
                 claudeKeysCache = res.rows.map(row => row.key ? row.key.trim() : '').filter(k => k);
                 claudeKeysLastCheck = Date.now();
@@ -917,6 +929,7 @@ async function loadOllamaApiKey() {
         ollamaKeysLoadPromise = (async () => {
             try {
                 const pool = getPool();
+                if (!pool) throw new Error('Database pool not available');
                 const res = await pool.query('SELECT key FROM ollama_api_key ORDER BY id ASC');
                 ollamaKeysCache = res.rows.map(row => row.key ? row.key.trim() : '').filter(k => k);
                 ollamaKeysLastCheck = Date.now();
@@ -1016,6 +1029,7 @@ async function loadCredentials() {
     if (useDB) {
         try {
             const pool = getPool();
+            if (!pool) throw new Error('Database pool not available');
             const res = await pool.query('SELECT data FROM credentials ORDER BY id ASC');
             credentialsCache = res.rows.map(r => r.data);
         } catch (e) {
@@ -1167,6 +1181,7 @@ async function loadAiModels() {
     if (useDB) {
         try {
             const pool = getPool();
+            if (!pool) throw new Error('Database pool not available');
             const res = await pool.query('SELECT data FROM ai_models WHERE id = 1');
             if (res.rows.length > 0) {
                 aiModelsCache = { ...DEFAULT_AI_MODELS, ...res.rows[0].data };

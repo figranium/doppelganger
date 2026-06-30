@@ -1,4 +1,4 @@
-const { runAgent } = require('../src/agent/index');
+const { runFigranite: runAgent } = require('../src/agent/figranite/index');
 const fs = require('fs');
 const path = require('path');
 const { SESSIONS_DIR } = require('../src/server/constants');
