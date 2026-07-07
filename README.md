@@ -316,6 +316,20 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 - Share automation recipes with other self-hosted users in your org, but respect the license for sharing infrastructure.
 - Join the community on [Discord](https://discord.gg/kPmfbgu9Xn).
 
+# Sponsors & Backers
+
+Figranium is proudly supported by:
+
+<div align="center">
+  <a href="https://www.digitalocean.com/?utm_medium=opensource&utm_source=Figranium">
+    <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" width="201" alt="DigitalOcean">
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.mintlify.com">
+    <img src="https://mintcdn.com/mintlify/ZmWpbGQa5yv5AElR/logo/light.svg?fit=max&auto=format&n=ZmWpbGQa5yv5AElR&q=85&s=094e41f7b58b2cab0a6faa2bab2828e0" width="165" alt="Mintlify">
+  </a>
+</div>
+
 # Support the Project
 
 If you find this project helpful, please consider supporting its development. Your contributions help keep the project maintained and the lights on!
@@ -326,7 +340,7 @@ If you find this project helpful, please consider supporting its development. Yo
   </a>
 </div>
 
----
+
 **Other ways to help:**
 *   **Star** the repository to help others find it.
 *   **Share** the project with your network.
