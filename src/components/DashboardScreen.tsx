@@ -64,7 +64,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                     <div className="relative flex flex-wrap items-center justify-between gap-6">
                         <h2 className="text-2xl font-medium tracking-[0.25em] text-white uppercase shrink-0">Dashboard</h2>
                         {tasks.length > 0 && (
-                            <div className="w-full order-last lg:order-none lg:absolute lg:left-1/2 lg:-translate-x-1/2 group/search lg:w-[260px]">
+                            <div className="w-full order-last xl:order-none xl:absolute xl:left-1/2 xl:-translate-x-1/2 group/search xl:w-[260px]">
                                 <MaterialIcon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg group-focus-within/search:text-white transition-colors" />
                                 <input
                                     ref={searchInputRef}
