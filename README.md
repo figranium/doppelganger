@@ -289,7 +289,7 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 - [ ] **Workspace templates** — allow saving and sharing workspace presets (layout + default proxies/agents) so new team members can onboard with pre-configured setups.
 - [ ] **Geo-targeted exits** — allow choosing proxy regions for tasks so you can pin the apparent location before running a job.
 - [x] **Complete anti-detection coverage** — follow browserscan.net's anti-detection checklist (fingerprints, headers, fonts, WebRTC, etc.) so automated runs mimic real browsers across task executions.
-- [ ] **Session recording redaction** — add toggles to redact sensitive fields (passwords, credit cards) from recordings/logs before storing them.
+- [x] **Session recording redaction** — task variables can be flagged **Secret** in the Vars tab. The value is still used at runtime, but every occurrence is replaced with `[REDACTED]` in logs, API responses, execution history, webhooks and output pushes, and the field is masked on screen before typing so it never reaches screenshots or recordings. See `AGENT_SPEC.md` §16.
 - [ ] **Two-factor authentication** — add optional TOTP/second-factor support to Settings/Auth so operators can lock down the UI with 2FA.
 - [ ] **Automatic self-healing selectors** — add selector fallback and recovery logic so tasks can repair broken locators after layout changes without manual intervention.
 - [ ] **AI-assisted fixing** — add an “AI auto-fix” helper that suggests layout, selector, and proxy tweaks after failed runs, letting teams approve or discard the proposed changes without switching contexts.

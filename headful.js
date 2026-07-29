@@ -85,7 +85,16 @@ async function runHeadful(data, options = {}) {
         if (data.targetActionId && data.taskSnapshot) {
             const { runFigranite } = require('./src/agent/figranite');
             try {
-                const reqScope = { ...data.taskSnapshot, variables: data.variables || data.taskVariables || {}, statelessExecution: true, disableRecording: true };
+                const reqScope = {
+                    ...data.taskSnapshot,
+                    variables: data.variables || data.taskVariables || {},
+                    // taskSnapshot keeps the `secret` flags; pass any explicit
+                    // names through as well so the handoff run redacts too.
+                    taskSnapshot: data.taskSnapshot,
+                    secretVars: data.secretVars,
+                    statelessExecution: true,
+                    disableRecording: true
+                };
                 if (data.url) reqScope.url = data.url;
 
                 const result = await runFigranite(reqScope, {

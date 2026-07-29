@@ -28,6 +28,7 @@ This document is a concise, implementation-focused reference for AI agents that 
   },
   "actions": [],
   "variables": {},
+  "redactCaptures": true,
   "schedule": {
     "enabled": false,
     "frequency": "daily",
@@ -69,6 +70,8 @@ Reserved:
 - `{$now}` resolves to ISO timestamp
 - `block.output` contains last block output
 - `loop.index`, `loop.count`, `loop.item`, `loop.text`, `loop.html` during foreach
+
+Variables holding passwords, tokens, or card numbers should be marked secret — see **§16 Sensitive variables**.
 
 ## 4) JavaScript action context
 The `javascript` action runs **inside the page** (browser context), not Node.
@@ -298,8 +301,50 @@ Extract the visible text content (`innerText`) of a page or a specific element a
 - `selector`: Optional CSS selector. If omitted, returns the full page body text.
 - `varName`: Optional variable name to store the result. Also available as `{$block.output}` in the next action.
 
-## 16) Notes for AI agents
+## 16) Sensitive variables (secrets)
+Mark a variable `secret: true` when it holds a password, token, API key, or card number.
+
+```json
+{
+  "variables": {
+    "username": { "type": "string", "value": "ada@example.com" },
+    "password": { "type": "string", "value": "correct-horse", "secret": true }
+  }
+}
+```
+
+The value is used normally during execution — it is typed into forms, sent in headers, and templated with `{$password}` like any other variable. What changes is everything that leaves the run:
+
+- **Logs** — every occurrence is replaced with `[REDACTED]`, including the `Typing into #pw: …` line.
+- **API response** — the returned `logs`, `html`, `data`, and `final_url` are redacted, so a secret echoed back by the target page (`value` attributes survive DOM cleaning) does not reach the caller.
+- **Execution history** — the stored `taskSnapshot.variables` keeps secret entries but replaces their values with `[REDACTED]`; the stored result is the already-redacted response.
+- **Webhooks and output providers** — both receive the redacted result.
+- **Screenshots and recordings** — the target field is visually masked *before* the value is typed, so plaintext never renders into a capture. Disable per task with `"redactCaptures": false`.
+- **Child tasks** — the `start` action forwards the secret variable names, so the child run redacts the same values.
+- **Task exports** — exported JSON keeps the variable and its `secret` flag but blanks the value.
+
+Redaction is exact-value matching, which also covers derived values: copying a secret into another variable, or embedding it in a larger string, still matches.
+
+**Limits worth knowing:**
+- Values shorter than 4 characters are **not** redacted — a 1–2 character secret would match nearly every log line. Use a longer value or accept that it stays visible.
+- Redaction applies to output, not to storage. Secret values are stored in `data/tasks.json` in plaintext, like Baserow credential tokens. Protect the `data/` directory accordingly.
+- Masking a capture depends on the page: it covers the field being typed into, not a value the site later renders somewhere else on the page.
+
+To flag a value captured at runtime — an OTP read off the page, a token from an API response — set `secret` on the `set` action:
+
+```json
+{ "id": "act_set_otp", "type": "set", "varName": "otp", "value": "{$block.output}", "secret": true }
+```
+
+When calling the API, pass secret variables in the request body like any other variable:
+
+```json
+{ "variables": { "password": "correct-horse" } }
+```
+
+## 17) Notes for AI agents
 - `javascript` actions are page-context only (no `page` object).
 - Prefer structured conditions for selectors (`exists` with selector).
 - Keep waits short; use 1-2s unless the target site is slow.
 - Always close block structures with `end`.
+- Mark any password, token, or card-number variable `secret: true` (§16). Never inline such a value directly in an action — put it in a secret variable and reference it with `{$name}`, or it will not be redacted.

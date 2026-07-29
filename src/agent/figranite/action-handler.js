@@ -101,6 +101,28 @@ const getLocationalCoords = async (page, selectorValue, lastMouse) => {
     return { x: targetX, y: targetY, box };
 };
 
+// Visually mask an element before a secret is typed into it, so the value is
+// never rendered into screenshots or the .webm recording. Pass a null selector
+// to mask whatever currently has focus (global typing). Best effort: if the
+// page navigates or the selector is invalid we simply skip it.
+const maskElementForCaptures = async (page, selector) => {
+    try {
+        await page.evaluate((sel) => {
+            const STYLE_ID = '__figranium_secret_mask__';
+            if (!document.getElementById(STYLE_ID)) {
+                const style = document.createElement('style');
+                style.id = STYLE_ID;
+                style.textContent = '[data-figranium-secret="1"]{-webkit-text-security:disc!important;color:transparent!important;caret-color:transparent!important;text-shadow:0 0 6px rgba(0,0,0,0.55)!important}';
+                (document.head || document.documentElement).appendChild(style);
+            }
+            const el = sel ? document.querySelector(sel) : document.activeElement;
+            if (el && el !== document.body) el.setAttribute('data-figranium-secret', '1');
+        }, selector || null);
+    } catch {
+        // ignore — masking must never break the run
+    }
+};
+
 const executeAction = async (act, context) => {
     const {
         page,
@@ -116,6 +138,9 @@ const executeAction = async (act, context) => {
         setStopRequested,
         pendingDownloads
     } = context;
+
+    const isSecretValue = context.isSecretValue || (() => false);
+    const markSecret = context.markSecret || (() => { });
 
     const {
         deadClicks,
@@ -250,9 +275,12 @@ const executeAction = async (act, context) => {
             const selectorValue = act.selector ? resolveMaybe(act.selector) : null;
             const valueText = resolveMaybe(act.value) || '';
             const typeMode = act.typeMode === 'append' ? 'append' : 'replace';
+            const typingSecret = options.redactCaptures !== false && isSecretValue(valueText);
 
             const typeIntoSelector = async () => {
                 if (!selectorValue) return;
+
+                if (typingSecret) await maskElementForCaptures(page, selectorValue);
 
                 if (randomizeClicks) {
                     const loc = await getLocationalCoords(page, selectorValue, context.lastMouse);
@@ -317,6 +345,7 @@ const executeAction = async (act, context) => {
                 await typeIntoSelector();
             } else {
                 logs.push(`[FIGRANITE] Typing (global): ${valueText}`);
+                if (typingSecret) await maskElementForCaptures(page, null);
                 if (humanTyping) {
                     await humanType(page, null, valueText, humanOptions);
                 } else {
@@ -541,6 +570,9 @@ const executeAction = async (act, context) => {
                 const resolved = resolveMaybe(act.value || '');
                 const parsed = parseValue(resolved);
                 runtimeVars[String(act.varName)] = parsed;
+                // Values captured at runtime (an OTP read off the page, a token
+                // from an API response) can be flagged sensitive on the action.
+                if (act.secret === true) markSecret(parsed, act.varName);
                 logs.push(`Set variable ${act.varName}`);
                 result = parsed;
             }
@@ -634,6 +666,9 @@ const executeAction = async (act, context) => {
                 body: JSON.stringify({
                     variables: runtimeVars,
                     taskVariables: runtimeVars,
+                    // Carry secrecy across the task boundary so the child run
+                    // redacts the same values.
+                    secretVars: Array.from(context.secretVars || []),
                     runSource: 'agent_block',
                     taskId
                 })

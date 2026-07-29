@@ -43,6 +43,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
         const [dbLoading, setDbLoading] = React.useState(false);
         const [tableLoading, setTableLoading] = React.useState(false);
         const [browseSupported, setBrowseSupported] = React.useState(true);
+        const [revealedVars, setRevealedVars] = React.useState<Record<string, boolean>>({});
 
         React.useEffect(() => {
             if (isOpen) {
@@ -137,10 +138,12 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
 
         const rotateProxiesDisabled = proxyListLoaded && proxyList.length === 1 && proxyList[0]?.id === 'host';
 
-        const updateVariable = (oldName: string, name: string, type: VarType, value: any) => {
+        const updateVariable = (oldName: string, name: string, type: VarType, value: any, secret?: boolean) => {
             const nextVars = { ...currentTask.variables };
+            const previous = nextVars[oldName];
             if (oldName !== name) delete nextVars[oldName];
-            nextVars[name] = { type, value };
+            const isSecret = secret === undefined ? previous?.secret === true : secret;
+            nextVars[name] = isSecret ? { type, value, secret: true } : { type, value };
             onUpdateTask({ variables: nextVars });
         };
 
@@ -149,6 +152,17 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
             delete nextVars[name];
             onUpdateTask({ variables: nextVars });
         };
+
+        const hasSecretVars = Object.values(currentTask.variables || {}).some((v) => v?.secret);
+
+        // Never render real secret values into the copyable API sample.
+        const variablesPayloadSample = JSON.stringify({
+            variables: Object.fromEntries(
+                Object.entries(currentTask.variables || {})
+                    .slice(0, 2)
+                    .map(([k, v]) => [k, v.secret ? '<your-secret-value>' : v.value])
+            )
+        }, null, 2);
 
         const addVariable = () => {
             const name = `var_${Object.keys(currentTask.variables || {}).length + 1}`;
@@ -321,15 +335,50 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                         <option value="false">False</option>
                                                     </select>
                                                 ) : (
-                                                    <input
-                                                        type={def.type === 'number' ? 'number' : 'text'}
-                                                        value={def.value}
-                                                        onChange={(e) => updateVariable(name, name, def.type, def.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
-                                                        placeholder="Default Value"
-                                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-xs text-white"
-                                                    />
+                                                    <div className="relative">
+                                                        <input
+                                                            type={def.type === 'number' ? 'number' : (def.secret && !revealedVars[name] ? 'password' : 'text')}
+                                                            value={def.value}
+                                                            onChange={(e) => updateVariable(name, name, def.type, def.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+                                                            placeholder="Default Value"
+                                                            autoComplete="off"
+                                                            spellCheck={false}
+                                                            className={`w-full bg-black/40 border border-white/5 rounded-xl px-3 py-2 text-xs text-white ${def.secret && def.type !== 'number' ? 'pr-10' : ''}`}
+                                                        />
+                                                        {def.secret && def.type !== 'number' && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setRevealedVars((prev) => ({ ...prev, [name]: !prev[name] }))}
+                                                                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-500 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                                                aria-label={revealedVars[name] ? 'Hide value' : 'Reveal value'}
+                                                                title={revealedVars[name] ? 'Hide value' : 'Reveal value'}
+                                                            >
+                                                                <MaterialIcon name={revealedVars[name] ? 'visibility_off' : 'visibility'} className="text-sm" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
+
+                                            <button
+                                                role="switch"
+                                                aria-checked={!!def.secret}
+                                                onClick={() => updateVariable(name, name, def.type, def.value, !def.secret)}
+                                                className="flex items-center gap-2 pl-1 text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-lg"
+                                                title="Redact this value from logs, results, history and captures"
+                                            >
+                                                <div className={`w-8 h-4 rounded-full relative transition-colors flex-shrink-0 ${def.secret ? 'bg-white' : 'bg-white/10'}`}>
+                                                    <div className={`absolute top-1 w-2 h-2 rounded-full transition-all ${def.secret ? 'right-1 bg-black' : 'left-1 bg-white/20'}`} />
+                                                </div>
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${def.secret ? 'text-white' : 'text-gray-600 group-hover:text-gray-400'}`}>
+                                                    Secret
+                                                </span>
+                                                {def.secret && (
+                                                    <span className="text-[9px] text-gray-500 normal-case font-normal tracking-normal">
+                                                        redacted from logs, results &amp; history
+                                                    </span>
+                                                )}
+                                            </button>
                                         </div>
                                     ))}
                                     {Object.keys(currentTask.variables || {}).length === 0 && (
@@ -375,6 +424,29 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                             </button>
                                         ))}
                                     </div>
+
+                                    {hasSecretVars && (
+                                        <button
+                                            role="switch"
+                                            aria-checked={currentTask.redactCaptures !== false}
+                                            onClick={() => onUpdateTask({ redactCaptures: currentTask.redactCaptures === false })}
+                                            className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask.redactCaptures !== false
+                                                ? 'bg-white/10 border-white/30 text-white'
+                                                : 'bg-white/5 border-white/5 text-gray-400 opacity-60 hover:opacity-100'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-3 text-left">
+                                                <MaterialIcon name="password" className="text-sm opacity-70" />
+                                                <div>
+                                                    <span className="text-xs font-medium">Mask Secrets On Screen</span>
+                                                    <p className="text-[9px] text-gray-500 mt-0.5">Hide secret values as they are typed so they never appear in screenshots or recordings</p>
+                                                </div>
+                                            </div>
+                                            <div className={`w-8 h-4 rounded-full relative transition-colors flex-shrink-0 ${currentTask.redactCaptures !== false ? 'bg-white' : 'bg-white/10'}`}>
+                                                <div className={`absolute top-1 w-2 h-2 rounded-full transition-all ${currentTask.redactCaptures !== false ? 'right-1 bg-black' : 'left-1 bg-white/20'}`} />
+                                            </div>
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="space-y-4">
@@ -480,23 +552,20 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                         <p className="text-[10px] text-gray-500">You can override task variables in the request body:</p>
                                         <div className="relative group">
                                             <div className="bg-black/40 border border-white/5 rounded-xl p-4 pr-12 font-mono text-[10px] text-white/60">
-                                                <pre>{JSON.stringify({
-                                                    variables: Object.fromEntries(
-                                                        Object.entries(currentTask.variables || {}).slice(0, 2).map(([k, v]) => [k, v.value])
-                                                    )
-                                                }, null, 2)}</pre>
+                                                <pre>{variablesPayloadSample}</pre>
                                             </div>
                                             <CopyButton
-                                                text={JSON.stringify({
-                                                    variables: Object.fromEntries(
-                                                        Object.entries(currentTask.variables || {}).slice(0, 2).map(([k, v]) => [k, v.value])
-                                                    )
-                                                }, null, 2)}
+                                                text={variablesPayloadSample}
                                                 className="absolute right-2 top-2 p-2 rounded-lg bg-white/5 border border-white/10 text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all"
                                                 iconClassName="text-xs"
                                                 title="Copy Payload"
                                             />
                                         </div>
+                                        {hasSecretVars && (
+                                            <p className="text-[9px] text-gray-600">
+                                                Secret variables show a placeholder here — replace it with the real value when you call the API.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

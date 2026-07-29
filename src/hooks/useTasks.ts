@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Task } from '../types';
+import { Task, Variable } from '../types';
 import { normalizeImportedTask, buildNewTask, parseBooleanFlag, ensureActionIds } from '../utils/taskUtils';
 
 export function useTasks(
@@ -119,9 +119,28 @@ export function useTasks(
             return;
         }
 
+        // Export files get shared — never write secret values into one. The
+        // flag and the variable are kept so the importer only has to refill it.
+        let strippedSecrets = 0;
+        const sanitized = tasksToExport.map((task) => {
+            if (!task.variables) return task;
+            const entries = Object.entries(task.variables);
+            if (!entries.some(([, v]) => v?.secret)) return task;
+            const variables: Record<string, Variable> = {};
+            for (const [name, v] of entries) {
+                if (v?.secret) {
+                    if (v.value !== '' && v.value !== undefined && v.value !== null) strippedSecrets += 1;
+                    variables[name] = { ...v, value: '' };
+                } else {
+                    variables[name] = v;
+                }
+            }
+            return { ...task, variables };
+        });
+
         const payload = {
             exportedAt: new Date().toISOString(),
-            tasks: tasksToExport
+            tasks: sanitized
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -133,7 +152,12 @@ export function useTasks(
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
-        showAlert(`Exported ${tasksToExport.length} task(s).`, 'success');
+        showAlert(
+            strippedSecrets > 0
+                ? `Exported ${tasksToExport.length} task(s). ${strippedSecrets} secret value(s) left blank — refill them after importing.`
+                : `Exported ${tasksToExport.length} task(s).`,
+            'success'
+        );
     }, [tasks, showAlert]);
 
     const importTasks = useCallback(async (file: File) => {

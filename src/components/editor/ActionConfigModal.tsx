@@ -530,6 +530,16 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             placeholder="ready"
                         />
                     ))}
+                    {field('Sensitivity', inputWrap(
+                        <select
+                            value={action.secret ? 'secret' : 'normal'}
+                            onChange={(e) => onUpdate(action.id, { secret: e.target.value === 'secret' }, true)}
+                            className="custom-select w-full bg-transparent border-none px-0 py-0 text-[11px] text-white"
+                        >
+                            <option value="normal">Normal</option>
+                            <option value="secret">Secret — redact from logs &amp; results</option>
+                        </select>
+                    ))}
                 </>}
 
                 {/* Merge */}

@@ -4,6 +4,7 @@ const { selectUserAgent } = require('../../../user-agent-settings');
 const { safeFormatHTML } = require('../../../html-utils');
 const { validateUrl } = require('../../../url-utils');
 const { parseBooleanFlag, sanitizeRunId, toCsvString } = require('../../../common-utils');
+const { createRedactor, createRedactingLog, collectSecretValues } = require('../../../redaction');
 const { runExtractionScript } = require('../sandbox');
 const { cleanHtml } = require('../dom-utils');
 const { launchBrowser, createBrowserContext } = require('../browser');
@@ -48,6 +49,26 @@ async function runFigranite(data, options = {}) {
     const runtimeVars = { ...(data.taskVariables || data.variables || {}) };
     let lastBlockOutput = null;
     runtimeVars['block.output'] = lastBlockOutput;
+
+    // Secret variables keep their real values in runtimeVars (they have to be
+    // typed, sent as headers, etc.) but every outbound surface is redacted.
+    const secretVarNames = Array.isArray(data.secretVars) ? data.secretVars.map(String) : [];
+    const snapshotVars = data.taskSnapshot && data.taskSnapshot.variables;
+    const redactor = createRedactor([
+        ...collectSecretValues(snapshotVars, secretVarNames),
+        ...collectSecretValues(runtimeVars, secretVarNames)
+    ], {
+        onSkip: (msg) => console.warn(`[FIGRANITE] ${msg}`)
+    });
+    // Names carried into child tasks started by the `start` action.
+    const activeSecretVars = new Set([
+        ...secretVarNames,
+        ...(snapshotVars && typeof snapshotVars === 'object'
+            ? Object.entries(snapshotVars)
+                .filter(([, v]) => v && typeof v === 'object' && v.secret === true)
+                .map(([name]) => name)
+            : [])
+    ]);
 
     const setBlockOutput = (value) => {
         lastBlockOutput = value;
@@ -141,7 +162,8 @@ async function runFigranite(data, options = {}) {
         });
         browser = context.browser();
 
-        const logs = [];
+        // Redacts on write, so every logs.push call site is covered.
+        const logs = createRedactingLog(redactor);
         const downloads = [];
         const pendingDownloads = new Set();
         const newDownloadListeners = new Set();
@@ -266,7 +288,10 @@ async function runFigranite(data, options = {}) {
             idleMovements,
             overscroll,
             cursorGlide,
-            randomizeClicks
+            randomizeClicks,
+            // Mask secret values on screen before typing so they never land in
+            // screenshots or the recording. On unless explicitly disabled.
+            redactCaptures: data.redactCaptures !== false
         };
 
         let index = 0;
@@ -290,6 +315,16 @@ async function runFigranite(data, options = {}) {
             set lastMouse(val) { lastMouse = val; },
             setStopOutcome: (out) => { stopOutcome = out; },
             setStopRequested: (req) => { stopRequested = req; },
+            redactor,
+            secretVars: activeSecretVars,
+            markSecret: (value, name) => {
+                redactor.addSecret(value);
+                if (name) activeSecretVars.add(String(name));
+            },
+            isSecretValue: (value) => {
+                if (typeof value !== 'string' || !value) return false;
+                return redactor.redactString(value) !== value;
+            },
             pendingDownloads,
             waitForNewDownload: () => new Promise(res => {
                 newDownloadListeners.add(res);
@@ -611,14 +646,17 @@ async function runFigranite(data, options = {}) {
         const rawExtraction = extraction.result !== undefined ? extraction.result : (extraction.logs.length ? extraction.logs.join('\n') : undefined);
         const formattedExtraction = extractionFormat === 'csv' ? toCsvString(rawExtraction) : rawExtraction;
 
-        const outputData = {
+        // Redact the whole payload: a secret can reach the caller through the
+        // serialized DOM (cleanHtml keeps `value` attributes), through an
+        // extraction script's result, or through a URL that carries it.
+        const outputData = redactor.redact({
             final_url: page.url() || url || '',
             downloads: downloads.length > 0 ? downloads : undefined,
-            logs: logs || [],
+            logs: Array.from(logs || []),
             html: (extractionScript && !includeHtml) ? undefined : (typeof cleanedHtml === 'string' ? safeFormatHTML(cleanedHtml) : ''),
             data: formattedExtraction,
             screenshot_url: screenshotSuccess ? `/captures/${screenshotName}` : null
-        };
+        });
 
         const video = page.video();
         if (!options.handoffContext) {
@@ -661,6 +699,12 @@ async function runFigranite(data, options = {}) {
         try { await browser.close(); } catch { }
         return outputData;
     } catch (error) {
+        // Playwright errors quote the failing selector/value, so a templated
+        // secret can surface in the message and the stack.
+        if (redactor.hasSecrets() && error && typeof error.message === 'string') {
+            error.message = redactor.redactString(error.message);
+            if (typeof error.stack === 'string') error.stack = redactor.redactString(error.stack);
+        }
         console.error('[FIGRANITE] Engine Error:', error);
         try {
             if (context) await context.close();

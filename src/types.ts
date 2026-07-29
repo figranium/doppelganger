@@ -24,6 +24,14 @@ export interface Variable {
     type: VarType;
     value: any;
     autoCreated?: boolean;
+    /**
+     * Marks the variable as sensitive (passwords, tokens, card numbers).
+     * The real value is still used during execution, but every occurrence of it
+     * is replaced with [REDACTED] in logs, results, API responses, webhooks and
+     * execution history, and it is masked on screen before being typed so it
+     * never reaches screenshots or recordings.
+     */
+    secret?: boolean;
 }
 
 export interface StealthConfig {
@@ -75,6 +83,8 @@ export interface Action {
     conditionOp?: string;
     conditionValue?: string;
     typeMode?: 'append' | 'replace';
+    /** `set` only — flag the captured value as sensitive for the rest of the run. */
+    secret?: boolean;
     method?: string;
     headers?: string;
     body?: string;
@@ -129,6 +139,8 @@ export interface Task {
     includeHtml?: boolean;
     output?: TaskOutput;
     includeShadowDom?: boolean;
+    /** Mask secret values on screen before typing (default true). */
+    redactCaptures?: boolean;
     disableRecording?: boolean;
     statelessExecution?: boolean;
     versions?: TaskVersion[];

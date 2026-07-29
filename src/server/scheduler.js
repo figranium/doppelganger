@@ -8,6 +8,7 @@ const { loadTasks, saveTasks, getTaskById } = require('./storage');
 const { appendExecution } = require('./storage');
 const { getNextRun, scheduleToCron, isValidCron } = require('./cron-parser');
 const { sendExecutionUpdate } = require('./state');
+const { createRedactor, collectSecretValues, collectSecretVarNames } = require('../../redaction');
 
 // Internal state
 let schedulerTimer = null;
@@ -174,6 +175,14 @@ async function tick(taskId) {
                 entry.taskName = task.name;
                 entry.mode = task.mode || 'agent';
                 entry.url = task.url || null;
+
+                // Scheduled runs bypass registerExecution, so redact here before
+                // the result reaches execution history.
+                const redactor = createRedactor(collectSecretValues(task.variables));
+                if (redactor.hasSecrets()) {
+                    entry.result = redactor.redact(entry.result);
+                    entry.url = redactor.redact(entry.url);
+                }
             }
         } catch { }
 
@@ -212,6 +221,8 @@ async function executeScheduledTask(taskId) {
         taskId: task.id,
         variables: runtimeVars,
         taskVariables: runtimeVars,
+        // runtimeVars is flat, so the `secret` flags travel separately.
+        secretVars: collectSecretVarNames(task.variables),
         actions: task.actions || [],
         mode: task.mode || 'agent',
         runSource: 'scheduler'

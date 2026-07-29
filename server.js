@@ -78,6 +78,12 @@ const { pushOutput } = require('./src/server/outputProviders');
 const { migrateStorageState } = require('./src/server/migrate-storage');
 const { concurrencyGate } = require('./src/server/execution-queue');
 const { validateUrl } = require('./url-utils');
+const {
+    createRedactor,
+    collectSecretValues,
+    collectSecretVarNames,
+    maskSecretVariables
+} = require('./redaction');
 
 const app = express();
 app.disable('x-powered-by');
@@ -223,14 +229,49 @@ const registerExecution = (req, res, baseMeta = {}) => {
     const start = Date.now();
     const requestId = 'exec_' + start + '_' + Math.floor(Math.random() * 1000);
     res.locals.executionId = requestId;
+
+    // Single choke point for secret redaction: everything that leaves an
+    // execution — the HTTP response, the stored history entry, the webhook
+    // payload and the output provider push — flows through here, for every
+    // mode (agent, scrape, headful).
+    //
+    // Built lazily because executeTaskById replaces req.body with the merged
+    // task *after* registering, so the secret variables are not known yet at
+    // registration time.
+    let cachedRedactor = null;
+    const getRedactor = () => {
+        if (cachedRedactor) return cachedRedactor;
+        const reqBody = req.body || {};
+        const snapshotVars = reqBody.taskSnapshot && reqBody.taskSnapshot.variables;
+        const secretVarNames = Array.from(new Set([
+            ...(Array.isArray(reqBody.secretVars) ? reqBody.secretVars.map(String) : []),
+            ...collectSecretVarNames(snapshotVars)
+        ]));
+        cachedRedactor = createRedactor([
+            ...collectSecretValues(snapshotVars, secretVarNames),
+            ...collectSecretValues(reqBody.taskVariables, secretVarNames),
+            ...collectSecretValues(reqBody.variables, secretVarNames)
+        ]);
+        return cachedRedactor;
+    };
+    res.locals.getRedactor = getRedactor;
+
     const originalJson = res.json.bind(res);
     res.json = (body) => {
-        res.locals.executionResult = body;
-        return originalJson(body);
+        const redactor = getRedactor();
+        const safeBody = redactor.hasSecrets() ? redactor.redact(body) : body;
+        res.locals.executionResult = safeBody;
+        return originalJson(safeBody);
     };
     res.on('finish', () => {
         const durationMs = Date.now() - start;
         const body = req.body || {};
+        const redactor = getRedactor();
+        // Never persist secret values into execution history.
+        let snapshot = body.taskSnapshot || null;
+        if (snapshot && snapshot.variables) {
+            snapshot = { ...snapshot, variables: maskSecretVariables(snapshot.variables) };
+        }
         const entry = {
             id: requestId,
             timestamp: start,
@@ -242,8 +283,8 @@ const registerExecution = (req, res, baseMeta = {}) => {
             mode: body.mode || baseMeta.mode || 'unknown',
             taskId: body.taskId || baseMeta.taskId || null,
             taskName: body.name || baseMeta.taskName || null,
-            url: body.url || req.query.url || null,
-            taskSnapshot: body.taskSnapshot || null,
+            url: redactor.hasSecrets() ? redactor.redact(body.url || req.query.url || null) : (body.url || req.query.url || null),
+            taskSnapshot: snapshot,
             result: res.locals.executionResult || null
         };
         appendExecution(entry).catch(err => console.error('Failed to append execution:', err));
@@ -348,6 +389,13 @@ const executeTaskById = async (req, res) => {
     }
     const runtimeVars = { ...taskVars, ...clientVars };
 
+    // Variable definitions carry the `secret` flag; runtimeVars is flat, so the
+    // names travel alongside it for the engine and the redactor.
+    const secretVars = Array.from(new Set([
+        ...collectSecretVarNames(task.variables),
+        ...(Array.isArray(req.body.secretVars) ? req.body.secretVars.map(String) : [])
+    ]));
+
     req.body = {
         ...req.body,
         ...task,
@@ -355,6 +403,7 @@ const executeTaskById = async (req, res) => {
         taskId: task.id,
         variables: runtimeVars,
         taskVariables: runtimeVars,
+        secretVars,
         actions: task.actions || [],
         mode: task.mode || 'agent',
         extractionScript: req.body.extractionScript || task.extractionScript
