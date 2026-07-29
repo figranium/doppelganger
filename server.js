@@ -4,6 +4,8 @@ const FileStore = require('session-file-store')(session);
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const cookie = require('cookie');
+const signature = require('cookie-signature');
 
 // Catch unhandled promise rejections from playwright-extra stealth plugin.
 // When pages close before the plugin finishes async CDP initialization,
@@ -26,7 +28,8 @@ const {
     SESSION_SECRET_FILE,
     SESSION_TTL_SECONDS,
     NOVNC_PORT,
-    WEBSOCKIFY_PATH
+    WEBSOCKIFY_PATH,
+    VNC_PASSWORD_FILE
 } = require('./src/server/constants');
 
 const {
@@ -537,6 +540,19 @@ app.get('/headful/selector_stream', requireAuth, (req, res) => {
 app.post('/api/headful/inspect', requireAuth, toggleInspectMode);
 app.post('/headful/inspect', requireAuth, toggleInspectMode);
 
+app.get('/api/headful/vnc-password', requireAuth, (req, res) => {
+    try {
+        if (fs.existsSync(VNC_PASSWORD_FILE)) {
+            const password = fs.readFileSync(VNC_PASSWORD_FILE, 'utf8').trim();
+            res.json({ password });
+        } else {
+            res.status(404).json({ error: 'VNC_PASSWORD_NOT_FOUND' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: 'FAILED_TO_READ_VNC_PASSWORD' });
+    }
+});
+
 // Start Server
 findAvailablePort(port, 20)
     .then((availablePort) => {
@@ -561,24 +577,55 @@ findAvailablePort(port, 20)
         });
         server.on('upgrade', async (req, socket, head) => {
             if (!await isIpAllowed(req.socket?.remoteAddress)) {
-                try {
-                    socket.destroy();
-                } catch {
-                    // ignore
-                }
+                try { socket.destroy(); } catch { }
                 return;
             }
 
             // Cross-Site WebSocket Hijacking (CSWSH) protection: verify Origin header matches Host
             if (!isValidWebSocketOrigin(req.headers.origin, req.headers.host)) {
                 console.warn(`[SECURITY] CSWSH attempt blocked: Origin ${req.headers.origin} mismatch with Host ${req.headers.host}`);
-                socket.destroy();
+                try { socket.destroy(); } catch { }
+                return;
+            }
+
+            // Authentication check for WebSocket upgrade
+            const cookies = cookie.parse(req.headers.cookie || '');
+            const signedSid = cookies['connect.sid'];
+            let isAuthenticated = false;
+
+            if (signedSid && signedSid.startsWith('s:')) {
+                const sid = signature.unsign(signedSid.slice(2), SESSION_SECRET);
+                if (sid) {
+                    const session = await new Promise((resolve) => {
+                        sessionStore.get(sid, (err, sess) => resolve(err ? null : sess));
+                    });
+                    if (session && session.user) {
+                        isAuthenticated = true;
+                    }
+                }
+            }
+
+            // Also allow API key authentication for WebSockets if needed
+            if (!isAuthenticated) {
+                const apiKey = req.headers['x-api-key'] || new URL(req.url, `http://${req.headers.host}`).searchParams.get('apiKey');
+                if (apiKey) {
+                    const { loadApiKey } = require('./src/server/storage');
+                    const storedKey = await loadApiKey().catch(() => null);
+                    if (storedKey && apiKey === storedKey) {
+                        isAuthenticated = true;
+                    }
+                }
+            }
+
+            if (!isAuthenticated) {
+                console.warn(`[SECURITY] Unauthenticated WebSocket upgrade attempt blocked from ${req.socket?.remoteAddress}`);
+                try { socket.destroy(); } catch { }
                 return;
             }
 
             const handled = proxyWebsockify(req, socket, head);
             if (!handled) {
-                socket.destroy();
+                try { socket.destroy(); } catch { }
             }
         });
         server.on('error', (err) => {

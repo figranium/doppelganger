@@ -57,7 +57,7 @@ COPY --from=build /app/src /app/src
 COPY --from=build /app/start-vnc.sh /app/start-vnc.sh
 RUN sed -i 's/\r$//' /app/start-vnc.sh && chmod +x /app/start-vnc.sh
 
-EXPOSE 11345 54311
+EXPOSE 11345
 ENV NODE_ENV=production
 
 CMD ["/app/start-vnc.sh"]

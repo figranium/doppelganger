@@ -8,6 +8,7 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const ALLOWED_IPS_FILE = path.join(DATA_DIR, 'allowed_ips.json');
 const SESSION_SECRET_FILE = path.join(DATA_DIR, 'session_secret.txt');
 const TASKS_FILE = path.join(DATA_DIR, 'tasks.json');
+const VNC_PASSWORD_FILE = path.join(DATA_DIR, 'vnc_password.txt');
 const API_KEY_FILE = path.join(DATA_DIR, 'api_key.json');
 const GEMINI_API_KEY_FILE = path.join(DATA_DIR, 'gemini_api_key.json');
 const OPENAI_API_KEY_FILE = path.join(DATA_DIR, 'openai_api_key.json');
@@ -39,6 +40,7 @@ module.exports = {
     ALLOWED_IPS_FILE,
     SESSION_SECRET_FILE,
     TASKS_FILE,
+    VNC_PASSWORD_FILE,
     API_KEY_FILE,
     GEMINI_API_KEY_FILE,
     OPENAI_API_KEY_FILE,

@@ -60,49 +60,68 @@
 
       const statusEl = document.getElementById('status');
       const screen = document.getElementById('screen');
-      const rfb = new RFB(screen, wsUrl);
-      rfb.scaleViewport = true;
-      rfb.resizeSession = true;
-      rfb.showDotCursor = false;
-      rfb.clipViewport = false;
 
-      const sendKey = (keysym, code, down) => {
-        if (typeof rfb.sendKey !== 'function') return;
+      async function initVNC() {
+        let password = null;
         try {
-          rfb.sendKey(keysym, code, down);
+          const resp = await fetch('/api/headful/vnc-password');
+          if (resp.ok) {
+            const data = await resp.json();
+            password = data.password;
+          }
         } catch (err) {
-          // ignore
+          console.warn('Failed to fetch VNC password, attempting without it');
         }
-      };
 
-      const clearModifiers = () => {
-        const modifiers = [
-          [0xFFE1, 'ShiftLeft'],
-          [0xFFE2, 'ShiftRight'],
-          [0xFFE3, 'ControlLeft'],
-          [0xFFE4, 'ControlRight'],
-          [0xFFE9, 'AltLeft'],
-          [0xFFEA, 'AltRight'],
-          [0xFFE7, 'MetaLeft'],
-          [0xFFE8, 'MetaRight']
-        ];
-        modifiers.forEach(([keysym, code]) => sendKey(keysym, code, false));
-      };
+        const rfb = new RFB(screen, wsUrl, {
+          credentials: { password }
+        });
+        rfb.scaleViewport = true;
+        rfb.resizeSession = true;
+        rfb.showDotCursor = false;
+        rfb.clipViewport = false;
 
-      window.addEventListener('focus', () => {
-        clearModifiers();
-      });
-      window.addEventListener('blur', () => {
-        clearModifiers();
-      });
+        const sendKey = (keysym, code, down) => {
+          if (typeof rfb.sendKey !== 'function') return;
+          try {
+            rfb.sendKey(keysym, code, down);
+          } catch (err) {
+            // ignore
+          }
+        };
 
-      rfb.addEventListener('connect', () => {
-        statusEl.classList.add('hidden');
-      });
-      rfb.addEventListener('disconnect', () => {
-        statusEl.classList.remove('hidden');
-        statusEl.textContent = 'Disconnected';
-      });
+        const clearModifiers = () => {
+          const modifiers = [
+            [0xFFE1, 'ShiftLeft'],
+            [0xFFE2, 'ShiftRight'],
+            [0xFFE3, 'ControlLeft'],
+            [0xFFE4, 'ControlRight'],
+            [0xFFE9, 'AltLeft'],
+            [0xFFEA, 'AltRight'],
+            [0xFFE7, 'MetaLeft'],
+            [0xFFE8, 'MetaRight']
+          ];
+          modifiers.forEach(([keysym, code]) => sendKey(keysym, code, false));
+        };
+
+        window.addEventListener('focus', () => {
+          clearModifiers();
+        });
+        window.addEventListener('blur', () => {
+          clearModifiers();
+        });
+
+        rfb.addEventListener('connect', () => {
+          statusEl.classList.add('hidden');
+        });
+        rfb.addEventListener('disconnect', () => {
+          statusEl.classList.remove('hidden');
+          statusEl.textContent = 'Disconnected';
+        });
+      }
+
+      initVNC();
+
     </script>
   </body>
 </html>
