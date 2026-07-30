@@ -19,7 +19,7 @@ Figranium is a self‑hosted, block-first automation control plane built for tea
 
 # Architecture Snapshot
 
-## The Figranite Engine
+## Figranite
 At the core of Figranium lies **Figranite**, a high-performance, deterministic workflow interpreter designed for stateful browser automation. It is the project's primary execution kernel, responsible for transforming abstract block definitions into sentient-like browser behavior.
 
 Key capabilities of **Figranite** include:
