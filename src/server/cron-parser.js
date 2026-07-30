@@ -45,9 +45,21 @@ function parseField(field, min, max) {
             if (rangeMatch) {
                 rangeStart = parseInt(rangeMatch[1], 10);
                 rangeEnd = parseInt(rangeMatch[2], 10);
+                if (rangeStart < min || rangeStart > max) {
+                    throw new Error(`Range start ${rangeStart} out of range [${min}-${max}]`);
+                }
+                if (rangeEnd < min || rangeEnd > max) {
+                    throw new Error(`Range end ${rangeEnd} out of range [${min}-${max}]`);
+                }
+                if (rangeStart > rangeEnd) {
+                    throw new Error(`Descending range not allowed: ${rangeStart}-${rangeEnd}`);
+                }
             } else {
                 const val = parseInt(base, 10);
                 if (isNaN(val)) throw new Error(`Invalid cron field value: ${base}`);
+                if (val < min || val > max) {
+                    throw new Error(`Value ${val} out of range [${min}-${max}]`);
+                }
                 if (!stepMatch) {
                     // single value, clamp dayOfWeek 7 → 0
                     values.add(val === 7 && max === 7 ? 0 : val);
@@ -57,9 +69,18 @@ function parseField(field, min, max) {
             }
         }
 
+        let added = false;
         for (let i = rangeStart; i <= rangeEnd; i += step) {
             values.add(i === 7 && max === 7 ? 0 : i);
+            added = true;
         }
+        if (!added) {
+            throw new Error(`Empty range or step did not produce values for: ${part}`);
+        }
+    }
+
+    if (values.size === 0) {
+        throw new Error(`No values produced for field: ${field}`);
     }
 
     return values;
