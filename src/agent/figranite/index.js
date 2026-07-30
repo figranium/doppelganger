@@ -43,7 +43,7 @@ const isStopRequested = (runId) => {
 };
 
 async function runFigranite(data, options = {}) {
-    let { url, actions, wait: globalWait, rotateUserAgents, rotateProxies, humanTyping, stealth = {} } = data;
+    let { url, actions, wait: globalWait, rotateUserAgents, rotateProxies, humanTyping, stealth = {}, sessionId } = data;
 
     const runtimeVars = { ...(data.taskVariables || data.variables || {}) };
     let lastBlockOutput = null;
@@ -137,7 +137,8 @@ async function runFigranite(data, options = {}) {
             statelessExecution,
             disableRecording,
             recordingsDir,
-            includeShadowDom
+            includeShadowDom,
+            sessionId
         });
         browser = context.browser();
 
@@ -610,6 +611,21 @@ async function runFigranite(data, options = {}) {
             : 'json';
         const rawExtraction = extraction.result !== undefined ? extraction.result : (extraction.logs.length ? extraction.logs.join('\n') : undefined);
         const formattedExtraction = extractionFormat === 'csv' ? toCsvString(rawExtraction) : rawExtraction;
+
+        if (sessionId) {
+            const cleanSessionId = String(sessionId).replace(/[^a-zA-Z0-9_-]/g, '');
+            if (cleanSessionId) {
+                const sessionPath = path.join(__dirname, '../../../data/sessions', `${cleanSessionId}.json`);
+                try {
+                    await fs.promises.mkdir(path.dirname(sessionPath), { recursive: true });
+                    await context.storageState({ path: sessionPath });
+                    logs.push(`[FIGRANITE] Saved persistent session state to ${cleanSessionId}.json`);
+                } catch (e) {
+                    console.error('[FIGRANITE] Failed to save session path:', e.message);
+                    logs.push(`[FIGRANITE] Failed to save session state: ${e.message}`);
+                }
+            }
+        }
 
         const outputData = {
             final_url: page.url() || url || '',

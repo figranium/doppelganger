@@ -1,7 +1,7 @@
 
 const http = require('http');
 const { chromium } = require('playwright');
-const { executeAction } = require('../src/agent/action-handler');
+const { executeAction } = require('../src/agent/figranite/action-handler');
 
 const PORT = 3000;
 const BASE_URL = `http://localhost:${PORT}`;
