@@ -14,6 +14,12 @@ importers:
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
+      cookie:
+        specifier: ^1.0.2
+        version: 1.1.1
+      cookie-signature:
+        specifier: ^1.2.2
+        version: 1.2.2
       express:
         specifier: ^5.2.1
         version: 5.2.1

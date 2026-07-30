@@ -502,8 +502,13 @@ const executeAction = async (act, context) => {
                 const needsHtml = /\bhtml\b/.test(jsCode);
                 result = await page.evaluate(({ code, needsHtml }) => {
                     const html = needsHtml ? document.documentElement.outerHTML : '';
-                    // eslint-disable-next-line no-eval
-                    return eval(code);
+                    try {
+                        const fn = new Function('html', `return (async () => { ${code} })()`);
+                        return fn(html);
+                    } catch (e) {
+                        // eslint-disable-next-line no-eval
+                        return eval(code);
+                    }
                 }, { code: jsCode, needsHtml });
             }
             break;

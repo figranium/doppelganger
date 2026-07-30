@@ -72,7 +72,8 @@ async function createBrowserContext(launchOptions, options = {}) {
         statelessExecution,
         disableRecording,
         recordingsDir,
-        includeShadowDom
+        includeShadowDom,
+        sessionId
     } = options;
 
     const viewport = launchOptions.headless === false
@@ -91,6 +92,20 @@ async function createBrowserContext(launchOptions, options = {}) {
         permissions: ['geolocation'],
         acceptDownloads: true,
     };
+
+    if (sessionId) {
+        const sessionPath = path.join(__dirname, '../../data/sessions', `${sessionId}.json`);
+        try {
+            await fs.promises.mkdir(path.dirname(sessionPath), { recursive: true });
+            const exists = await fs.promises.access(sessionPath).then(() => true).catch(() => false);
+            if (exists) {
+                contextOptions.storageState = sessionPath;
+                console.log(`[FIGRANITE] Loading persistent session from ${sessionId}.json`);
+            }
+        } catch (e) {
+            console.error('[FIGRANITE] Failed to load session path:', e.message);
+        }
+    }
 
     if (launchOptions.proxy) {
         contextOptions.proxy = launchOptions.proxy;
