@@ -619,7 +619,7 @@ const executeAction = async (act, context) => {
             const rawTaskId = resolveMaybe(act.value);
             if (!rawTaskId) throw new Error('Missing task id.');
             const taskId = sanitizeRunId(rawTaskId);
-            if (!taskId) throw new Error('Invalid task id.');
+            if (!taskId || !/^[a-zA-Z0-9_-]+$/.test(taskId)) throw new Error('Invalid task id.');
 
             const apiKey = (await loadApiKey()) || context.options.apiKey; // Handle API key from context option if needed, but mainly loadApiKey
             if (!apiKey) {

@@ -94,16 +94,19 @@ async function createBrowserContext(launchOptions, options = {}) {
     };
 
     if (sessionId) {
-        const sessionPath = path.join(__dirname, '../../data/sessions', `${sessionId}.json`);
-        try {
-            await fs.promises.mkdir(path.dirname(sessionPath), { recursive: true });
-            const exists = await fs.promises.access(sessionPath).then(() => true).catch(() => false);
-            if (exists) {
-                contextOptions.storageState = sessionPath;
-                console.log(`[FIGRANITE] Loading persistent session from ${sessionId}.json`);
+        const cleanSessionId = String(sessionId).replace(/[^a-zA-Z0-9_-]/g, '');
+        if (cleanSessionId) {
+            const sessionPath = path.join(__dirname, '../../data/sessions', `${cleanSessionId}.json`);
+            try {
+                await fs.promises.mkdir(path.dirname(sessionPath), { recursive: true });
+                const exists = await fs.promises.access(sessionPath).then(() => true).catch(() => false);
+                if (exists) {
+                    contextOptions.storageState = sessionPath;
+                    console.log(`[FIGRANITE] Loading persistent session from ${cleanSessionId}.json`);
+                }
+            } catch (e) {
+                console.error('[FIGRANITE] Failed to load session path:', e.message);
             }
-        } catch (e) {
-            console.error('[FIGRANITE] Failed to load session path:', e.message);
         }
     }
 

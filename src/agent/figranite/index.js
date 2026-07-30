@@ -613,14 +613,17 @@ async function runFigranite(data, options = {}) {
         const formattedExtraction = extractionFormat === 'csv' ? toCsvString(rawExtraction) : rawExtraction;
 
         if (sessionId) {
-            const sessionPath = path.join(__dirname, '../../../data/sessions', `${sessionId}.json`);
-            try {
-                await fs.promises.mkdir(path.dirname(sessionPath), { recursive: true });
-                await context.storageState({ path: sessionPath });
-                logs.push(`[FIGRANITE] Saved persistent session state to ${sessionId}.json`);
-            } catch (e) {
-                console.error('[FIGRANITE] Failed to save session path:', e.message);
-                logs.push(`[FIGRANITE] Failed to save session state: ${e.message}`);
+            const cleanSessionId = String(sessionId).replace(/[^a-zA-Z0-9_-]/g, '');
+            if (cleanSessionId) {
+                const sessionPath = path.join(__dirname, '../../../data/sessions', `${cleanSessionId}.json`);
+                try {
+                    await fs.promises.mkdir(path.dirname(sessionPath), { recursive: true });
+                    await context.storageState({ path: sessionPath });
+                    logs.push(`[FIGRANITE] Saved persistent session state to ${cleanSessionId}.json`);
+                } catch (e) {
+                    console.error('[FIGRANITE] Failed to save session path:', e.message);
+                    logs.push(`[FIGRANITE] Failed to save session state: ${e.message}`);
+                }
             }
         }
 
