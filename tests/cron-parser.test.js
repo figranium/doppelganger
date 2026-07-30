@@ -131,6 +131,38 @@ try {
     assert(false, 'empty config should throw');
 } catch { assert(true, 'empty config throws'); }
 
+// --- Out of range / Descending validation regression tests ---
+section('Out of range & Descending validation');
+
+const invalidExpressions = [
+    '60 * * * *',
+    '0 24 * * *',
+    '0 0 0 * *',
+    '0 0 1 13 *',
+    '0 0 * * 8',
+    '61-62 * * * *',
+    '10-2 * * * *',
+    '*/0 * * * *',
+    '0-60 * * * *',
+    '-1 * * * *'
+];
+
+for (const expr of invalidExpressions) {
+    assert(!isValidCron(expr), `"${expr}" should be invalid`);
+    try {
+        parseCron(expr);
+        assert(false, `"${expr}" should throw on parseCron`);
+    } catch (e) {
+        assert(true, `"${expr}" threw as expected: ${e.message}`);
+    }
+}
+
+// Ensure valid cases with step boundaries are preserved
+assert(isValidCron('*/15 * * * *'), '*/15 is valid');
+assert(isValidCron('0-59/15 * * * *'), '0-59/15 is valid');
+assert(isValidCron('0 0 1 12 *'), '0 0 1 12 * is valid');
+assert(isValidCron('0 0 * * 7'), '0 0 * * 7 is valid (handled alias)');
+
 // --- Summary ---
 console.log(`\n  Results: ${passed} passed, ${failed} failed\n`);
 process.exit(failed > 0 ? 1 : 0);
