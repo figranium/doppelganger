@@ -28,7 +28,7 @@ Module.prototype.require = function() {
 };
 
 const { requireAuthForSettings } = require('../src/server/middleware');
-const { executeAction } = require('../src/agent/action-handler');
+const { executeAction } = require('../src/agent/figranite/action-handler');
 const assert = require('assert');
 
 async function testAuthForSettings() {
