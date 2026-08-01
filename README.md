@@ -7,9 +7,9 @@
 Figranium is a self‑hosted, block-first automation control plane built for teams that want predictable, auditable browser workflows without pushing sensitive data to third‑party SaaS. It bundles a React/Vite frontend, an Express/Playwright backend, helper scripts, and optional CLI tooling so you can sketch blocks, inject JavaScript, rotate proxies, and run everything locally.
 
 <div align="center">
-  <img src="screenshot.gif" alt="Figranium Demo" width="100%">
+  <img src="demo.gif" alt="Figranium Demo" width="100%">
   <p align="center">
-    <i>Watch a video walkthrough of Figranium usage: <b><a href="screenshot.webm">screenshot.webm</a></b></i>
+    <i>Watch a video walkthrough of Figranium usage: <b><a href="demo.webm">demo.webm</a></b> or <b><a href="demo.mp4">demo.mp4</a></b></i>
   </p>
 </div>
 

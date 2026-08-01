@@ -1,16 +1,85 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
 async function run() {
-    console.log('Starting Figranium Demo GIF walkthrough capture...');
+    console.log('Starting Figranium Demo Walkthrough Recording with Clean State...');
 
-    // Clear previous sessions or run directories
-    const videosDir = '/home/jules/verification/videos';
-    const screenshotsDir = '/home/jules/verification/screenshots';
+    // ── PHASE 1: Stop existing servers & Clean all stored files ──
+    console.log('Stopping any running backend servers...');
+    try {
+        execSync('kill $(lsof -t -i :11345) 2>/dev/null || true');
+        execSync('kill $(lsof -t -i :54311) 2>/dev/null || true');
+        execSync('pkill -9 -f Xvfb || true');
+        execSync('pkill -9 -f x11vnc || true');
+        execSync('pkill -9 -f websockify || true');
+        execSync('pkill -9 -f node || true');
+        execSync('rm -rf /tmp/.X99-lock 2>/dev/null || true');
+        execSync('rm -rf /tmp/.X11-unix/X99 2>/dev/null || true');
+    } catch (e) { }
+
+    const dataDir = path.join(__dirname, '../data');
+    console.log(`Cleaning files in ${dataDir}...`);
+    if (fs.existsSync(dataDir)) {
+        ['users.json', 'tasks.json', 'executions.json', 'api_key.json', 'session_secret.txt', 'gemini_api_key.json', 'openai_api_key.json', 'claude_api_key.json', 'ollama_api_key.json'].forEach(file => {
+            const filePath = path.join(dataDir, file);
+            if (fs.existsSync(filePath)) {
+                console.log(`Removing ${file}...`);
+                fs.unlinkSync(filePath);
+            }
+        });
+        const sessionsDir = path.join(dataDir, 'sessions');
+        if (fs.existsSync(sessionsDir)) {
+            fs.readdirSync(sessionsDir).forEach(file => {
+                try { fs.unlinkSync(path.join(sessionsDir, file)); } catch (e) { }
+            });
+        }
+    }
+
+    // Clean captures directory
+    const capturesDir = path.join(__dirname, '../public/captures');
+    if (fs.existsSync(capturesDir)) {
+        fs.readdirSync(capturesDir).forEach(file => {
+            try { fs.unlinkSync(path.join(capturesDir, file)); } catch (e) { }
+        });
+    }
+
+    const videosDir = path.join(__dirname, '../verification/videos');
+    const screenshotsDir = path.join(__dirname, '../verification/screenshots');
     fs.mkdirSync(videosDir, { recursive: true });
     fs.mkdirSync(screenshotsDir, { recursive: true });
 
+    // Clean previous videos
+    fs.readdirSync(videosDir).forEach(file => {
+        if (file.endsWith('.webm')) {
+            fs.unlinkSync(path.join(videosDir, file));
+        }
+    });
+
+    // Start fresh server via start-vnc.sh
+    console.log('Starting fresh backend server...');
+    execSync('SESSION_SECRET=secret bash start-vnc.sh > server_output.log 2>&1 &');
+
+    // Wait for server to be fully ready
+    console.log('Waiting for backend server to spin up...');
+    let serverReady = false;
+    for (let i = 0; i < 15; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            const res = execSync('curl -s -o /dev/null -w "%{http_code}" http://localhost:11345/').toString().trim();
+            if (res === '302' || res === '200') {
+                serverReady = true;
+                break;
+            }
+        } catch (e) { }
+    }
+    if (!serverReady) {
+        throw new Error('Backend server failed to start within timeout.');
+    }
+    console.log('Backend server is ready and listening.');
+
+    console.log('Launching browser...');
     const browser = await chromium.launch({
         headless: true,
         args: [
@@ -19,198 +88,233 @@ async function run() {
         ]
     });
 
-    // Create context and record video
-    const context = await browser.newContext({
+    // ── PHASE 2: Setup without recording ──
+    console.log('Phase 2: Logging in and pre-configuring task...');
+    const setupContext = await browser.newContext({
+        viewport: { width: 1280, height: 720 }
+    });
+    const setupPage = await setupContext.newPage();
+
+    console.log('Navigating to login/setup page...');
+    await setupPage.goto('http://localhost:11345');
+    await setupPage.waitForTimeout(2000);
+
+    // Wait for auth screen input
+    await setupPage.waitForSelector('input[id="auth-email"]', { timeout: 10000 });
+    const isSetup = await setupPage.locator('input[id="auth-name"]').count() > 0;
+
+    if (isSetup) {
+        console.log('Admin account setup detected. Filling setup form...');
+        await setupPage.fill('input[id="auth-name"]', 'Admin User');
+        await setupPage.fill('input[id="auth-email"]', 'user@example.com');
+        await setupPage.fill('input[id="auth-pass"]', 'PASSWORD');
+        await setupPage.fill('input[id="auth-pass-confirm"]', 'PASSWORD');
+        await setupPage.click('button[type="submit"]');
+    } else {
+        console.log('Login screen detected. Filling login form...');
+        await setupPage.fill('input[id="auth-email"]', 'user@example.com');
+        await setupPage.fill('input[id="auth-pass"]', 'PASSWORD');
+        await setupPage.click('button[type="submit"]');
+    }
+
+    // Wait until on dashboard (Sidebar is rendered)
+    await setupPage.waitForSelector('button[aria-label="Dashboard (Alt + 1)"]', { timeout: 15000 });
+    console.log('Successfully arrived on Dashboard. Waiting for session stabilization...');
+    await setupPage.waitForTimeout(3000);
+
+    // Pre-create/Configure the 'Demo Autoscraper Task' directly via API
+    console.log('Pre-configuring "Demo Autoscraper Task"...');
+    const apiData = await setupPage.evaluate(async () => {
+        const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+
+        const safeJson = async (res) => {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                throw new Error(`Failed to parse JSON from ${res.url} (status: ${res.status}): ${text.slice(0, 300)}`);
+            }
+        };
+
+        const keyRes = await fetch('/api/settings/api-key', { headers });
+        const keyData = await safeJson(keyRes);
+        let apiKey = keyData.apiKey;
+        if (!apiKey) {
+            const regenRes = await fetch('/api/settings/api-key', { method: 'POST', headers });
+            const regenData = await safeJson(regenRes);
+            apiKey = regenData.apiKey;
+        }
+
+        // Fetch existing tasks to check if "Demo Autoscraper Task" exists
+        const listRes = await fetch('/api/tasks', { headers });
+        const tasks = await safeJson(listRes);
+        let task = tasks.find(t => t.name === 'Demo Autoscraper Task');
+
+        const taskPayload = {
+            name: 'Demo Autoscraper Task',
+            url: 'https://example.com',
+            mode: 'agent',
+            wait: 1,
+            actions: [
+                {
+                    id: 'act_' + Date.now() + '_goto',
+                    type: 'navigate',
+                    value: 'https://example.com'
+                },
+                {
+                    id: 'act_' + Date.now() + '_wait',
+                    type: 'wait',
+                    value: '1'
+                },
+                {
+                    id: 'act_' + Date.now() + '_click',
+                    type: 'click',
+                    selector: 'a'
+                },
+                {
+                    id: 'act_' + Date.now() + '_wait2',
+                    type: 'wait',
+                    value: '1'
+                }
+            ],
+            variables: {}
+        };
+
+        if (task) {
+            const updateRes = await fetch(`/api/tasks/${task.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...headers },
+                body: JSON.stringify(taskPayload)
+            });
+            task = await safeJson(updateRes);
+        } else {
+            const createRes = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...headers },
+                body: JSON.stringify(taskPayload)
+            });
+            task = await safeJson(createRes);
+        }
+
+        // Trigger task execution once via API to generate history and video capture
+        await fetch(`/api/tasks/${task.id}/api`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, ...headers }
+        });
+
+        return { taskId: task.id, apiKey };
+    });
+
+    console.log(`Pre-configured task with ID: ${apiData.taskId}`);
+
+    // Wait for the background task run to complete so executions and captures are ready
+    console.log('Waiting for initial run to generate assets...');
+    await setupPage.waitForTimeout(12000);
+
+    // Save storage state for the recording session
+    const storageStatePath = path.join(__dirname, '../verification/storage_state.json');
+    await setupContext.storageState({ path: storageStatePath });
+    await setupContext.close();
+    console.log('Setup phase complete. Storage state saved.');
+
+    // ── PHASE 3: Walkthrough Recording ──
+    console.log('Phase 3: Starting recording...');
+    const recordingContext = await browser.newContext({
         viewport: { width: 1280, height: 720 },
+        storageState: storageStatePath,
         recordVideo: {
             dir: videosDir,
             size: { width: 1280, height: 720 }
         }
     });
 
-    const page = await context.newPage();
+    const page = await recordingContext.newPage();
 
-    try {
-        // Step 1: Landing on login screen
-        console.log('1. Navigating to Figranium...');
-        await page.goto('http://localhost:11345');
-        await page.waitForTimeout(1000);
+    // 1. 0:00 – 0:03 (The Hook): Start on the Dashboard and immediately click into a pre-configured task
+    console.log('Navigating to Dashboard (0:00)...');
+    const startTime = Date.now();
+    await page.goto('http://localhost:11345');
+    await page.waitForSelector('text=Dashboard', { timeout: 10000 });
+    await page.waitForTimeout(1000); // Wait 1s on dashboard
 
-        // Check if admin setup is needed
-        await page.waitForSelector('input[id="auth-email"]', { timeout: 5000 });
-        const isSetup = await page.locator('input[id="auth-name"]').count() > 0;
+    console.log('Clicking "Edit Task" on "Demo Autoscraper Task" card (0:01)...');
+    await page.click('button:has-text("Edit Task")');
+    await page.waitForSelector('text=On Execution', { timeout: 10000 });
+    console.log('Task Editor loaded.');
 
-        if (isSetup) {
-            console.log('Admin account setup detected. Filling setup form...');
-            await page.fill('input[id="auth-name"]', 'Admin User');
-            await page.waitForTimeout(400);
-            await page.fill('input[id="auth-email"]', 'user@example.com');
-            await page.waitForTimeout(400);
-            await page.fill('input[id="auth-pass"]', 'PASSWORD');
-            await page.waitForTimeout(400);
-            await page.fill('input[id="auth-pass-confirm"]', 'PASSWORD');
-            await page.waitForTimeout(600);
+    // 2. 0:03 – 0:08 (The Flow): Pan over wired-up node canvas, and add Get Content block
+    console.log('Panning canvas (0:03)...');
+    await page.mouse.move(600, 350);
+    await page.keyboard.down('Space');
+    await page.mouse.down();
+    await page.mouse.move(500, 200, { steps: 15 });
+    await page.mouse.up();
+    await page.keyboard.up('Space');
+    await page.waitForTimeout(1000);
 
-            console.log('Clicking Create Account...');
-            await page.click('button[type="submit"]');
-        } else {
-            console.log('Login screen detected. Filling login form...');
-            await page.fill('input[id="auth-email"]', 'user@example.com');
-            await page.waitForTimeout(400);
-            await page.fill('input[id="auth-pass"]', 'PASSWORD');
-            await page.waitForTimeout(600);
+    console.log('Opening Action Palette (0:05)...');
+    await page.click('button:has-text("Add Action")');
+    await page.waitForSelector('input[placeholder="Type to filter (e.g., if, click, while)"]');
+    await page.waitForTimeout(400);
 
-            console.log('Clicking Authenticate...');
-            await page.click('button[type="submit"]');
-        }
-        await page.waitForTimeout(1500);
+    console.log('Searching for "Get Content" (0:06)...');
+    await page.fill('input[placeholder="Type to filter (e.g., if, click, while)"]', 'Get Content');
+    await page.waitForTimeout(600);
 
-        // Capture Dashboard
-        console.log('2. Arrived on Dashboard...');
-        await page.waitForSelector('text=Dashboard', { timeout: 10000 });
-        await page.screenshot({ path: path.join(screenshotsDir, 'dashboard_init.png') });
-        await page.waitForTimeout(800);
+    console.log('Selecting "Get Content" block (0:07)...');
+    await page.click('button:has-text("Get Content")');
+    await page.waitForTimeout(1500);
 
-        // Navigate to Settings
-        console.log('3. Navigating to Settings...');
-        await page.click('button[aria-label="Settings (Alt + 2)"]');
-        await page.waitForTimeout(1000);
-        await page.waitForSelector('text=API Keys', { timeout: 5000 });
-        await page.screenshot({ path: path.join(screenshotsDir, 'settings_panel.png') });
-        await page.waitForTimeout(800);
+    // 3. 0:08 – 0:16 (The Execution): Hit "RUN TASK" and watch the live execution
+    console.log('Clicking RUN TASK (0:08)...');
+    await page.click('button:has-text("Run Task")');
+    console.log('Watching execution inside split view...');
+    await page.waitForTimeout(8000); // Watch live split view run
 
-        // Retrieve/Regenerate API Key
-        const apiData = await page.evaluate(async () => {
-            const res = await fetch('/api/settings/api-key');
-            return res.json();
-        });
+    // 4. 0:16 – 0:20 (The Output): Jump to Executions and Captures, play video
+    console.log('Navigating to Executions screen (0:16)...');
+    await page.click('button[aria-label="Executions (Alt + 3)"]');
+    await page.waitForSelector('text=Run History', { timeout: 10000 });
+    await page.waitForSelector('text=200', { timeout: 10000 });
+    await page.waitForTimeout(2000); // Show success run logs
 
-        let apiKey = apiData.apiKey;
-        if (!apiKey) {
-            console.log('Generating fresh API Key...');
-            await page.click('button:has-text("Regenerate")');
-            await page.waitForTimeout(1000);
-            const freshApiData = await page.evaluate(async () => {
-                const res = await fetch('/api/settings/api-key');
-                return res.json();
-            });
-            apiKey = freshApiData.apiKey;
-        }
-        console.log('Retrieved Tasks API Key.');
+    console.log('Navigating to Captures screen (0:18)...');
+    await page.click('button[aria-label="Captures (Alt + 4)"]');
+    await page.waitForSelector('text=All Captures', { timeout: 10000 });
+    await page.waitForTimeout(1000);
 
-        // Navigate back to Dashboard to create a task
-        console.log('4. Navigating back to Dashboard...');
-        await page.click('button[aria-label="Dashboard (Alt + 1)"]');
-        await page.waitForTimeout(1000);
+    console.log('Programmatically playing the live recording capture (0:19)...');
+    await page.waitForSelector('video', { timeout: 10000 });
+    await page.locator('video').first().evaluate(video => {
+        video.muted = true;
+        video.play();
+    });
+    await page.waitForTimeout(2000); // Let video play on screen
 
-        // Click New Task
-        console.log('Clicking New Task button...');
-        const createFirstTaskBtn = await page.locator('button[title="Create first task"]').count();
-        if (createFirstTaskBtn > 0) {
-            await page.click('button[title="Create first task"]');
-        } else {
-            await page.click('button[title="Create new task (Alt + N)"]');
-        }
-        await page.waitForTimeout(1500);
+    const totalDuration = (Date.now() - startTime) / 1000;
+    console.log(`Recording phase complete. Total recorded duration: ${totalDuration.toFixed(1)}s`);
 
-        // Name task and hit Enter
-        console.log('Editing Task Name...');
-        const nameInput = page.locator('input[placeholder="Task name"]');
-        await nameInput.fill('Demo Autoscraper Task');
-        await page.waitForTimeout(800);
-        await nameInput.blur();
-        await page.waitForTimeout(1500);
+    // Clean up context and save
+    await recordingContext.close();
+    await browser.close();
+    console.log('Browser session finished.');
 
-        // URL parsing for taskId
-        let taskId = null;
-        for (let i = 0; i < 15; i++) {
-            const currentUrl = page.url();
-            const match = currentUrl.match(/\/tasks\/([a-zA-Z0-9_-]+)/);
-            if (match && match[1] !== 'new') {
-                taskId = match[1];
-                break;
-            }
-            await page.waitForTimeout(200);
-        }
-
-        if (!taskId) {
-            const tasksList = await page.evaluate(async () => {
-                const res = await fetch('/api/tasks');
-                return res.json();
-            });
-            const createdTask = tasksList.find(t => t.name === 'Demo Autoscraper Task');
-            if (createdTask) taskId = createdTask.id;
-        }
-        console.log(`Working in Editor on task ID: ${taskId}`);
-
-        // Add blocks in Editor
-        // Let's add a GOTO block first
-        console.log('Adding Goto Block...');
-        // Let's type http://example.com into the Target URL input
-        const urlInput = page.locator('input[placeholder="https://example.com"]');
-        if (await urlInput.count() > 0) {
-            await urlInput.fill('https://httpbin.org/html');
-            await page.waitForTimeout(800);
-            await urlInput.blur();
-            await page.waitForTimeout(1000);
-        }
-
-        // Click "Add Action" button
-        console.log('Clicking Add Action...');
-        const addActionBtn = page.locator('button:has-text("Add Action"), button:has-text("Add Block")');
-        if (await addActionBtn.count() > 0) {
-            await addActionBtn.first().click();
-            await page.waitForTimeout(800);
-        }
-
-        // Choose "Screenshot" or "Wait" action from dropdown or list
-        console.log('Selecting Wait action...');
-        await page.click('text=Wait');
-        await page.waitForTimeout(800);
-
-        // Let's capture the Editor State
-        await page.screenshot({ path: path.join(screenshotsDir, 'task_editor_flow.png') });
-        await page.waitForTimeout(1000);
-
-        // Let's execute the task via the button in the UI (Run or Execute)
-        console.log('Clicking Run Task inside UI...');
-        const runBtn = page.locator('button[title="Run task"], button:has-text("Run"), button:has-text("Execute")');
-        if (await runBtn.count() > 0) {
-            await runBtn.first().click();
-            await page.waitForTimeout(3000); // wait for execution to start and finish
-        } else {
-            // Trigger via API fallback
-            console.log('Executing via API trigger...');
-            await page.evaluate(async ({ taskId, apiKey }) => {
-                await fetch(`/api/tasks/${taskId}/api`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey }
-                });
-            }, { taskId, apiKey });
-            await page.waitForTimeout(3000);
-        }
-
-        // Navigate to Executions tab
-        console.log('5. Navigating to Executions screen...');
-        await page.click('button[aria-label="Executions (Alt + 3)"]');
-        await page.waitForTimeout(2000);
-        await page.screenshot({ path: path.join(screenshotsDir, 'executions_list.png') });
-
-        // Go back to Dashboard
-        console.log('6. Returning to Dashboard...');
-        await page.click('button[aria-label="Dashboard (Alt + 1)"]');
-        await page.waitForTimeout(1500);
-        await page.screenshot({ path: path.join(screenshotsDir, 'dashboard_final.png') });
-
-        console.log('Workflow walk completed.');
-    } catch (err) {
-        console.error('Walkthrough error:', err);
-        await page.screenshot({ path: path.join(screenshotsDir, 'walkthrough_error.png') });
-    } finally {
-        await context.close();
-        await browser.close();
-        console.log('Walkthrough browser session closed.');
+    // Locate the recorded .webm video file
+    const files = fs.readdirSync(videosDir).filter(file => file.endsWith('.webm'));
+    if (files.length === 0) {
+        throw new Error('No recorded video file found!');
     }
+    const rawVideoPath = path.join(videosDir, files[0]);
+    console.log(`Raw video captured at: ${rawVideoPath}`);
+
+    return rawVideoPath;
 }
 
-run();
+if (require.main === module) {
+    run().catch(err => {
+        console.error('Recording run failed:', err);
+        process.exit(1);
+    });
+}
+
+module.exports = { run };
