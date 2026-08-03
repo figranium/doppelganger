@@ -139,7 +139,7 @@ select option {
 .var-highlight {
     background: rgba(59, 130, 246, 0.2);
     color: #60a5fa;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Space Mono', monospace;
     padding: 0 2px;
     border-radius: 3px;
     font-weight: 500;
@@ -148,7 +148,7 @@ select option {
 .var-highlight-undefined {
     background: rgba(239, 68, 68, 0.2);
     color: #f87171;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Space Mono', monospace;
     padding: 0 2px;
     border-radius: 3px;
     font-weight: 500;
@@ -157,7 +157,7 @@ select option {
 .var-highlight-default {
     background: rgba(34, 197, 94, 0.2);
     color: #4ade80;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Space Mono', monospace;
     padding: 0 2px;
     border-radius: 3px;
     font-weight: 500;
@@ -193,7 +193,7 @@ select option {
     inset: 0;
     margin: 0;
     padding: 1rem;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Space Mono', monospace;
     font-size: 11px;
     line-height: 1.6;
     font-variant-ligatures: none;
@@ -215,7 +215,7 @@ select option {
     caret-color: #ffffff;
     border: none;
     padding: 1rem;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Space Mono', monospace;
     font-size: 11px;
     line-height: 1.6;
     font-variant-ligatures: none;
@@ -304,7 +304,7 @@ select option {
     background: rgba(255,255,255,0.1);
     border-radius: 3px;
     padding: 0 3px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Space Mono', monospace;
     font-size: 0.9em;
     color: rgba(147,197,253,0.9);
 }
