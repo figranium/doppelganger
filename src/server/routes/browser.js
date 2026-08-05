@@ -1,5 +1,5 @@
 const express = require('express');
-const { requireApiKey } = require('../middleware');
+const { requireAuthOrApiKey } = require('../middleware');
 const { launchApiSession, getActiveSession, ensureSessionId } = require('../../../headful');
 
 const router = express.Router();
@@ -155,7 +155,7 @@ async function buildSelectorResults(page, elements) {
  * Body: { url, mode? ('headful'), devTools? }
  * Returns: { sessionId, status, wsEndpoint }
  */
-router.post('/browser/open', requireApiKey, async (req, res) => {
+router.post('/browser/open', requireAuthOrApiKey, async (req, res) => {
     try {
         const { url, mode = 'headful', devTools = false } = req.body || {};
         // mode is currently informational — only headful is supported via VNC stack
@@ -196,7 +196,7 @@ router.post('/browser/open', requireApiKey, async (req, res) => {
  * Body: { sessionId?, url?, targetHint? }
  * Returns: { success, selectors: [{css, xpath, confidence}], snapshot? }
  */
-router.post('/inspector/highlight', requireApiKey, async (req, res) => {
+router.post('/inspector/highlight', requireAuthOrApiKey, async (req, res) => {
     try {
         const { sessionId, url, targetHint } = req.body || {};
         let session = getActiveSession();
