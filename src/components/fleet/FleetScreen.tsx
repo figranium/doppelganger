@@ -5,7 +5,7 @@ import TaskMatrixTab from './tabs/TaskMatrixTab';
 import VariableTablesTab from './tabs/VariableTablesTab';
 import SchedulesDropsTab from './tabs/SchedulesDropsTab';
 import InfrastructureTab from './tabs/InfrastructureTab';
-import { FleetTab, FleetRowStatus, FleetWorkerState, FleetSignal, ProxyPreset } from '../../types';
+import { FleetTab, FleetWorkerState, ProxyPreset } from '../../types';
 
 interface FleetScreenProps {
     onNotify: (message: string, tone?: 'success' | 'error') => void;
@@ -13,11 +13,10 @@ interface FleetScreenProps {
 
 const FleetScreen: React.FC<FleetScreenProps> = ({ onNotify }) => {
     const [activeTab, setActiveTab] = useState<FleetTab>('matrix');
-    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const [selectedTaskId] = useState<string | null>(null);
     const [workers, setWorkers] = useState<FleetWorkerState[]>([]);
     const [rows, setRows] = useState<any[]>([]);
     const [proxies, setProxies] = useState<ProxyPreset[]>([]);
-    const [signals, setSignals] = useState<FleetSignal[]>([]);
     const [fleetConfig, setFleetConfig] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -34,7 +33,8 @@ const FleetScreen: React.FC<FleetScreenProps> = ({ onNotify }) => {
             setWorkers(workersRes.workers || []);
             setRows(rowsRes.rows || []);
             setProxies(proxiesRes.proxies || []);
-            setSignals(signalsRes.signals || []);
+            // Signals data is fetched but unused in the UI
+            void signalsRes;
             setFleetConfig(configRes.config || null);
         } catch (e: any) {
             onNotify(`Failed to load fleet data: ${e.message}`, 'error');
@@ -48,7 +48,8 @@ const FleetScreen: React.FC<FleetScreenProps> = ({ onNotify }) => {
         const interval = setInterval(() => {
             // Poll for live updates of workers and signals
             fetch('/api/fleet/workers', { credentials: 'include' }).then(r => r.json()).then(d => setWorkers(d.workers || [])).catch(() => {});
-            fetch('/api/fleet/signals', { credentials: 'include' }).then(r => r.json()).then(d => setSignals(d.signals || [])).catch(() => {});
+            // Signals data is fetched but unused in the UI
+            fetch('/api/fleet/signals', { credentials: 'include' }).then(() => {}).catch(() => {});
         }, 2000);
         return () => clearInterval(interval);
     }, [loadFleetData]);
