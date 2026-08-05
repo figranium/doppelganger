@@ -329,8 +329,36 @@ async function setupNavigationProtection(context) {
 function isValidWebSocketOrigin(origin, host) {
     if (!origin) return true;
     try {
-        const originHost = new URL(origin).host;
-        return !!(originHost && host && originHost === host);
+        const originUrl = new URL(origin);
+        const originHost = originUrl.host;
+        if (originHost && host && originHost === host) {
+            return true;
+        }
+
+        const originHostname = originUrl.hostname.toLowerCase();
+
+        let hostHostname = host.toLowerCase();
+        if (hostHostname.includes('[')) {
+            const closeBracket = hostHostname.indexOf(']');
+            if (closeBracket !== -1) {
+                hostHostname = hostHostname.slice(1, closeBracket);
+            }
+        } else {
+            const colonIndex = hostHostname.indexOf(':');
+            if (colonIndex !== -1) {
+                hostHostname = hostHostname.slice(0, colonIndex);
+            }
+        }
+
+        const isExactLocal = (h) => {
+            return h === 'localhost' || h === '127.0.0.1' || h === '::1';
+        };
+
+        if (isExactLocal(originHostname) && isExactLocal(hostHostname)) {
+            return true;
+        }
+
+        return false;
     } catch (e) {
         return false;
     }
