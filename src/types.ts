@@ -188,3 +188,29 @@ export interface ConfirmRequest {
     cancelLabel?: string;
     title?: string;
 }
+
+export type FleetTab = 'matrix' | 'variables' | 'schedules' | 'infrastructure';
+
+export type FleetRowStatus = 'IDLE' | 'RUNNING' | 'SUCCESS' | 'FAILED' | string;
+
+export interface FleetWorkerState {
+    id: string;
+    activeActionId?: string;
+    status: 'IDLE' | 'RUNNING' | 'SUCCESS' | 'FAILED' | string;
+    rowIndex?: number;
+    startTime?: number;
+    proxy?: string;
+}
+
+export interface FleetSignal {
+    id: string;
+    [key: string]: any;
+}
+
+export interface ProxyPreset {
+    id: string;
+    name: string;
+    proxies?: string[];
+    rotationMode?: string;
+    stickyBinding?: boolean;
+}
