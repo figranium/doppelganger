@@ -581,4 +581,63 @@ async function toggleInspectMode(req, res) {
     }
 }
 
-module.exports = { runHeadful, handleHeadful, stopHeadful, toggleInspectMode, headfulEventEmitter };
+function getActiveSession() {
+    return activeSession;
+}
+
+/**
+ * Launch (or reattach) a managed headful browser session for API/MCP use.
+ * Unlike runHeadful/handleHeadful, this does not block until disconnect and
+ * does not write to an Express response; it returns the session handle.
+ */
+async function launchApiSession(data = {}) {
+    if (activeSession) {
+        // Reuse existing session
+        if (data.url) {
+            try { await activeSession.page.goto(data.url).catch(() => {}); } catch (e) {}
+        }
+        return activeSession;
+    }
+    // Use the same headless:false flow managed by handleHeadful, but without a res object
+    // so it doesn't auto-respond. We trigger it asynchronously and then poll for the
+    // session to transition to 'running'.
+    const fakeReq = { body: data, query: {} };
+    const fakeRes = { headersSent: true, json: () => {}, status: () => fakeRes };
+    // Fire-and-forget; runHeadful resolves on browser disconnect which we intentionally
+    // do not await here.
+    runHeadful(data, { res: fakeRes }).catch((e) => {
+        console.error('[HEADFUL] launchApiSession error:', e && e.message ? e.message : e);
+    });
+
+    // Poll until activeSession becomes 'running' or timeout
+    const deadline = Date.now() + 30000;
+    while (Date.now() < deadline) {
+        if (activeSession && activeSession.status === 'running') return activeSession;
+        if (!activeSession) {
+            await new Promise(r => setTimeout(r, 200));
+            continue;
+        }
+        await new Promise(r => setTimeout(r, 200));
+    }
+    return activeSession;
+}
+
+function ensureSessionId(session) {
+    if (!session) return null;
+    if (!session.sessionId) {
+        session.sessionId = 'sess_' + session.startedAt;
+    }
+    return session.sessionId;
+}
+
+module.exports = {
+    runHeadful,
+    handleHeadful,
+    stopHeadful,
+    toggleInspectMode,
+    headfulEventEmitter,
+    getActiveSession,
+    launchApiSession,
+    ensureSessionId
+};
+

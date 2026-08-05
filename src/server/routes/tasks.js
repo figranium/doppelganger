@@ -81,17 +81,73 @@ router.post('/:id/touch', requireAuth, async (req, res) => {
     }
 });
 
-router.delete('/:id', requireAuthOrApiKey, async (req, res) => {
+/**
+ * PATCH /api/tasks/:id
+ * Partial update of a task (name, mode, actions, etc.). Creates a version
+ * snapshot before modifying. Returns the modified task.
+ */
+router.patch('/:id', requireAuthOrApiKey, async (req, res) => {
     await taskMutex.lock();
     try {
-        let tasks = await loadTasks();
-        tasks = tasks.filter(t => t.id !== req.params.id);
+        const tasks = await loadTasks();
+        const index = getTaskIndexById(req.params.id);
+        if (index === -1) return res.status(404).json({ error: 'TASK_NOT_FOUND' });
+
+        const existing = tasks[index];
+        const updates = req.body || {};
+        if (typeof updates !== 'object' || Array.isArray(updates)) {
+            return res.status(400).json({ error: 'INVALID_PAYLOAD' });
+        }
+
+        // Snapshot current state into versions before editing
+        appendTaskVersion(existing);
+
+        // Shallow-merge allowed top-level fields; never let client overwrite id/versions
+        const forbidden = new Set(['id', 'versions']);
+        const updated = { ...existing };
+        for (const [key, value] of Object.entries(updates)) {
+            if (forbidden.has(key)) continue;
+            updated[key] = value;
+        }
+        updated.updatedAt = new Date().toISOString();
+        updated.last_opened = Date.now();
+        updated.versions = existing.versions || [];
+
+        tasks[index] = updated;
         await saveTasks(tasks);
-        res.json({ success: true });
+
+        res.json({ id: updated.id, updatedAt: updated.updatedAt, status: 'success', task: updated });
     } finally {
         taskMutex.unlock();
     }
 });
+
+router.delete('/:id', requireAuthOrApiKey, async (req, res) => {
+    await taskMutex.lock();
+    try {
+        const taskId = req.params.id;
+        let tasks = await loadTasks();
+        const before = tasks.length;
+        tasks = tasks.filter(t => t.id !== taskId);
+        if (tasks.length === before) {
+            return res.status(404).json({ error: 'TASK_NOT_FOUND' });
+        }
+        await saveTasks(tasks);
+
+        // Clean up any in-process schedule registered for this task
+        try {
+            const { removeSchedule } = require('../scheduler');
+            removeSchedule(taskId);
+        } catch (e) {
+            // scheduler may not be initialized; safe to ignore
+        }
+
+        res.json({ id: taskId, deleted: true, message: 'Task successfully removed.' });
+    } finally {
+        taskMutex.unlock();
+    }
+});
+
 
 router.get('/:id/versions', requireAuth, async (req, res) => {
     await loadTasks();

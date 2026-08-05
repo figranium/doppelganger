@@ -77,6 +77,7 @@ const viewRoutes = require('./src/server/routes/views');
 const scheduleRoutes = require('./src/server/routes/schedules');
 const credentialRoutes = require('./src/server/routes/credentials');
 const healthRoutes = require('./src/server/routes/health');
+const browserRoutes = require('./src/server/routes/browser');
 const { pushOutput } = require('./src/server/outputProviders');
 const { migrateStorageState } = require('./src/server/migrate-storage');
 const { concurrencyGate } = require('./src/server/execution-queue');
