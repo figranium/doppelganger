@@ -85,8 +85,13 @@ const HeadfulModal: React.FC<HeadfulModalProps> = ({
                     </div>
                 </div>
                 <div ref={headfulFrameRef} className="w-full aspect-video relative bg-black flex items-center justify-center">
-                    {useNovnc === false ? (
-                        <div className="text-center p-8">
+                    {useNovnc === null ? (
+                        <div className="text-center p-8 flex flex-col items-center justify-center gap-3">
+                            <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                            <p className="text-white/60 text-xs tracking-wider uppercase">Checking browser status...</p>
+                        </div>
+                    ) : useNovnc === false ? (
+                        <div className="text-center p-8 animate-in fade-in duration-300">
                             <MaterialIcon name="open_in_new" className="text-6xl text-white/20 mb-4 block" />
                             <h3 className="text-white text-lg font-bold mb-2">Browser Opened Natively</h3>
                             <p className="text-white/60 text-sm max-w-md mx-auto leading-relaxed mb-6">
@@ -97,7 +102,7 @@ const HeadfulModal: React.FC<HeadfulModalProps> = ({
                     ) : (
                         <iframe
                             src={headfulUrl}
-                            className="absolute inset-0 w-full h-full border-0"
+                            className="absolute inset-0 w-full h-full border-0 animate-in fade-in duration-300"
                             title="Headful Browser"
                         />
                     )}
