@@ -207,6 +207,7 @@ app.use('/api/data', dataRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/credentials', credentialRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api', browserRoutes);
 
 // View Routes & Static
 app.use('/', viewRoutes);

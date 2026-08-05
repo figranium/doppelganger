@@ -350,11 +350,16 @@ function isValidWebSocketOrigin(origin, host) {
             }
         }
 
-        const isExactLocal = (h) => {
-            return h === 'localhost' || h === '127.0.0.1' || h === '::1';
+        // Helper to check if a hostname is loopback or local/private
+        const isLocalOrPrivate = (h) => {
+            if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === 'host.docker.internal' || h.endsWith('.local')) {
+                return true;
+            }
+            // Check if it's a private IP address
+            return isPrivateIP(h);
         };
 
-        if (isExactLocal(originHostname) && isExactLocal(hostHostname)) {
+        if (isLocalOrPrivate(originHostname) && isLocalOrPrivate(hostHostname)) {
             return true;
         }
 
