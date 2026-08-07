@@ -438,10 +438,36 @@ app.post('/headful', requireAuth, dataRateLimiter, concurrencyGate, (req, res) =
 });
 app.post('/headful/stop', requireAuth, stopHeadful);
 
-// Ensure public/captures directory exists
+// Ensure public/captures directory exists, preferably as a symlink to src/public/captures to resolve path inconsistency
 const capturesDir = path.join(__dirname, 'public', 'captures');
-if (!fs.existsSync(capturesDir)) {
-    fs.mkdirSync(capturesDir, { recursive: true });
+const srcCapturesDir = path.join(__dirname, 'src', 'public', 'captures');
+
+// Ensure src/public/captures exists first
+if (!fs.existsSync(srcCapturesDir)) {
+    fs.mkdirSync(srcCapturesDir, { recursive: true });
+}
+
+let isSymlink = false;
+try {
+    const stats = fs.lstatSync(capturesDir);
+    isSymlink = stats.isSymbolicLink();
+} catch (e) {
+    // doesn't exist
+}
+
+if (!isSymlink) {
+    try {
+        if (fs.existsSync(capturesDir)) {
+            fs.rmSync(capturesDir, { recursive: true, force: true });
+        }
+        fs.symlinkSync('../src/public/captures', capturesDir, 'dir');
+        console.log('[STARTUP] Created symbolic link from public/captures to src/public/captures');
+    } catch (e) {
+        console.warn('[STARTUP] Failed to create symlink, falling back to directory creation:', e.message);
+        if (!fs.existsSync(capturesDir)) {
+            fs.mkdirSync(capturesDir, { recursive: true });
+        }
+    }
 }
 
 // NoVNC Setup
