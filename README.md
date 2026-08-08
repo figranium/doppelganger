@@ -333,6 +333,10 @@ Figranium is proudly supported by:
   <a href="https://www.mintlify.com">
     <img src="https://mintcdn.com/mintlify/ZmWpbGQa5yv5AElR/logo/light.svg?fit=max&auto=format&n=ZmWpbGQa5yv5AElR&q=85&s=094e41f7b58b2cab0a6faa2bab2828e0" width="165" alt="Mintlify">
   </a>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.algolia.com">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Algolia_logo_full_blue.svg/1920px-Algolia_logo_full_blue.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20221025105233" width="165" alt="Algolia">
+  </a>
 </div>
 
 # Support the Project
