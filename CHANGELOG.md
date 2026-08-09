@@ -1,5 +1,69 @@
 # Changelog
 
+## [0.14.0] - 2026-08-10
+
+### Features
+- **Programmatic browser & inspector API** (#334) - New authenticated endpoints expose core headful workflows for external orchestration: `POST /api/browser/open` launches or reattaches a managed headful session and returns a `sessionId`/`wsEndpoint`; `POST /api/inspector/highlight` activates the inspect overlay and returns candidate CSS/XPath selectors with confidence scores; `PATCH /api/tasks/:id` performs partial task updates with version snapshots; `DELETE /api/tasks/:id` now cleans up in-process schedules on delete. All routes support both session and API key auth (#334) and are covered by `tests/api_endpoints.test.js` (26 tests).
+- **Multi-theme support** - Added Dark, Light, Solarized Light, and Solarized Dark themes (`theme.ts`, `useTheme` hook, `ThemePanel`, `ThemeIntroModal`), applied via CSS custom properties.
+- **CAPTCHA/form detection engine (foundational)** - Added `src/agent/figranite/captcha/`: a DOM/shadow-DOM/iframe observer that classifies interactive elements (slider, audio, grid, rotational, distorted-text, widget-frame, form) and emits structured detection events with coordinates, a 2GB memory guardrail (`os.totalmem()` + cgroup v1/v2 limits), and typed human-handoff hooks (`onCaptchaDetected`, `pauseForHuman`, `submitSolution`) that pipe externally supplied solution coordinates into the existing mouse trajectory generator. Detection and handoff only — no automated solving logic.
+
+### Security
+- **Fix unauthenticated VNC/websockify access** - `server.js`, `start-vnc.sh`, and `public/novnc.html` updated so the noVNC/websockify proxy path requires authentication.
+- **Bind websockify to IPv4 loopback explicitly** (#335) - Avoids IPv6/IPv4 loopback mismatches inside Docker on Mac that could cause the VNC stream to bind unexpectedly.
+- **Path traversal sanitization for sessionId** - Added strict validation for `sessionId` and `taskId` before use in file lookups.
+- **Enforce strict raw-cron range and ordering validation** (#324) - Closes an edge case where malformed cron ranges could pass validation.
+- Fixed CodeQL alerts surfaced across the browser/session and cron-validation code paths (#325, #322).
+
+### Bug Fixes
+- **Fix local loopback WebSocket disconnects on Mac/Docker** (#331, #333) - Resolved dropped WebSocket connections and a loading-state flash in `HeadfulModal` affecting Mac/Docker hosts.
+- **Resolve path mismatch for generated captures** (#336) - Captures generated during a run were not reliably surfacing in the frontend; capture lookup now matches the actual write path.
+- **Fix captures not surfacing in Docker** - `server.js` and `src/server/routes/data.js` now serve/read captures from both `public/captures` locations.
+- **Persist captures to a host volume** - Captures survive container restarts; runtime capture artifacts were untracked from git.
+- **Fix theme-switching contrast regressions** - Corrected an invisible canvas dot-grid on light themes, buttons rendering white-on-white text under theme-accent backgrounds, and unreadable hardcoded blue accent text; retuned syntax/code colors across all four themes for WCAG AA contrast.
+- Resolved an illegal `return` statement bug in custom JS actions and corrected outdated test imports.
+
+### Improvements
+- **Persistent browser session storage** - Session IDs now persist across reconnects instead of being regenerated per session.
+- **Demo assets** (#328, #329) - Recorded and embedded an updated demo GIF/video of typical Figranium usage; automated future walkthrough generation.
+- **Exported task filename** (#330) - Task export filename pattern changed from `doppelganger-tasks` to `figranium-tasks`.
+- Replaced JetBrains Mono with Space Mono across CSS/Tailwind config; added Algolia logo to README; synchronized `package-lock.json` with `package.json` to fix `npm ci` failures (#326).
+
+### Tests
+- Added a comprehensive end-to-end user journey test with Playwright (#327).
+- Added `tests/api_endpoints.test.js` (26 tests) covering the new programmatic browser/inspector/task API surface.
+- Added unit tests for the new CAPTCHA memory guard and DOM detection/routing observer.
+
+## [0.13.2] - 2026-08-05
+
+### Features
+- **Programmatic API endpoints (initial cut)** - Introduced the browser launcher, highlight inspector, task update, and task deletion endpoints later hardened with auth in 0.14.0.
+
+### Improvements
+- **Demo walkthrough automation** (#328, #329) - Recorded and embedded high-quality demo video/GIF walkthroughs.
+- **Exported task filename** (#330) - Changed exported task filename prefix from `doppelganger-tasks` to `figranium-tasks`.
+- Replaced JetBrains Mono with Space Mono from Google Fonts across CSS and Tailwind configuration.
+
+### Tests
+- Added a comprehensive E2E user journey test with Playwright (#327).
+
+## [0.13.1] - 2026-07-30
+
+### Security
+- **Fix unauthenticated VNC and websockify access** - Closed a path where the noVNC/websockify proxy could be reached without authentication.
+- **CodeQL alert remediation** (#325, #322) - Addressed static-analysis findings across session and browser handling code.
+- **Path traversal sanitization** - Added sanitization for `sessionId` and strict validation for `taskId` before use in fetches.
+- **Enforce strict raw-cron range and ordering validation** (#324) - Prevents malformed cron field ranges/ordering from being accepted.
+
+### Bug Fixes
+- **Persistent session ID storage** - Browser session IDs are now persisted rather than regenerated each session.
+- Fixed outdated test imports and an illegal `return` statement bug in custom JS actions.
+- Fixed search bar overlapping import/export buttons on tablet viewports.
+
+### Improvements
+- Improved Dashboard header responsiveness for iPad (#320).
+- Synchronized `package-lock.json` with `package.json` direct dependencies to fix `npm ci` failures (#326).
+- README cleanup: added sponsors/backers section, updated logo, removed unused `public/logo.png`/`public/icon.png`.
+
 ## [0.13.0] - 2026-06-29
 
 ### Critical Architectural Pivot
