@@ -338,7 +338,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     const availableTasks = useMemo(() => tasks.filter((task) => String(task.id || '') !== String(currentTask.id || '')), [tasks, currentTask.id]);
 
     return (
-        <div className="flex-1 flex overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 bg-black relative">
+        <div className="flex-1 flex overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 theme-bg relative">
             <EditorTopBar
                 currentTask={currentTask}
                 onUpdateTaskName={(name) => setCurrentTask({ ...currentTask, name })}

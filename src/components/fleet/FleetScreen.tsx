@@ -112,7 +112,7 @@ const FleetScreen: React.FC<FleetScreenProps> = ({ onNotify }) => {
     };
 
     return (
-        <div className="flex-1 flex overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 bg-black relative">
+        <div className="flex-1 flex overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 theme-bg relative">
             {/* Top Bar */}
             <div className="absolute top-0 left-0 right-0 h-12 flex items-center justify-between px-4 border-b border-white/10 z-30 bg-black/80 backdrop-blur-sm">
                 <div className="flex items-center gap-3">

@@ -22,9 +22,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEditTask, onDeleteTask }) =
     const favicon = getFavicon(task.url);
 
     return (
-        <div className="bg-[#050505] border border-white/10 p-6 rounded-2xl flex flex-col gap-6 group hover:-translate-y-1 hover:border-white/30 transition-all shadow-xl hover:bg-[#0a0a0a]">
+        <div className="theme-surface-3 border theme-border p-6 rounded-2xl flex flex-col gap-6 group hover:-translate-y-1 hover:border-[var(--app-border-strong)] transition-all shadow-xl hover:theme-surface">
             <div className="flex justify-between items-start">
-                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                <div className="w-12 h-12 rounded-xl theme-input border theme-border flex items-center justify-center overflow-hidden">
                     {favicon ? (
                         <img
                             src={favicon}
@@ -39,11 +39,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEditTask, onDeleteTask }) =
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="px-3 py-1 rounded-lg bg-white/5 text-[7px] font-bold uppercase tracking-widest text-white/60">{task.mode}</div>
+                    <div className="px-3 py-1 rounded-lg theme-input text-[7px] font-bold uppercase tracking-widest theme-text-muted">{task.mode}</div>
                 </div>
             </div>
             <div>
-                <h3 className="text-lg font-bold text-white truncate" title={task.name || 'Untitled'}>{task.name || 'Untitled'}</h3>
+                <h3 className="text-lg font-bold theme-text truncate" title={task.name || 'Untitled'}>{task.name || 'Untitled'}</h3>
                 <div className="flex items-center gap-2 mt-1 min-w-0">
                     <p className="text-[10px] text-gray-600 font-mono truncate flex-1">{task.url || 'Target undefined'}</p>
                     {task.url && (
@@ -56,24 +56,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEditTask, onDeleteTask }) =
                     )}
                 </div>
             </div>
-            <div className="flex gap-3 pt-4 border-t border-white/5">
-                <button
-                    onClick={() => onEditTask(task)}
-                    className="flex-1 py-2 rounded-lg bg-white text-black text-[9px] font-bold uppercase tracking-widest hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 inline-flex items-center justify-center gap-2"
-                    aria-label="Edit Task"
-                    title="Edit Task"
-                >
-                    <MaterialIcon name="edit" className="text-[14px]" />
-                    Edit Task
-                </button>
-                <button
-                    onClick={() => onDeleteTask(task.id!)}
-                    className="w-10 h-10 rounded-lg bg-transparent border border-white/10 flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                    aria-label="Delete task"
-                    title="Delete task"
-                >
-                    <MaterialIcon name="delete" className="text-base" />
-                </button>
+            <div className="flex gap-3 pt-4 border-t theme-border">
+<button
+                        onClick={() => onEditTask(task)}
+                        className="flex-1 py-2 rounded-lg theme-accent-bg text-[9px] font-bold uppercase tracking-widest hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 inline-flex items-center justify-center gap-2"
+                        aria-label="Edit Task"
+                        title="Edit Task"
+                    >
+                        <MaterialIcon name="edit" className="text-[14px]" />
+                        Edit Task
+                    </button>
+                    <button
+                        onClick={() => onDeleteTask(task.id!)}
+                        className="w-10 h-10 rounded-lg bg-transparent border theme-border flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        aria-label="Delete task"
+                        title="Delete task"
+                    >
+                        <MaterialIcon name="delete" className="text-base theme-text-faint" />
+                    </button>
             </div>
         </div>
     );

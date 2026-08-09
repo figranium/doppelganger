@@ -9,8 +9,10 @@ import SettingsHeader from './settings/SettingsHeader';
 import ProxiesPanel from './settings/ProxiesPanel';
 import UserAgentPanel from './settings/UserAgentPanel';
 import VersionPanel from './settings/VersionPanel';
+import ThemePanel from './settings/ThemePanel';
 import { APP_VERSION } from '@/utils/appInfo';
 import MaterialIcon from './MaterialIcon';
+import { useTheme } from '../hooks/useTheme';
 
 // ── AI Models Panel ──────────────────────────────────────────────────────────
 
@@ -65,31 +67,31 @@ const ModelRow: React.FC<{
             </div>
             {!editing ? (
                 <div className="flex items-center gap-3">
-                    <div className="flex-1 rounded-2xl bg-black/40 border border-white/10 px-4 py-3 font-mono text-[10px] text-blue-200/80 min-h-[44px] flex items-center">
+                    <div className="flex-1 rounded-2xl theme-input border theme-border px-4 py-3 font-mono text-[10px] theme-text min-h-[44px] flex items-center" style={{ backgroundColor: 'var(--app-input)', color: 'var(--app-text)' }}>
                         {loading ? <span className="opacity-50">Loading…</span> : <span>{value}</span>}
                     </div>
-                    <button onClick={handleEdit} disabled={loading || saving} className="px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest bg-white/10 text-white hover:bg-white/20 transition-all disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={handleEdit} disabled={loading || saving} className="px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest theme-accent-bg hover:bg-white/20 transition-all disabled:opacity-50 flex items-center gap-2">
                         <MaterialIcon name="edit" className="text-base" />
                         Edit
                     </button>
                 </div>
             ) : (
                 <div className="flex items-center gap-3">
-                    <div className="flex-1 rounded-2xl bg-black/40 border border-white/30 focus-within:border-white px-4 py-3 transition-all">
+                    <div className="flex-1 rounded-2xl theme-input border theme-border focus-within:border-white px-4 py-3 transition-all">
                         <input
                             list={`model-list-${providerKey}`}
                             value={draft}
                             onChange={e => setDraft(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
-                            className="w-full bg-transparent text-[10px] text-white font-mono focus:outline-none"
+                            className="w-full bg-transparent text-[10px] theme-text font-mono focus:outline-none"
                             autoFocus
                         />
                         <datalist id={`model-list-${providerKey}`}>
                             {AI_MODEL_OPTIONS[providerKey].map(m => <option key={m} value={m} />)}
                         </datalist>
                     </div>
-                    <button onClick={handleCancel} disabled={saving} className="px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest border border-white/20 text-white hover:bg-white/10 transition-all disabled:opacity-50">Cancel</button>
-                    <button onClick={handleSave} disabled={saving || !draft.trim()} className="px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest bg-blue-500 text-white hover:bg-blue-400 transition-all disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={handleCancel} disabled={saving} className="px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest theme-border text-white hover:bg-white/10 transition-all disabled:opacity-50">Cancel</button>
+                    <button onClick={handleSave} disabled={saving || !draft.trim()} className="px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest theme-accent-bg hover:bg-blue-400 transition-all disabled:opacity-50 flex items-center gap-2">
                         <MaterialIcon name="save" className="text-base" />
                         {saving ? 'Saving…' : 'Save'}
                     </button>
@@ -167,6 +169,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     const [userAgentSelection, setUserAgentSelection] = useState('system');
     const [userAgentOptions, setUserAgentOptions] = useState<string[]>([]);
     const [userAgentLoading, setUserAgentLoading] = useState(false);
+
+    const { theme, setTheme } = useTheme();
 
     const loadData = useCallback(async () => {
         setDataLoading(true);
@@ -1188,7 +1192,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     });
 
     return (
-        <main className="flex-1 p-12 overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
+        <main className="flex-1 p-12 overflow-y-auto custom-scrollbar animate-in fade-in duration-500 theme-bg">
             <div className="max-w-3xl mx-auto space-y-8">
                 <SettingsHeader tab={tab} onTabChange={setTab} />
 
@@ -1213,6 +1217,10 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
                             options={userAgentOptions}
                             loading={userAgentLoading}
                             onChange={saveUserAgent}
+                        />
+                        <ThemePanel
+                            currentThemeId={theme.id}
+                            onSelect={(t) => setTheme(t.id)}
                         />
                         <VersionPanel version={APP_VERSION} />
                         <StoragePanel onClearStorage={onClearStorage} />
