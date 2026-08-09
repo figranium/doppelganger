@@ -2,7 +2,8 @@ node_modules/
 dist/
 data/
 public/screenshots/
-public/captures/
+public/captures
+src/public/captures/
 storage_state.json
 proxies.json
 .env

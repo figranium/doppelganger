@@ -11,4 +11,9 @@ services:
       - NODE_ENV=production
     volumes:
       - ./data:/app/data
+      # Persist captures on the host and make them visible in the repo's captures
+      # folder. Both container paths are mounted to the same host dir because the
+      # agent writes to src/public/captures while scrape.js writes to public/captures.
+      - ./src/public/captures:/app/public/captures
+      - ./src/public/captures:/app/src/public/captures
     restart: unless-stopped
