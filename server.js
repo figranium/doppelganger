@@ -438,36 +438,17 @@ app.post('/headful', requireAuth, dataRateLimiter, concurrencyGate, (req, res) =
 });
 app.post('/headful/stop', requireAuth, stopHeadful);
 
-// Ensure public/captures directory exists, preferably as a symlink to src/public/captures to resolve path inconsistency
+// Captures may be written to either the root-level or the src-level public/captures
+// directory depending on the entry point / image generation. Ensure both exist and
+// serve statically from both so files written by any engine are surfaced.
 const capturesDir = path.join(__dirname, 'public', 'captures');
 const srcCapturesDir = path.join(__dirname, 'src', 'public', 'captures');
 
-// Ensure src/public/captures exists first
+if (!fs.existsSync(capturesDir)) {
+    fs.mkdirSync(capturesDir, { recursive: true });
+}
 if (!fs.existsSync(srcCapturesDir)) {
     fs.mkdirSync(srcCapturesDir, { recursive: true });
-}
-
-let isSymlink = false;
-try {
-    const stats = fs.lstatSync(capturesDir);
-    isSymlink = stats.isSymbolicLink();
-} catch (e) {
-    // doesn't exist
-}
-
-if (!isSymlink) {
-    try {
-        if (fs.existsSync(capturesDir)) {
-            fs.rmSync(capturesDir, { recursive: true, force: true });
-        }
-        fs.symlinkSync('../src/public/captures', capturesDir, 'dir');
-        console.log('[STARTUP] Created symbolic link from public/captures to src/public/captures');
-    } catch (e) {
-        console.warn('[STARTUP] Failed to create symlink, falling back to directory creation:', e.message);
-        if (!fs.existsSync(capturesDir)) {
-            fs.mkdirSync(capturesDir, { recursive: true });
-        }
-    }
 }
 
 // NoVNC Setup
@@ -488,8 +469,8 @@ if (novncDir) {
 }
 
 // Static Files
-app.use('/captures', requireAuthOrApiKey, express.static(capturesDir));
-app.use('/screenshots', requireAuthOrApiKey, express.static(capturesDir));
+app.use('/captures', requireAuthOrApiKey, express.static(capturesDir), express.static(srcCapturesDir));
+app.use('/screenshots', requireAuthOrApiKey, express.static(capturesDir), express.static(srcCapturesDir));
 app.use(express.static(DIST_DIR));
 
 // Headful Status Endpoint

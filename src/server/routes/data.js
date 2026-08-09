@@ -10,22 +10,26 @@ const router = express.Router();
 // In constants we defined DIST_DIR, DATA_DIR. Captures are in public/captures relative to root probably.
 // In server.js: const capturesDir = path.join(__dirname, 'public', 'captures');
 // server.js was in root.
-const CAPTURES_DIR = path.join(__dirname, '../../../public/captures');
+// Captures may be written to either the root-level or the src-level public/captures
+// directory depending on the entry point / image generation. Unify by reading both.
+const CAPTURES_DIRS = [
+    path.join(__dirname, '../../../public/captures'),
+    path.join(__dirname, '../../../src/public/captures')
+];
 
-router.get('/captures', requireAuth, dataRateLimiter, async (_req, res) => {
+const readCapturesDir = async (dir, runId) => {
     try {
-        await fs.promises.access(CAPTURES_DIR);
+        await fs.promises.access(dir);
     } catch {
-        return res.json({ captures: [] });
+        return [];
     }
-    const runId = String(_req.query?.runId || '').trim();
-    const entriesRaw = await fs.promises.readdir(CAPTURES_DIR);
-    const entries = (await Promise.all(
+    const entriesRaw = await fs.promises.readdir(dir);
+    const entries = await Promise.all(
         entriesRaw
             .filter(name => /\.(png|jpg|jpeg|webm)$/i.test(name))
             .filter((name) => !runId || name.includes(runId))
             .map(async (name) => {
-                const fullPath = path.join(CAPTURES_DIR, name);
+                const fullPath = path.join(dir, name);
                 try {
                     const stat = await fs.promises.stat(fullPath);
                     const lower = name.toLowerCase();
@@ -41,39 +45,37 @@ router.get('/captures', requireAuth, dataRateLimiter, async (_req, res) => {
                     return null;
                 }
             })
-    ))
-        .filter(Boolean)
-        .sort((a, b) => b.modified - a.modified);
+    );
+    return entries.filter(Boolean);
+};
+
+router.get('/captures', requireAuth, dataRateLimiter, async (_req, res) => {
+    const runId = String(_req.query?.runId || '').trim();
+    const seen = new Set();
+    const entries = [];
+    for (const dir of CAPTURES_DIRS) {
+        for (const entry of await readCapturesDir(dir, runId)) {
+            if (seen.has(entry.name)) continue;
+            seen.add(entry.name);
+            entries.push(entry);
+        }
+    }
+    entries.sort((a, b) => b.modified - a.modified);
     res.json({ captures: entries });
 });
 
 router.get('/screenshots', requireAuth, dataRateLimiter, async (_req, res) => {
-    try {
-        await fs.promises.access(CAPTURES_DIR);
-    } catch {
-        return res.json({ screenshots: [] });
+    const seen = new Set();
+    const entries = [];
+    for (const dir of CAPTURES_DIRS) {
+        for (const entry of await readCapturesDir(dir, '')) {
+            if (!/\.(png|jpg|jpeg)$/i.test(entry.name)) continue;
+            if (seen.has(entry.name)) continue;
+            seen.add(entry.name);
+            entries.push(entry);
+        }
     }
-    const entriesRaw = await fs.promises.readdir(CAPTURES_DIR);
-    const entries = (await Promise.all(
-        entriesRaw
-            .filter(name => /\.(png|jpg|jpeg)$/i.test(name))
-            .map(async (name) => {
-                const fullPath = path.join(CAPTURES_DIR, name);
-                try {
-                    const stat = await fs.promises.stat(fullPath);
-                    return {
-                        name,
-                        url: `/captures/${name}`,
-                        size: stat.size,
-                        modified: stat.mtimeMs
-                    };
-                } catch {
-                    return null;
-                }
-            })
-    ))
-        .filter(Boolean)
-        .sort((a, b) => b.modified - a.modified);
+    entries.sort((a, b) => b.modified - a.modified);
     res.json({ screenshots: entries });
 });
 
@@ -85,9 +87,12 @@ router.delete('/captures/:name', requireAuth, dataRateLimiter, (req, res) => {
     if (safeName !== name || name.includes('..') || name.includes('/') || name.includes('\\')) {
         return res.status(400).json({ error: 'INVALID_NAME' });
     }
-    const targetPath = path.join(CAPTURES_DIR, safeName);
-    if (fs.existsSync(targetPath)) {
-        fs.unlinkSync(targetPath);
+    for (const dir of CAPTURES_DIRS) {
+        const targetPath = path.join(dir, safeName);
+        if (fs.existsSync(targetPath)) {
+            fs.unlinkSync(targetPath);
+            break;
+        }
     }
     res.json({ success: true });
 });
@@ -131,12 +136,13 @@ router.post('/cookies/delete', requireAuth, dataRateLimiter, (req, res) => {
 // Also handle the clear screenshots/cookies which were separate POSTs in server.js
 router.post('/clear-screenshots', requireAuth, dataRateLimiter, async (req, res) => {
     try {
-        // 1. Clear public/captures (screenshots and finalized recordings)
-        const capturesExist = await fs.promises.access(CAPTURES_DIR).then(() => true).catch(() => false);
-        if (capturesExist) {
-            const entries = await fs.promises.readdir(CAPTURES_DIR);
+        // 1. Clear both captures dirs (screenshots and finalized recordings)
+        for (const dir of CAPTURES_DIRS) {
+            const capturesExist = await fs.promises.access(dir).then(() => true).catch(() => false);
+            if (!capturesExist) continue;
+            const entries = await fs.promises.readdir(dir);
             await Promise.all(entries.map(async (entry) => {
-                const entryPath = path.join(CAPTURES_DIR, entry);
+                const entryPath = path.join(dir, entry);
                 try {
                     const stat = await fs.promises.stat(entryPath);
                     if (stat.isFile()) {
