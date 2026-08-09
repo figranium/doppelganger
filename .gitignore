@@ -11,6 +11,5 @@ npm-debug.log
 .vscode/
 .DS_Store
 .npmignore
-src/components/settings/ThemePanel.tsx
 .gemini/
 .claude/
