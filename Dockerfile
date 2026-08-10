@@ -46,8 +46,14 @@ ENV FIGRANIUM_SKIP_PLAYWRIGHT_INSTALL=1 \
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN npm ci --omit=dev
 
+ARG TARGETARCH
 # Ensure Playwright browsers + OS deps are available
-RUN npx playwright install --with-deps chromium chrome firefox webkit
+RUN ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
+    if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then \
+        npx playwright install --with-deps chromium firefox webkit; \
+    else \
+        npx playwright install --with-deps chromium chrome firefox webkit; \
+    fi
 
 # Copy server and built assets
 COPY --from=build /app/dist /app/dist
