@@ -61,17 +61,25 @@
       const statusEl = document.getElementById('status');
       const screen = document.getElementById('screen');
 
-      async function initVNC() {
-        let password = null;
+      const MAX_RETRIES = 8;
+      let retryCount = 0;
+      let connectedAt = null;
+
+      async function fetchPassword() {
         try {
           const resp = await fetch('/api/headful/vnc-password');
           if (resp.ok) {
             const data = await resp.json();
-            password = data.password;
+            return data.password;
           }
         } catch (err) {
           console.warn('Failed to fetch VNC password, attempting without it');
         }
+        return null;
+      }
+
+      async function initVNC() {
+        const password = await fetchPassword();
 
         const rfb = new RFB(screen, wsUrl, {
           credentials: { password }
@@ -112,11 +120,26 @@
         });
 
         rfb.addEventListener('connect', () => {
+          connectedAt = Date.now();
+          retryCount = 0;
           statusEl.classList.add('hidden');
         });
         rfb.addEventListener('disconnect', () => {
+          const droppedQuickly = connectedAt !== null && (Date.now() - connectedAt) < 4000;
+          connectedAt = null;
           statusEl.classList.remove('hidden');
-          statusEl.textContent = 'Disconnected';
+
+          if (retryCount >= MAX_RETRIES) {
+            statusEl.textContent = 'Disconnected';
+            return;
+          }
+
+          retryCount += 1;
+          statusEl.textContent = droppedQuickly
+            ? 'Browser session crashed, retrying...'
+            : 'Reconnecting...';
+          const delay = Math.min(1000 * retryCount, 5000);
+          setTimeout(initVNC, delay);
         });
       }
 

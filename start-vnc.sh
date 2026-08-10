@@ -7,7 +7,16 @@ mkdir -p /app/data
 rm -f /tmp/.X${DISPLAY#*:}-lock 2>/dev/null || true
 
 echo "[vnc] Starting Xvfb on $DISPLAY"
-Xvfb "$DISPLAY" -screen 0 1920x1080x24 -nolisten tcp -ac &
+(
+  set +e
+  while true; do
+    rm -f /tmp/.X${DISPLAY#*:}-lock 2>/dev/null || true
+    echo "[vnc] ($(date -u +%FT%TZ)) launching Xvfb" >> /app/data/xvfb.log
+    Xvfb "$DISPLAY" -screen 0 1920x1080x24 -nolisten tcp -ac >> /app/data/xvfb.log 2>&1
+    echo "[vnc] ($(date -u +%FT%TZ)) Xvfb exited, restarting in 1s" >> /app/data/xvfb.log
+    sleep 1
+  done
+) &
 
 echo "[vnc] Starting x11vnc on :5900"
 # Generate a random VNC password if it doesn't exist
@@ -18,12 +27,28 @@ if [ ! -f "$VNC_PW_FILE" ]; then
 fi
 VNC_PW=$(cat "$VNC_PW_FILE")
 
+# Wait for Xvfb's socket to be ready before starting x11vnc
+for _ in {1..50}; do
+  if [ -e "/tmp/.X11-unix/X${DISPLAY#*:}" ]; then
+    break
+  fi
+  sleep 0.1
+done
+
 # Secure x11vnc:
 # 1. -localhost: Only allow connections from localhost (websockify)
 # 2. -passwd: Use the generated password
 # 3. -rfbport 5900: Listen on the default VNC port
 X11VNC_OPTS="-display $DISPLAY -forever -shared -localhost -passwd \"$VNC_PW\" -rfbport 5900 -wait 5"
-x11vnc $X11VNC_OPTS >> /app/data/x11vnc.log 2>&1 &
+(
+  set +e
+  while true; do
+    echo "[vnc] ($(date -u +%FT%TZ)) launching x11vnc" >> /app/data/x11vnc.log
+    x11vnc $X11VNC_OPTS >> /app/data/x11vnc.log 2>&1
+    echo "[vnc] ($(date -u +%FT%TZ)) x11vnc exited, restarting in 1s" >> /app/data/x11vnc.log
+    sleep 1
+  done
+) &
 
 NOVNC_DIR="/opt/novnc"
 if [ ! -d "$NOVNC_DIR" ]; then
