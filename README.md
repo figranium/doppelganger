@@ -22,6 +22,42 @@ Figranium is a self‑hosted, block-first automation control plane built for tea
 - **Task Scheduling** — run workflows automatically using visual interval/daily/weekly/monthly settings or advanced cron expressions.
 - **Security-first** — session authentication, IP allowlists, secret management, and audit trails live entirely inside your environment.
 
+# Official Partners
+
+### Featured Partner
+
+<div align="center">
+  <a href="https://swiftproxy.net/?utm_source=figranium" target="_blank">
+    <img src="swiftproxy.png" width="220" alt="Swiftproxy">
+  </a>
+</div>
+
+### Integration Partner
+
+<div align="center">
+  <a href="https://simplynode.io/?utm_source=figranium" target="_blank">
+    <img src="simplynode.png" width="220" alt="SimplyNode">
+  </a>
+</div>
+
+# Infrastructure Backers
+
+Figranium is proudly supported by:
+
+<div align="center">
+  <a href="https://www.digitalocean.com/?utm_medium=opensource&utm_source=Figranium">
+    <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" width="201" alt="DigitalOcean">
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.mintlify.com">
+    <img src="https://mintcdn.com/mintlify/ZmWpbGQa5yv5AElR/logo/light.svg?fit=max&auto=format&n=ZmWpbGQa5yv5AElR&q=85&s=094e41f7b58b2cab0a6faa2bab2828e0" width="165" alt="Mintlify">
+  </a>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.algolia.com">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Algolia_logo_full_blue.svg/1920px-Algolia_logo_full_blue.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20221025105233" width="165" alt="Algolia">
+  </a>
+</div>
+
 # Architecture Snapshot
 
 ## Figranite
@@ -320,24 +356,6 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 - Follow the authors on `https://github.com/figranium` for releases.
 - Share automation recipes with other self-hosted users in your org, but respect the license for sharing infrastructure.
 - Join the community on [Discord](https://discord.gg/kPmfbgu9Xn).
-
-# Sponsors & Backers
-
-Figranium is proudly supported by:
-
-<div align="center">
-  <a href="https://www.digitalocean.com/?utm_medium=opensource&utm_source=Figranium">
-    <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" width="201" alt="DigitalOcean">
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://www.mintlify.com">
-    <img src="https://mintcdn.com/mintlify/ZmWpbGQa5yv5AElR/logo/light.svg?fit=max&auto=format&n=ZmWpbGQa5yv5AElR&q=85&s=094e41f7b58b2cab0a6faa2bab2828e0" width="165" alt="Mintlify">
-  </a>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://www.algolia.com">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Algolia_logo_full_blue.svg/1920px-Algolia_logo_full_blue.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20221025105233" width="165" alt="Algolia">
-  </a>
-</div>
 
 # Support the Project
 
