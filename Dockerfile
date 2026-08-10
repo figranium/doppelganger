@@ -46,9 +46,6 @@ ENV FIGRANIUM_SKIP_PLAYWRIGHT_INSTALL=1 \
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN npm ci --omit=dev
 
-# Ensure Playwright browsers + OS deps are available
-RUN npx playwright install --with-deps chromium chrome firefox webkit
-
 # Copy server and built assets
 COPY --from=build /app/dist /app/dist
 COPY --from=build /app/public /app/public
