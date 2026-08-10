@@ -24,6 +24,8 @@ Figranium is a self‑hosted, block-first automation control plane built for tea
 
 # Official Partners
 
+Figranium is proudly supported by:
+
 ### Featured Partner
 
 <div align="center">
@@ -40,9 +42,7 @@ Figranium is a self‑hosted, block-first automation control plane built for tea
   </a>
 </div>
 
-# Infrastructure Backers
-
-Figranium is proudly supported by:
+### Infrastructure Backers
 
 <div align="center">
   <a href="https://www.digitalocean.com/?utm_medium=opensource&utm_source=Figranium">
