@@ -68,6 +68,9 @@ importers:
       session-file-store:
         specifier: ^1.5.0
         version: 1.5.0
+      tree:
+        specifier: ^0.1.3
+        version: 0.1.3
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
@@ -3748,6 +3751,9 @@ packages:
       tree-sitter:
         optional: true
 
+  tree@0.1.3:
+    resolution: {integrity: sha512-Ivzs8BGRW8kWt7V6hD2yJC0028eUkaLWfPcbhcA/1jitHQJReZRQ2x8zqf4MtU+cNNkFYnadqg7AWzMMvrW9vA==}
+
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
 
@@ -3787,6 +3793,9 @@ packages:
   uid-safe@2.1.5:
     resolution: {integrity: sha512-KPHm4VL5dDXKz01UuEd88Df+KzynaohSL9fBh096KWAxSKZQDI2uBrVqtvRM4rwrIrRRKsdLNML/lnaaVSRioA==}
     engines: {node: '>= 0.8'}
+
+  underscore@1.13.8:
+    resolution: {integrity: sha512-DXtD3ZtEQzc7M8m4cXotyHR+FAS18C64asBYY5vqZexfYryNNnDc02W4hKg3rdQuqOYas1jkseX0+nZXjTXnvQ==}
 
   undici-types@7.18.2:
     resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
@@ -8194,6 +8203,10 @@ snapshots:
       node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
 
+  tree@0.1.3:
+    dependencies:
+      underscore: 1.13.8
+
   trim-lines@3.0.1: {}
 
   trough@2.2.0: {}
@@ -8226,6 +8239,8 @@ snapshots:
   uid-safe@2.1.5:
     dependencies:
       random-bytes: 1.0.0
+
+  underscore@1.13.8: {}
 
   undici-types@7.18.2: {}
 
