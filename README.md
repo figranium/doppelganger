@@ -29,7 +29,7 @@ Figranium is proudly supported by:
 ## Featured Partner
 
 <div align="center">
-  <a href="https://swiftproxy.net/?utm_source=figranium" target="_blank">
+  <a href="https://swiftproxy.net/?ref=figranium" target="_blank">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="swiftproxy_white.png">
       <source media="(prefers-color-scheme: light)" srcset="swiftproxy.png">
