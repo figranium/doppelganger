@@ -127,17 +127,24 @@ async function runHeadful(data, options = {}) {
                 );
             }
 
+            let cleanProxy = undefined;
+            if (selection.proxy) {
+                cleanProxy = { server: selection.proxy.server };
+                if (selection.proxy.username) cleanProxy.username = selection.proxy.username;
+                if (selection.proxy.password) cleanProxy.password = selection.proxy.password;
+            }
+
             const contextOptions = {
                 viewport: null,
                 userAgent: selectedUA,
                 locale: 'en-US',
                 timezoneId: 'America/New_York',
                 permissions: ['clipboard-read', 'clipboard-write'],
-                ...(selection.proxy ? { proxy: selection.proxy } : {})
+                ...(cleanProxy ? { proxy: cleanProxy } : {})
             };
 
             if (statelessExecution) {
-                browser = await chromium.launch({ headless: false, args, ...(selection.proxy ? { proxy: selection.proxy } : {}) });
+                browser = await chromium.launch({ headless: false, args, ...(cleanProxy ? { proxy: cleanProxy } : {}) });
                 context = await browser.newContext(contextOptions);
             } else {
                 await fs.promises.mkdir(HEADFUL_PROFILE_DIR, { recursive: true });

@@ -59,6 +59,39 @@ assert.strictEqual(normalizeProxy(null), null);
 assert.strictEqual(normalizeProxy(''), null);
 assert.strictEqual(normalizeProxy({}), null);
 
+// Rotating pool and falsy/null credentials edge cases
+console.log('Testing rotating pool and falsy/null credentials...');
+const rp1 = normalizeProxy({
+    server: 'http://myrotatingpool.com:1234',
+    username: null,
+    password: null,
+    isRotatingPool: true,
+    estimatedPoolSize: 100
+});
+assert.strictEqual(rp1.server, 'http://myrotatingpool.com:1234');
+assert.strictEqual(rp1.username, undefined, 'username should be normalized to undefined instead of null');
+assert.strictEqual(rp1.password, undefined, 'password should be normalized to undefined instead of null');
+assert.strictEqual(rp1.isRotatingPool, true);
+assert.strictEqual(rp1.estimatedPoolSize, 100);
+
+const rp2 = normalizeProxy({
+    server: 'http://myrotatingpool.com:1234',
+    user: null,
+    pass: null,
+    isRotatingPool: true
+});
+assert.strictEqual(rp2.username, undefined, 'user should be normalized to undefined instead of null');
+assert.strictEqual(rp2.password, undefined, 'pass should be normalized to undefined instead of null');
+
+const rp3 = normalizeProxy({
+    server: 'http://myrotatingpool.com:1234',
+    username: '',
+    password: '',
+    isRotatingPool: true
+});
+assert.strictEqual(rp3.username, undefined, 'empty string username should be normalized to undefined');
+assert.strictEqual(rp3.password, undefined, 'empty string password should be normalized to undefined');
+
 console.log('✓ normalizeProxy tests passed');
 
 // 4. Test normalizeRotationMode

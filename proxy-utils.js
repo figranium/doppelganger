@@ -46,8 +46,8 @@ const normalizeProxy = (entry) => {
         const serverRaw = entry.server || entry.url || entry.proxy;
         const server = normalizeServer(serverRaw);
         if (!server) return null;
-        const username = entry.username || entry.user;
-        const password = entry.password || entry.pass;
+        const username = entry.username || entry.user || undefined;
+        const password = entry.password || entry.pass || undefined;
         const id = entry.id || createProxyId(`${server}|${username || ''}`);
         const isRotatingPool = !!entry.isRotatingPool;
         let estimatedPoolSize = undefined;
