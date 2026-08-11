@@ -30,7 +30,11 @@ Figranium is proudly supported by:
 
 <div align="center">
   <a href="https://swiftproxy.net/?utm_source=figranium" target="_blank">
-    <img src="swiftproxy.png" width="220" alt="Swiftproxy">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="swiftproxy_white.png">
+      <source media="(prefers-color-scheme: light)" srcset="swiftproxy.png">
+      <img src="swiftproxy.png" width="220" alt="Swiftproxy">
+    </picture>
   </a>
 </div>
 
@@ -38,7 +42,11 @@ Figranium is proudly supported by:
 
 <div align="center">
   <a href="https://simplynode.io/?utm_source=figranium" target="_blank">
-    <img src="simplynode.png" width="220" alt="SimplyNode">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="simplynode_white.png">
+      <source media="(prefers-color-scheme: light)" srcset="simplynode.png">
+      <img src="simplynode.png" width="220" alt="SimplyNode">
+    </picture>
   </a>
 </div>
 
@@ -50,7 +58,11 @@ Figranium is proudly supported by:
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.mintlify.com">
-    <img src="https://mintcdn.com/mintlify/ZmWpbGQa5yv5AElR/logo/light.svg?fit=max&auto=format&n=ZmWpbGQa5yv5AElR&q=85&s=094e41f7b58b2cab0a6faa2bab2828e0" width="165" alt="Mintlify">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="mintlify_white.svg">
+      <source media="(prefers-color-scheme: light)" srcset="mintlify.svg">
+      <img src="mintlify.svg" width="165" alt="Mintlify">
+    </picture>
   </a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.algolia.com">

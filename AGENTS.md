@@ -116,6 +116,8 @@ When publishing finished work, prefer committing and pushing directly on the `ma
 
 Commit titles should be long and descriptive enough to clearly summarize the full scope of the change, not terse or generic.
 
+Do not add yourself (the agent) as a co-author on commits, and do not mention this instruction or its origin in the commit message.
+
 ## Key Environment Variables
 
 - `PORT` / `HOST` — Express listen address (default: 11345 / 0.0.0.0)
