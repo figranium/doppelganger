@@ -57,6 +57,14 @@ async function run() {
         // We should be on the dashboard now
         console.log('2. Verifying Dashboard screen...');
         await page.waitForSelector('text=Dashboard', { timeout: 10000 });
+
+        const skipBtn = page.locator('button:has-text("Skip")');
+        if (await skipBtn.count() > 0) {
+            console.log('Theme intro modal detected, clicking Skip...');
+            await skipBtn.click();
+            await page.waitForTimeout(1000);
+        }
+
         await page.screenshot({ path: '/home/jules/verification/screenshots/dashboard.png' });
         console.log('Captured dashboard screenshot.');
         await page.waitForTimeout(1000);
