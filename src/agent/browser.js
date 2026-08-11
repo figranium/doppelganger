@@ -1,5 +1,6 @@
 const { chromium } = require('../../stealth-chromium');
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const { getProxySelection } = require('../../proxy-rotation');
 const { setupNavigationProtection } = require('../../url-utils');
@@ -56,7 +57,10 @@ async function launchBrowser(options = {}) {
 
     const launchOptions = { headless, args };
     if (selection.proxy) {
-        launchOptions.proxy = selection.proxy;
+        const cleanProxy = { server: selection.proxy.server };
+        if (selection.proxy.username) cleanProxy.username = selection.proxy.username;
+        if (selection.proxy.password) cleanProxy.password = selection.proxy.password;
+        launchOptions.proxy = cleanProxy;
     }
 
     console.log(`[PROXY] Mode: ${selection.mode}; Target: ${selection.proxy ? selection.proxy.server : 'host_ip'}`);
@@ -79,7 +83,7 @@ async function createBrowserContext(launchOptions, options = {}) {
     const viewport = launchOptions.headless === false
         ? null
         : rotateViewport
-            ? { width: 1280 + Math.floor(Math.random() * 640), height: 720 + Math.floor(Math.random() * 360) }
+            ? { width: 1280 + crypto.randomInt(0, 640), height: 720 + crypto.randomInt(0, 360) }
             : { width: 1366, height: 768 };
 
     const contextOptions = {
@@ -111,7 +115,10 @@ async function createBrowserContext(launchOptions, options = {}) {
     }
 
     if (launchOptions.proxy) {
-        contextOptions.proxy = launchOptions.proxy;
+        const cleanProxy = { server: launchOptions.proxy.server };
+        if (launchOptions.proxy.username) cleanProxy.username = launchOptions.proxy.username;
+        if (launchOptions.proxy.password) cleanProxy.password = launchOptions.proxy.password;
+        contextOptions.proxy = cleanProxy;
     }
 
     if (!disableRecording && recordingsDir) {

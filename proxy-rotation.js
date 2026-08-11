@@ -271,7 +271,7 @@ const setRotationMode = (mode) => {
 const getNextProxy = (proxies, mode) => {
     if (!proxies.length) return null;
     if (mode === 'random') {
-        const index = Math.floor(Math.random() * proxies.length);
+        const index = crypto.randomInt(0, proxies.length);
         return proxies[index];
     }
     const selected = proxies[rotationIndex % proxies.length];

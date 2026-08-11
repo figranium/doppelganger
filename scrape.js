@@ -1,5 +1,6 @@
 const { chromium } = require('./stealth-chromium');
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const { spawn } = require('child_process');
 const { getProxySelection } = require('./proxy-rotation');
@@ -89,7 +90,7 @@ async function runScrape(data) {
         await fs.promises.mkdir(PROFILE_DIR, { recursive: true });
 
         const viewport = rotateViewport
-            ? { width: 1280 + Math.floor(Math.random() * 640), height: 720 + Math.floor(Math.random() * 360) }
+            ? { width: 1280 + crypto.randomInt(0, 640), height: 720 + crypto.randomInt(0, 360) }
             : { width: 1366, height: 768 };
 
         const contextOptions = {
@@ -105,8 +106,15 @@ async function runScrape(data) {
             permissions: ['geolocation']
         };
 
+        let cleanProxy = undefined;
         if (selection.proxy) {
-            contextOptions.proxy = selection.proxy;
+            cleanProxy = { server: selection.proxy.server };
+            if (selection.proxy.username) cleanProxy.username = selection.proxy.username;
+            if (selection.proxy.password) cleanProxy.password = selection.proxy.password;
+        }
+
+        if (cleanProxy) {
+            contextOptions.proxy = cleanProxy;
         }
 
         if (!disableRecording) {
@@ -114,7 +122,7 @@ async function runScrape(data) {
         }
 
         if (statelessExecution) {
-            const launchOpts = { headless: true, args, ...(selection.proxy ? { proxy: selection.proxy } : {}) };
+            const launchOpts = { headless: true, args, ...(cleanProxy ? { proxy: cleanProxy } : {}) };
             browser = await chromium.launch(launchOpts);
             context = await browser.newContext(contextOptions);
         } else {
