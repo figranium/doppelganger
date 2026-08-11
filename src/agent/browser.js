@@ -1,5 +1,6 @@
 const { chromium } = require('../../stealth-chromium');
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const { getProxySelection } = require('../../proxy-rotation');
 const { setupNavigationProtection } = require('../../url-utils');
@@ -82,7 +83,7 @@ async function createBrowserContext(launchOptions, options = {}) {
     const viewport = launchOptions.headless === false
         ? null
         : rotateViewport
-            ? { width: 1280 + Math.floor(Math.random() * 640), height: 720 + Math.floor(Math.random() * 360) }
+            ? { width: 1280 + crypto.randomInt(0, 640), height: 720 + crypto.randomInt(0, 360) }
             : { width: 1366, height: 768 };
 
     const contextOptions = {
