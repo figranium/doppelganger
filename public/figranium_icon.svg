@@ -1,6 +1,12 @@
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="32" height="32" viewBox="0 0 968 1080" enable-background="new 0 0 968 1080" xml:space="preserve">
-<path fill="currentColor" opacity="1.000000" stroke="none" 
+<style>
+	.figranium-mark { fill: #000000; }
+	@media (prefers-color-scheme: dark) {
+		.figranium-mark { fill: #FFFFFF; }
+	}
+</style>
+<path class="figranium-mark" opacity="1.000000" stroke="none"
 	d="
 M1.000008,773.000000 
 	C1.000000,760.645752 1.000000,748.291565 1.339797,735.384644 
