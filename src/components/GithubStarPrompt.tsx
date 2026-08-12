@@ -6,7 +6,7 @@ type GithubStarPromptProps = {
 };
 
 export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
-    const [visible, setVisible] = useState(false);
+    const [delayedVisible, setDelayedVisible] = useState(false);
     const [hasOpenedUrl, setHasOpenedUrl] = useState(false);
     const [helperText, setHelperText] = useState<string | null>(null);
 
@@ -16,14 +16,17 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
         const isDismissed = localStorage.getItem('figranium_star_prompt_dismissed') === 'true';
 
         if (!isStarred && !isDismissed) {
-            setVisible(true);
+            const timer = setTimeout(() => {
+                setDelayedVisible(true);
+            }, 1500);
+            return () => clearTimeout(timer);
         }
 
         const opened = localStorage.getItem('figranium_star_opened') === 'true';
         setHasOpenedUrl(opened);
     }, []);
 
-    if (!visible) {
+    if (!delayedVisible) {
         return null;
     }
 
@@ -48,7 +51,7 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
 
         // Successfully starred!
         localStorage.setItem('figranium_github_starred', 'true');
-        setVisible(false);
+        setDelayedVisible(false);
         if (onClose) {
             onClose();
         }
@@ -56,7 +59,7 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
 
     const handleDismiss = () => {
         localStorage.setItem('figranium_star_prompt_dismissed', 'true');
-        setVisible(false);
+        setDelayedVisible(false);
         if (onClose) {
             onClose();
         }
