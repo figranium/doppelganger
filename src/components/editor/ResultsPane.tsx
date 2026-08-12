@@ -6,6 +6,7 @@ import CaptureCard from '../CaptureCard';
 import CodeEditor from '../CodeEditor';
 import JSZip from 'jszip';
 import { SyntaxLanguage } from '../../utils/syntaxHighlight';
+import GithubStarPrompt from '../GithubStarPrompt';
 
 const getFileIcon = (filename: string) => {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
@@ -510,6 +511,9 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
 
     return (
         <div className={containerClassName}>
+            {!isExecuting && activeResults && (activeResults.data !== undefined || activeResults.screenshotUrl || activeResults.downloads) && (
+                <GithubStarPrompt />
+            )}
             <div className="flex items-end justify-between border-b border-white/5 pb-4">
                 <div className="space-y-2 min-w-0 mr-3">
                     <p className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.3em]">Preview</p>

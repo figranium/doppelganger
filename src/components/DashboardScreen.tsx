@@ -2,6 +2,7 @@ import React, { useRef, memo } from 'react';
 import { Task } from '../types';
 import MaterialIcon from './MaterialIcon';
 import TaskCard from './TaskCard';
+import GithubStarPill from './GithubStarPill';
 
 interface DashboardScreenProps {
     tasks: Task[];
@@ -62,7 +63,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
             <div className="flex-1 overflow-hidden animate-in fade-in duration-500 theme-bg">
                 <div className="h-full flex flex-col px-6 py-8 md:px-12 md:py-12 max-w-7xl mx-auto space-y-8 md:space-y-12 w-full">
                     <div className="relative flex flex-wrap items-center justify-between gap-6">
-                        <h2 className="text-2xl font-medium tracking-[0.25em] theme-text uppercase shrink-0">Dashboard</h2>
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-2xl font-medium tracking-[0.25em] theme-text uppercase shrink-0">Dashboard</h2>
+                            <GithubStarPill className="hidden sm:inline-flex" />
+                        </div>
                         {tasks.length > 0 && (
                             <div className="w-full order-last lg:order-none lg:absolute lg:left-1/2 lg:-translate-x-1/2 group/search lg:w-[260px]">
                                 <MaterialIcon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 theme-text-faint text-lg group-focus-within/search:theme-text transition-colors" />
