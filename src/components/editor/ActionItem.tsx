@@ -50,7 +50,7 @@ const renderBlockMarker = (type: Action['type']) => {
     if (type === 'http_request') return <MaterialIcon name="language" className={`${iconClass} text-white`} />;
     if (type === 'wait_downloads') return <MaterialIcon name="download" className={`${iconClass} text-white`} />;
     if (type === 'get_content') return <MaterialIcon name="article" className={`${iconClass} text-white`} />;
-    return <span className="text-[9px] text-white/20">|</span>;
+    return <span className="text-xs text-white/20">|</span>;
 };
 
 // Block types that have no config and shouldn't open a modal
@@ -171,11 +171,11 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
                     setIsModalOpen(true);
                 }}
                 onContextMenu={(e) => onOpenContextMenu(e, action.id)}
-                className={`bg-black min-w-[280px] w-full max-w-sm mx-auto border p-5 rounded-2xl group/item relative transition-[transform,box-shadow,opacity,filter,background-color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform select-none touch-none ${statusClass || (isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/20')} ${isDragging ? 'ring-2 ring-white/40 scale-[1.02] shadow-[0_30px_80px_rgba(0,0,0,0.45)] opacity-85 z-20 mx-auto' : ''} ${isDragOver && !isDragging ? 'ring-2 ring-blue-400/60 bg-blue-500/5' : ''} ${action.disabled ? 'opacity-40 grayscale' : ''}`}
+                className={`bg-black min-w-[280px] w-full max-w-sm mx-auto border p-5 rounded-xl group/item relative transition-[transform,box-shadow,opacity,filter,background-color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform select-none touch-none ${statusClass || (isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/20')} ${isDragging ? 'ring-2 ring-white/40 scale-[1.02] shadow-[0_30px_80px_rgba(0,0,0,0.45)] opacity-85 z-20 mx-auto' : ''} ${isDragOver && !isDragging ? 'ring-2 ring-blue-400/60 bg-blue-500/5' : ''} ${action.disabled ? 'opacity-40 grayscale' : ''}`}
                 style={{ transform: transformStyle }}
             >
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="text-[8px] font-bold text-white/20 font-mono tracking-tighter shrink-0">{(index + 1).toString().padStart(2, '0')}</div>
+                    <div className="text-xs font-bold text-white/20 font-mono tracking-tighter shrink-0">{(index + 1).toString().padStart(2, '0')}</div>
                     <div className="w-4 h-4 flex items-center justify-center shrink-0">
                         {renderBlockMarker(action.type)}
                     </div>
@@ -191,13 +191,13 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
                             e.stopPropagation();
                             setIsModalOpen(true);
                         }}
-                        className="action-type-select text-[10px] font-bold uppercase tracking-[0.2em] text-white focus:outline-none cursor-pointer rounded focus-visible:ring-2 focus-visible:ring-white/50 shrink-0"
+                        className="action-type-select text-xs font-bold uppercase tracking-[0.2em] text-white focus:outline-none cursor-pointer rounded focus-visible:ring-2 focus-visible:ring-white/50 shrink-0"
                         aria-label={`Change action type: ${action.type}`}
                     >
                         {ACTION_CATALOG.find((item) => item.type === action.type)?.label || action.type}
                     </button>
                     {summary && (
-                        <span className="text-white/40 text-[9px] font-mono truncate min-w-0 pointer-events-none">
+                        <span className="text-white/40 text-xs font-mono truncate min-w-0 pointer-events-none">
                             {summary}
                         </span>
                     )}

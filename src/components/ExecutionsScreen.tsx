@@ -38,14 +38,14 @@ const renderExecutionRow = ({ index, style, data }: ListChildComponentProps<Exec
             tabIndex={0}
             className="glass-card w-full rounded-2xl p-5 flex items-center gap-4 text-left hover:bg-white/[0.06] transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
         >
-            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
+            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
                 {exec.source === 'api' ? <MaterialIcon name="cloud" className="text-xl" /> : <MaterialIcon name="monitor" className="text-xl" />}
             </div>
             <div className="flex-1 min-w-0 space-y-1">
-                <div className="text-[10px] font-bold text-white uppercase tracking-widest truncate">
+                <div className="text-xs font-bold text-white uppercase tracking-widest truncate">
                     {exec.taskName || exec.mode}
                 </div>
-                <div className="text-[8px] text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                <div className="text-xs text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
                     <span>{new Date(exec.timestamp).toLocaleString()}</span>
                     <span className="opacity-20">|</span>
                     <span>{exec.source}</span>
@@ -59,7 +59,7 @@ const renderExecutionRow = ({ index, style, data }: ListChildComponentProps<Exec
                     <span>{exec.durationMs}ms</span>
                 </div>
                 {exec.url && (
-                    <div className="text-[9px] text-white/50 truncate font-mono">
+                    <div className="text-xs text-white/50 truncate font-mono">
                         {exec.url}
                     </div>
                 )}
@@ -69,7 +69,7 @@ const renderExecutionRow = ({ index, style, data }: ListChildComponentProps<Exec
                     event.stopPropagation();
                     data.deleteExecution(exec.id);
                 }}
-                className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 aria-label={`Delete execution ${exec.id}`}
             >
                 Delete
@@ -163,7 +163,7 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                                     role="tab"
                                     aria-selected={filter === mode}
                                     onClick={() => setFilter(mode)}
-                                    className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all focus:outline-none focus-visible:ring-2 ${filter === mode ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
+                                    className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all focus:outline-none focus-visible:ring-2 ${filter === mode ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
                                 >
                                     {mode}
                                 </button>
@@ -173,7 +173,7 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                             onClick={loadExecutions}
                             disabled={loading}
                             aria-busy={loading}
-                            className="w-10 h-10 rounded-2xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-10 h-10 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Refresh"
                             aria-label="Refresh executions"
                         >
@@ -181,7 +181,7 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                         </button>
                         <button
                             onClick={clearExecutions}
-                            className="w-10 h-10 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                            className="w-10 h-10 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                             title="Clear all"
                             aria-label="Clear all executions"
                         >
@@ -191,7 +191,7 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                 </div>
 
                 {loading && (
-                    <div className="text-[9px] text-gray-500 uppercase tracking-widest">Loading executions...</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-widest">Loading executions...</div>
                 )}
                 {!loading && filtered.length === 0 && (
                     <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
@@ -200,13 +200,13 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                         </div>
                         <div className="space-y-2">
                             <h3 className="text-lg font-bold text-white/80 uppercase tracking-widest">No runs recorded</h3>
-                            <p className="text-[10px] text-gray-500 max-w-[280px] mx-auto leading-relaxed uppercase tracking-wider">
+                            <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-relaxed uppercase tracking-wider">
                                 Your execution history is empty. Try running a task from the dashboard or editor.
                             </p>
                         </div>
                         <button
                             onClick={() => navigate('/dashboard')}
-                            className="px-8 py-3 bg-white text-black rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
+                            className="px-8 py-3 bg-white text-black rounded-xl text-xs font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
                         >
                             Go to Dashboard
                         </button>

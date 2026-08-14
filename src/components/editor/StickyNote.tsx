@@ -273,7 +273,7 @@ const StickyNote: React.FC<StickyNoteProps> = ({ note, canvasScale, isSelected, 
                     onContextMenu={(e) => { e.preventDefault(); setContextMenu(null); }}
                 />
                 <div
-                    className="fixed z-50 w-[200px] bg-[#0b0b0b] border border-white/10 rounded-xl shadow-2xl p-2 text-[10px] font-bold uppercase tracking-widest text-white/80"
+                    className="fixed z-50 w-[200px] bg-[#0b0b0b] border border-white/10 rounded-xl shadow-2xl p-2 text-xs font-bold uppercase tracking-widest text-white/80"
                     style={{ left: contextMenu.x, top: contextMenu.y }}
                 >
                     <button

@@ -9,13 +9,13 @@ interface ThemePanelProps {
 
 const ThemePanel: React.FC<ThemePanelProps> = ({ currentThemeId, onSelect }) => {
     return (
-        <div className="glass-card p-8 rounded-[40px]">
+        <div className="glass-card p-8 rounded-2xl">
             <div className="mb-6">
                 <h3 className="text-lg font-bold text-white uppercase tracking-widest flex items-center gap-2">
                     <MaterialIcon name="palette" className="text-xl" />
                     Theme
                 </h3>
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Choose how Figranium looks</p>
+                <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Choose how Figranium looks</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -25,7 +25,7 @@ const ThemePanel: React.FC<ThemePanelProps> = ({ currentThemeId, onSelect }) => 
                         <button
                             key={theme.id}
                             onClick={() => onSelect(theme)}
-                            className={`group relative rounded-3xl overflow-hidden border transition-all duration-300 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
+                            className={`group relative rounded-xl overflow-hidden border transition-all duration-300 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
                                 isActive
                                     ? 'border-white bg-white/10 ring-2 ring-white/20'
                                     : 'border-white/10 hover:border-white/30 bg-white/[0.02]'
@@ -50,7 +50,7 @@ const ThemePanel: React.FC<ThemePanelProps> = ({ currentThemeId, onSelect }) => 
                             <div className="p-4 flex items-center justify-between gap-3">
                                 <div>
                                     <div className="text-sm font-bold text-white">{theme.name}</div>
-                                    <div className="text-[10px] text-white/40 mt-0.5">{theme.description}</div>
+                                    <div className="text-xs text-white/40 mt-0.5">{theme.description}</div>
                                 </div>
                                 <div className="w-10 h-10 rounded-xl border border-white/10 shrink-0 flex items-center justify-center" style={{ background: theme.vars['--app-surface'], borderColor: theme.vars['--app-border'] }}>
                                     <span className="w-3 h-3 rounded-full" style={{ background: theme.vars['--app-accent'] }} />

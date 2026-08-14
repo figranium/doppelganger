@@ -48,7 +48,7 @@ const SchedulesDropsTab: React.FC<SchedulesDropsTabProps> = ({ fleetConfig, onNo
             <div className="p-4 space-y-6 font-questrial">
                 {/* Cron trigger */}
                 <div className="space-y-2">
-                    <label className="text-[7px] font-bold uppercase text-gray-600 tracking-widest">Cron Trigger</label>
+                    <label className="text-xs font-bold uppercase text-gray-600 tracking-widest">Cron Trigger</label>
                     <input
                         type="text"
                         value={cronExpr}
@@ -56,12 +56,12 @@ const SchedulesDropsTab: React.FC<SchedulesDropsTabProps> = ({ fleetConfig, onNo
                         placeholder="e.g. 0 */2 * * * (every 2 hours)"
                         className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400/50 transition-all font-space-mono"
                     />
-                    <p className="text-[8px] text-gray-600">Supports standard cron syntax with optional seconds field. See docs for examples.</p>
+                    <p className="text-xs text-gray-600">Supports standard cron syntax with optional seconds field. See docs for examples.</p>
                 </div>
 
                 {/* Pre-warming */}
                 <div className="space-y-2">
-                    <label className="text-[7px] font-bold uppercase text-gray-600 tracking-widest">Pre-warming</label>
+                    <label className="text-xs font-bold uppercase text-gray-600 tracking-widest">Pre-warming</label>
                     <div className="flex items-center gap-3">
                         <input
                             type="number"
@@ -73,18 +73,18 @@ const SchedulesDropsTab: React.FC<SchedulesDropsTabProps> = ({ fleetConfig, onNo
                         />
                         <button
                             onClick={handlePreWarm}
-                            className="px-3 py-1.5 rounded-lg bg-cyan-400 text-black text-[9px] font-bold uppercase hover:scale-105 transition-all flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+                            className="px-3 py-1.5 rounded-lg bg-cyan-400 text-black text-xs font-bold uppercase hover:scale-105 transition-all flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
                         >
                             <MaterialIcon name="rocket_launch" className="text-sm" />
                             Pre-warm Now
                         </button>
                     </div>
-                    <p className="text-[8px] text-gray-600">Pre-warm spawns N browser instances ahead of the schedule trigger.</p>
+                    <p className="text-xs text-gray-600">Pre-warm spawns N browser instances ahead of the schedule trigger.</p>
                 </div>
 
                 {/* Jitter */}
                 <div className="space-y-2">
-                    <label className="text-[7px] font-bold uppercase text-gray-600 tracking-widest">Jitter</label>
+                    <label className="text-xs font-bold uppercase text-gray-600 tracking-widest">Jitter</label>
                     <div className="flex items-center gap-3">
                         <input
                             type="range"
@@ -97,20 +97,20 @@ const SchedulesDropsTab: React.FC<SchedulesDropsTabProps> = ({ fleetConfig, onNo
                         />
                         <span className="text-xs font-bold text-white/60 w-16 text-right font-space-mono">{jitterMs}ms</span>
                     </div>
-                    <p className="text-[8px] text-gray-600">Random jitter added to each worker's start time to avoid thundering herd.</p>
+                    <p className="text-xs text-gray-600">Random jitter added to each worker's start time to avoid thundering herd.</p>
                 </div>
 
                 {/* Drop schedule */}
                 <div className="space-y-2 pt-2 border-t border-white/5">
-                    <label className="text-[7px] font-bold uppercase text-gray-600 tracking-widest">Scheduled Drops</label>
+                    <label className="text-xs font-bold uppercase text-gray-600 tracking-widest">Scheduled Drops</label>
                     {fleetConfig?.scheduledDrops?.length === 0 ? (
-                        <p className="text-[9px] text-gray-600">No scheduled drops configured.</p>
+                        <p className="text-xs text-gray-600">No scheduled drops configured.</p>
                     ) : (
                         <div className="space-y-1">
                             {fleetConfig?.scheduledDrops?.map((drop: any, i: number) => (
                                 <div key={i} className="flex justify-between items-center bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2">
-                                    <span className="text-[9px] font-mono text-gray-400">{drop.cronExpr}</span>
-                                    <span className="text-[9px] text-gray-500">{drop.description || '—'}</span>
+                                    <span className="text-xs font-mono text-gray-400">{drop.cronExpr}</span>
+                                    <span className="text-xs text-gray-500">{drop.description || '—'}</span>
                                 </div>
                             ))}
                         </div>
@@ -119,7 +119,7 @@ const SchedulesDropsTab: React.FC<SchedulesDropsTabProps> = ({ fleetConfig, onNo
 
                 <button
                     onClick={handleSaveSchedule}
-                    className="w-full py-2.5 rounded-xl bg-cyan-400 text-black text-[9px] font-bold uppercase tracking-widest hover:scale-[1.02] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+                    className="w-full py-2.5 rounded-xl bg-cyan-400 text-black text-xs font-bold uppercase tracking-widest hover:scale-[1.02] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
                 >
                     Save Schedule
                 </button>

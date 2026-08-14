@@ -49,25 +49,25 @@ const TaskMatrixTab: React.FC<TaskMatrixTabProps> = ({ workers, rows, fleetConfi
                 <div className="grid grid-cols-4 gap-2">
                     <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-3 text-center">
                         <div className="text-2xl font-bold text-cyan-400">{summary.running}</div>
-                        <div className="text-[7px] font-bold uppercase text-gray-500 tracking-widest">Running</div>
+                        <div className="text-xs font-bold uppercase text-gray-500 tracking-widest">Running</div>
                     </div>
                     <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-3 text-center">
                         <div className="text-2xl font-bold text-gray-400">{summary.idle}</div>
-                        <div className="text-[7px] font-bold uppercase text-gray-500 tracking-widest">Idle</div>
+                        <div className="text-xs font-bold uppercase text-gray-500 tracking-widest">Idle</div>
                     </div>
                     <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-3 text-center">
                         <div className="text-2xl font-bold text-green-400">{summary.success}</div>
-                        <div className="text-[7px] font-bold uppercase text-gray-500 tracking-widest">Success</div>
+                        <div className="text-xs font-bold uppercase text-gray-500 tracking-widest">Success</div>
                     </div>
                     <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-3 text-center">
                         <div className="text-2xl font-bold text-red-400">{summary.failed}</div>
-                        <div className="text-[7px] font-bold uppercase text-gray-500 tracking-widest">Failed</div>
+                        <div className="text-xs font-bold uppercase text-gray-500 tracking-widest">Failed</div>
                     </div>
                 </div>
 
                 {/* Matrix grid header */}
                 <div className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden">
-                    <div className="grid grid-cols-[40px_120px_120px_80px_80px_100px_120px_60px] gap-px bg-white/5 text-[7px] font-bold uppercase text-gray-500 px-2 h-7 items-center">
+                    <div className="grid grid-cols-[40px_120px_120px_80px_80px_100px_120px_60px] gap-px bg-white/5 text-xs font-bold uppercase text-gray-500 px-2 h-7 items-center">
                         <div>#</div>
                         <div>Worker ID</div>
                         <div>Active Node</div>
@@ -86,7 +86,7 @@ const TaskMatrixTab: React.FC<TaskMatrixTabProps> = ({ workers, rows, fleetConfi
                         workers.map((w, i) => (
                             <div
                                 key={w.id}
-                                className="grid grid-cols-[40px_120px_120px_80px_80px_100px_120px_60px] gap-px bg-white/[0.02] text-[10px] px-2 h-8 items-center"
+                                className="grid grid-cols-[40px_120px_120px_80px_80px_100px_120px_60px] gap-px bg-white/[0.02] text-xs px-2 h-8 items-center"
                             >
                                 <div className="text-gray-600">{i + 1}</div>
                                 <div className="truncate">
@@ -112,7 +112,7 @@ const TaskMatrixTab: React.FC<TaskMatrixTabProps> = ({ workers, rows, fleetConfi
                                     )}
                                 </div>
                                 <div>
-                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border ${STATUS_COLORS[w.status] || STATUS_COLORS.IDLE}`}>
+                                    <span className={`px-1.5 py-0.5 rounded text-xs font-bold uppercase border ${STATUS_COLORS[w.status] || STATUS_COLORS.IDLE}`}>
                                         {w.status}
                                     </span>
                                 </div>
@@ -136,17 +136,17 @@ const TaskMatrixTab: React.FC<TaskMatrixTabProps> = ({ workers, rows, fleetConfi
                 {/* Controls section */}
                 <div className="flex flex-col gap-3 pt-2 border-t border-white/5">
                     <div className="flex gap-4 items-center">
-                        <label className="text-[7px] font-bold uppercase text-gray-500">Proxy Binding</label>
+                        <label className="text-xs font-bold uppercase text-gray-500">Proxy Binding</label>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => onProxyBind('STICKY_AUTO_BIND')}
-                                className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all ${fleetConfig?.proxyBindMode === 'STICKY_AUTO_BIND' ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/50' : 'bg-white/5 text-white/50 hover:bg-white/10'} focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50`}
+                                className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all ${fleetConfig?.proxyBindMode === 'STICKY_AUTO_BIND' ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/50' : 'bg-white/5 text-white/50 hover:bg-white/10'} focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50`}
                             >
                                 Sticky Auto-Bind
                             </button>
                             <button
                                 onClick={() => onProxyBind('POOL_ROTATION')}
-                                className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all ${fleetConfig?.proxyBindMode === 'POOL_ROTATION' ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/50' : 'bg-white/5 text-white/50 hover:bg-white/10'} focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50`}
+                                className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all ${fleetConfig?.proxyBindMode === 'POOL_ROTATION' ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/50' : 'bg-white/5 text-white/50 hover:bg-white/10'} focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50`}
                             >
                                 Pool Rotation
                             </button>
@@ -154,13 +154,13 @@ const TaskMatrixTab: React.FC<TaskMatrixTabProps> = ({ workers, rows, fleetConfi
                     </div>
 
                     <div className="flex gap-4 items-center">
-                        <label className="text-[7px] font-bold uppercase text-gray-500">Under-Row Fallback</label>
+                        <label className="text-xs font-bold uppercase text-gray-500">Under-Row Fallback</label>
                         <div className="flex gap-2 flex-wrap">
                             {(['STOP', 'LOOP', 'REVERSE_LOOP', 'RANDOM'] as const).map((strategy) => (
                                 <button
                                     key={strategy}
                                     onClick={() => onFallbackStrategy(strategy)}
-                                    className={`px-3 py-1 rounded-lg text-[9px] font-bold uppercase transition-all ${fleetConfig?.fallbackStrategy === strategy ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/50' : 'bg-white/5 text-white/50 hover:bg-white/10'} focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50`}
+                                    className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all ${fleetConfig?.fallbackStrategy === strategy ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/50' : 'bg-white/5 text-white/50 hover:bg-white/10'} focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50`}
                                 >
                                     {strategy.replace('_', ' ')}
                                 </button>
@@ -169,7 +169,7 @@ const TaskMatrixTab: React.FC<TaskMatrixTabProps> = ({ workers, rows, fleetConfi
                     </div>
 
                     <div className="flex gap-4 items-center">
-                        <label className="text-[7px] font-bold uppercase text-gray-500">Total Rows</label>
+                        <label className="text-xs font-bold uppercase text-gray-500">Total Rows</label>
                         <span className="text-xs font-bold text-white/60">{rows.length} row(s)</span>
                     </div>
                 </div>

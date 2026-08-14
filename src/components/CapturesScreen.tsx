@@ -91,7 +91,7 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                     <div className="flex items-center gap-4">
                         <div className="space-y-2">
                             <h2 className="text-2xl font-medium tracking-[0.25em] text-white uppercase">All Captures</h2>
-                            <div className="text-[8px] text-gray-500 uppercase tracking-[0.2em]">
+                            <div className="text-xs text-gray-500 uppercase tracking-[0.2em]">
                                 Recordings and screenshots from every run
                             </div>
                         </div>
@@ -102,7 +102,7 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                             onClick={loadCaptures}
                             disabled={loading}
                             aria-busy={loading}
-                            className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 inline-flex items-center gap-2"
+                            className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 inline-flex items-center gap-2"
                             title="Refresh captures"
                             aria-label="Refresh captures"
                         >
@@ -111,7 +111,7 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                         </button>
                         <button
                             onClick={clearCaptures}
-                            className="w-10 h-10 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                            className="w-10 h-10 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                             title="Clear all"
                             aria-label="Clear all captures"
                         >
@@ -119,7 +119,7 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                         </button>
                         <button
                             onClick={() => navigate('/executions')}
-                            className="px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all inline-flex items-center gap-2"
+                            className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all inline-flex items-center gap-2"
                             title="Go to Executions (Alt + 3)"
                             aria-label="Go to Executions (Alt + 3)"
                         >
@@ -129,9 +129,9 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                     </div>
                 </div>
 
-                <div className="glass-card rounded-[32px] p-8">
+                <div className="glass-card rounded-2xl p-8">
                     {loading && (
-                        <div className="text-[9px] text-gray-500 uppercase tracking-widest flex items-center gap-3">
+                        <div className="text-xs text-gray-500 uppercase tracking-widest flex items-center gap-3">
                             <MaterialIcon name="sync" className="text-base animate-spin" />
                             Loading captures...
                         </div>
@@ -143,13 +143,13 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                             </div>
                             <div className="space-y-2">
                                 <h3 className="text-lg font-bold text-white/80 uppercase tracking-widest">No captures found</h3>
-                                <p className="text-[10px] text-gray-500 max-w-[280px] mx-auto leading-relaxed uppercase tracking-wider">
+                                <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-relaxed uppercase tracking-wider">
                                     Recordings and screenshots will appear here once you run your automation tasks.
                                 </p>
                             </div>
                             <button
                                 onClick={() => navigate('/dashboard')}
-                                className="px-8 py-3 bg-white text-black rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
+                                className="px-8 py-3 bg-white text-black rounded-xl text-xs font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
                             >
                                 Go to Dashboard
                             </button>

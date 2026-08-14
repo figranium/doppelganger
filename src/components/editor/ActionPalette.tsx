@@ -80,12 +80,12 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
             onClick={onClose}
         >
             <div
-                className="glass-card w-full max-w-xl rounded-[28px] border border-white/10 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+                className="glass-card w-full max-w-xl rounded-2xl border border-white/10 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-500">Add Block</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.4em] text-gray-500">Add Block</p>
                         <p className="text-xs text-gray-400 mt-1">Search actions and control flow blocks.</p>
                     </div>
                     <button
@@ -129,12 +129,12 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
                                 role="option"
                                 aria-selected={idx === activeIndex}
                                 onClick={() => onSelect(item.type)}
-                                className={`flex flex-col items-start gap-2 text-left p-4 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${idx === activeIndex ? 'bg-white/10 border-white/30 ring-1 ring-white/20' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/20'}`}
+                                className={`flex flex-col items-start gap-2 text-left p-4 rounded-xl border transition-all hover:scale-[1.02] active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${idx === activeIndex ? 'bg-white/10 border-white/30 ring-1 ring-white/20' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/20'}`}
                             >
                                 <MaterialIcon name={item.icon || 'extension'} className="text-2xl text-white/80 group-hover:text-white transition-colors shrink-0 mb-1" />
                                 <div>
-                                    <div className="text-[11px] font-bold uppercase tracking-widest text-white/90 group-hover:text-white mb-1">{item.label}</div>
-                                    <div className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed">{item.description}</div>
+                                    <div className="text-xs font-bold uppercase tracking-widest text-white/90 group-hover:text-white mb-1">{item.label}</div>
+                                    <div className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{item.description}</div>
                                 </div>
                             </button>
                         ))}
@@ -143,8 +143,8 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
                         <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
                             <MaterialIcon name="search_off" className="text-4xl text-white/10" />
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">No matches found</p>
-                                <p className="text-[10px] text-gray-600">Try a different search term or browse the catalog.</p>
+                                <p className="text-xs font-bold uppercase tracking-widest text-white/40">No matches found</p>
+                                <p className="text-xs text-gray-600">Try a different search term or browse the catalog.</p>
                             </div>
                         </div>
                     )}

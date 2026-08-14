@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import MaterialIcon from '../MaterialIcon';
+import { PanelShell, LoadingState, EmptyState } from '../common/ListState';
 
 interface ProxyEntry {
     id: string;
@@ -58,12 +59,18 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
     const [editIsRotatingPool, setEditIsRotatingPool] = useState(false);
     const [editEstimatedPoolSize, setEditEstimatedPoolSize] = useState('');
     const [importError, setImportError] = useState('');
+    const [addError, setAddError] = useState('');
+    const [editError, setEditError] = useState('');
     const [selectedProxyIds, setSelectedProxyIds] = useState<Set<string>>(new Set());
     const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const submit = () => {
-        if (!server.trim()) return;
+        if (!server.trim()) {
+            setAddError('Server address is required.');
+            return;
+        }
+        setAddError('');
         onAdd({
             server: server.trim(),
             username: username.trim() || undefined,
@@ -81,6 +88,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
     };
 
     const startEdit = (proxy: ProxyEntry) => {
+        setEditError('');
         setEditingId(proxy.id);
         setEditServer(proxy.server);
         setEditUsername(proxy.username || '');
@@ -91,6 +99,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
     };
 
     const cancelEdit = () => {
+        setEditError('');
         setEditingId(null);
         setEditServer('');
         setEditUsername('');
@@ -101,7 +110,12 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
     };
 
     const saveEdit = () => {
-        if (!editingId || !editServer.trim()) return;
+        if (!editingId) return;
+        if (!editServer.trim()) {
+            setEditError('Server address is required.');
+            return;
+        }
+        setEditError('');
         onUpdate(editingId, {
             server: editServer.trim(),
             username: editUsername.trim() || undefined,
@@ -207,36 +221,30 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
     const allSelected = selectableProxies.length > 0 && selectedProxyIds.size >= selectableProxies.length;
 
     return (
-        <div className="glass-card p-8 rounded-[40px] space-y-6">
-            <div className="flex items-center gap-4 mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
-                    <MaterialIcon name="security" className="text-xl" />
-                </div>
-                <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Proxies</h3>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Set defaults and rotate per task</p>
-                </div>
-                <div className="ml-auto">
-                    <button
-                        onClick={onRefresh}
-                        disabled={loading}
-                        className="px-4 py-2 rounded-xl border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all disabled:opacity-50 inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                        title="Refresh proxy list"
-                        aria-label="Refresh proxy list"
-                    >
-                        <MaterialIcon name="sync" className={`text-base ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </button>
-                </div>
-            </div>
-
+        <PanelShell
+            icon="security"
+            title="Proxies"
+            description="Set defaults and rotate per task"
+            headerActions={(
+                <button
+                    onClick={onRefresh}
+                    disabled={loading}
+                    className="px-4 py-2 rounded-xl border border-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all disabled:opacity-50 inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    title="Refresh proxy list"
+                    aria-label="Refresh proxy list"
+                >
+                    <MaterialIcon name="sync" className={`text-base ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                </button>
+            )}
+        >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                     type="text"
                     placeholder="Proxy server (host:port or scheme://host:port)"
                     value={server}
                     onChange={(e) => setServer(e.target.value)}
-                    className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-[10px] text-white"
+                    className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
                     aria-label="Proxy server address"
                 />
                 <input
@@ -244,7 +252,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                     placeholder="Label (optional)"
                     value={label}
                     onChange={(e) => setLabel(e.target.value)}
-                    className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-[10px] text-white"
+                    className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
                     aria-label="Proxy label"
                 />
                 <input
@@ -252,7 +260,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                     placeholder="Username (optional)"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-[10px] text-white"
+                    className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
                     aria-label="Proxy username"
                 />
                 <input
@@ -260,7 +268,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                     placeholder="Password (optional)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-[10px] text-white"
+                    className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
                     aria-label="Proxy password"
                 />
                 <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.05] border border-white/10 group cursor-pointer">
@@ -270,7 +278,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                         onChange={(e) => setIsRotatingPool(e.target.checked)}
                         className="w-4 h-4 rounded border-white/20 bg-transparent"
                     />
-                    <span className="text-[10px] text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors">Rotating pool</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors">Rotating pool</span>
                 </label>
                 {isRotatingPool && (
                     <input
@@ -278,37 +286,40 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                         placeholder="Estimated size (optional)"
                         value={estimatedPoolSize}
                         onChange={(e) => setEstimatedPoolSize(e.target.value)}
-                        className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-[10px] text-white"
+                        className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
                         aria-label="Estimated pool size"
                         min="1"
                     />
                 )}
             </div>
+            {addError && (
+                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{addError}</p>
+            )}
             <div className="flex items-center gap-3">
                 <button
                     onClick={submit}
-                    disabled={loading || !server.trim()}
-                    className="px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest bg-white text-black hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    disabled={loading}
+                    className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-white text-black hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                     {loading && <div className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin" />}
                     Add Proxy
                 </button>
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest border border-white/10 text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border border-white/10 text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 >
                     Import
                 </button>
                 <button
                     onClick={() => onSetDefault('host')}
-                    className={`px-6 py-3 rounded-2xl text-[9px] font-bold uppercase tracking-widest border border-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${defaultProxyId ? 'text-white hover:bg-white/5' : 'bg-white/10 text-white'}`}
+                    className={`px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border border-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${defaultProxyId ? 'text-white hover:bg-white/5' : 'bg-white/10 text-white'}`}
                 >
                     Use Host IP
                 </button>
             </div>
 
             {(selectedProxyIds.size > 0 || selectableProxies.length > 0) && (
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
                     <label className="flex items-center gap-3 cursor-pointer group">
                         <input
                             type="checkbox"
@@ -317,7 +328,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                             disabled={selectableProxies.length === 0}
                             className="w-4 h-4 rounded border-white/20 bg-transparent disabled:opacity-50"
                         />
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-white transition-colors">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white transition-colors">
                             {selectedProxyIds.size > 0 ? `${selectedProxyIds.size} Selected` : 'Select All'}
                         </span>
                     </label>
@@ -325,7 +336,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                     {selectedProxyIds.size > 0 && (
                         <button
                             onClick={handleBulkDelete}
-                            className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-[9px] font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-all inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                            className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-xs font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-all inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         >
                             <MaterialIcon name="delete" className="text-base" />
                             Delete Selected
@@ -342,42 +353,38 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                 className="hidden"
             />
             {importError && (
-                <div className="text-[9px] text-red-400 uppercase tracking-widest">{importError}</div>
+                <div className="text-xs text-red-400 uppercase tracking-widest">{importError}</div>
             )}
-            <label className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Rotation mode</span>
+            <label className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Rotation mode</span>
                 <select
                     value={rotationMode}
                     onChange={(e) => onRotationModeChange(e.target.value === 'random' ? 'random' : 'round-robin')}
-                    className="bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white uppercase tracking-widest"
+                    className="bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs text-white uppercase tracking-widest"
                     aria-label="Rotation mode"
                 >
                     <option value="round-robin">Round robin</option>
                     <option value="random">Random</option>
                 </select>
             </label>
-            <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all cursor-pointer group">
+            <label className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all cursor-pointer group">
                 <input
                     type="checkbox"
                     checked={includeDefaultInRotation}
                     onChange={(e) => onToggleIncludeDefault(e.target.checked)}
                     className="w-4 h-4 rounded border-white/20 bg-transparent"
                 />
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Include default IP in rotation pool</span>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Include default IP in rotation pool</span>
             </label>
 
             <div className="space-y-3">
-                {loading && (
-                    <div className="text-[9px] text-gray-500 uppercase tracking-widest">Loading proxies...</div>
-                )}
-                {!loading && proxies.length === 0 && (
-                    <div className="text-[9px] text-gray-600 uppercase tracking-widest">No proxies saved yet.</div>
-                )}
+                {loading && <LoadingState label="proxies" />}
+                {!loading && proxies.length === 0 && <EmptyState label="proxies" />}
                 {!loading && proxies.map((proxy) => {
                     const isDefault = proxy.id === defaultProxyId;
                     const isEditing = proxy.id === editingId;
                     return (
-                        <div key={proxy.id} className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+                        <div key={proxy.id} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
                             {isEditing ? (
                                 <div className="w-full space-y-3">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -385,7 +392,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                             type="text"
                                             value={editServer}
                                             onChange={(e) => setEditServer(e.target.value)}
-                                            className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-[10px] text-white"
+                                            className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-xs text-white"
                                             placeholder="Proxy server"
                                             aria-label="Proxy server"
                                         />
@@ -393,7 +400,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                             type="text"
                                             value={editLabel}
                                             onChange={(e) => setEditLabel(e.target.value)}
-                                            className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-[10px] text-white"
+                                            className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-xs text-white"
                                             placeholder="Label"
                                             aria-label="Label"
                                         />
@@ -401,7 +408,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                             type="text"
                                             value={editUsername}
                                             onChange={(e) => setEditUsername(e.target.value)}
-                                            className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-[10px] text-white"
+                                            className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-xs text-white"
                                             placeholder="Username"
                                             aria-label="Username"
                                         />
@@ -410,7 +417,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                             value={editPassword}
                                             onChange={(e) => setEditPassword(e.target.value)}
                                             placeholder="Password (leave blank to keep)"
-                                            className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-[10px] text-white"
+                                            className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-xs text-white"
                                             aria-label="Password"
                                         />
                                         <label className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/10 group cursor-pointer">
@@ -420,7 +427,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                                 onChange={(e) => setEditIsRotatingPool(e.target.checked)}
                                                 className="w-3.5 h-3.5 rounded border-white/20 bg-transparent"
                                             />
-                                            <span className="text-[10px] text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors">Rotating pool</span>
+                                            <span className="text-xs text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors">Rotating pool</span>
                                         </label>
                                         {editIsRotatingPool && (
                                             <input
@@ -428,16 +435,19 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                                 placeholder="Estimated size"
                                                 value={editEstimatedPoolSize}
                                                 onChange={(e) => setEditEstimatedPoolSize(e.target.value)}
-                                                className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-[10px] text-white"
+                                                className="bg-white/[0.05] border border-white/10 rounded-xl px-4 py-2 text-xs text-white"
                                                 aria-label="Estimated pool size"
                                                 min="1"
                                             />
                                         )}
                                     </div>
+                                    {editError && (
+                                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{editError}</p>
+                                    )}
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={saveEdit}
-                                            className="px-3 py-2 rounded-xl border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                            className="px-3 py-2 rounded-xl border border-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                             title="Save proxy changes"
                                             aria-label="Save proxy changes"
                                         >
@@ -445,7 +455,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                         </button>
                                         <button
                                             onClick={cancelEdit}
-                                            className="px-3 py-2 rounded-xl border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/70 hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                            className="px-3 py-2 rounded-xl border border-white/10 text-xs font-bold uppercase tracking-widest text-white/70 hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                             title="Cancel editing"
                                             aria-label="Cancel editing"
                                         >
@@ -474,14 +484,14 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                         )}
                                     </div>
                                     <div className="flex-1 space-y-1">
-                                        <div className="text-[10px] font-bold text-white uppercase tracking-widest">
+                                        <div className="text-xs font-bold text-white uppercase tracking-widest">
                                             {proxy.label || proxy.server}
                                         </div>
-                                        <div className="text-[9px] text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                        <div className="text-xs text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                             <span>{proxy.server}</span>
                                             {proxy.isRotatingPool && (
                                                 <span className="px-1.5 py-0.5 rounded bg-white/10 text-white font-bold inline-flex items-center gap-1">
-                                                    <MaterialIcon name="autorenew" className="text-[10px]" />
+                                                    <MaterialIcon name="autorenew" className="text-xs" />
                                                     Pool
                                                     {proxy.estimatedPoolSize ? `(~${proxy.estimatedPoolSize})` : ''}
                                                 </span>
@@ -491,7 +501,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => onSetDefault(proxy.id)}
-                                            className={`px-3 py-2 rounded-xl border text-[9px] font-bold uppercase tracking-widest transition-all inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 ${isDefault ? 'bg-white text-black border-white focus-visible:ring-blue-500' : 'border-white/10 text-white hover:bg-white/5 focus-visible:ring-white/50'}`}
+                                            className={`px-3 py-2 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 ${isDefault ? 'bg-white text-black border-white focus-visible:ring-blue-500' : 'border-white/10 text-white hover:bg-white/5 focus-visible:ring-white/50'}`}
                                             title={isDefault ? "Current default proxy" : "Set as default proxy"}
                                             aria-label={isDefault ? "Current default proxy" : "Set as default proxy"}
                                         >
@@ -502,7 +512,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                             <>
                                                 <button
                                                     onClick={() => startEdit(proxy)}
-                                                    className="px-3 py-2 rounded-xl border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                                    className="px-3 py-2 rounded-xl border border-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                                     title="Edit proxy"
                                                     aria-label="Edit proxy"
                                                 >
@@ -510,7 +520,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                                 </button>
                                                 <button
                                                     onClick={() => onDelete(proxy.id)}
-                                                    className="px-3 py-2 rounded-xl border border-red-500/20 text-[9px] font-bold uppercase tracking-widest text-red-300 hover:bg-red-500/10 transition-all inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                                    className="px-3 py-2 rounded-xl border border-red-500/20 text-xs font-bold uppercase tracking-widest text-red-300 hover:bg-red-500/10 transition-all inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                                     title="Delete proxy"
                                                     aria-label="Delete proxy"
                                                 >
@@ -526,7 +536,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                     );
                 })}
             </div>
-        </div>
+        </PanelShell>
     );
 };
 

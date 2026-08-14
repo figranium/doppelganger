@@ -50,11 +50,11 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
 
     const modal = isOpen ? createPortal(
         <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6" onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); }}>
-            <div className="glass-card w-full max-w-lg rounded-[28px] border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-8 max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <div className="glass-card w-full max-w-lg rounded-2xl border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-8 max-h-[85vh]" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between shrink-0">
                     <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-500">Extraction Script</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.4em] text-gray-500">Extraction Script</p>
                         <p className="text-xs text-gray-400 mt-1">Runs after page actions. Return data to capture it.</p>
                     </div>
                     <button onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); }} className="p-2 rounded-xl text-white/40 hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
@@ -67,10 +67,10 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                     {/* AI prompt row */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                            <label className="text-[7px] font-bold text-gray-600 uppercase tracking-widest pl-1">Script</label>
+                            <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Script</label>
                             <button
                                 onClick={() => { setShowAiPrompt(v => !v); setAiError(null); }}
-                                className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+                                className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors"
                                 title="Generate with AI"
                             >
                                 <MaterialIcon name="auto_awesome" className="text-sm" />
@@ -86,15 +86,15 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                                     onChange={e => setAiDescription(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter' && !aiLoading) handleGenerate(); }}
                                     placeholder="e.g. extract all article titles and links"
-                                    className="bg-transparent text-[11px] text-white placeholder-gray-600 focus:outline-none"
+                                    className="bg-transparent text-xs text-white placeholder-gray-600 focus:outline-none"
                                 />
-                                {aiError && <p className="text-[9px] text-red-400">{aiError}</p>}
+                                {aiError && <p className="text-xs text-red-400">{aiError}</p>}
                                 <div className="flex justify-end gap-2">
-                                    <button onClick={() => { setShowAiPrompt(false); setAiError(null); }} className="text-[8px] font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Cancel</button>
+                                    <button onClick={() => { setShowAiPrompt(false); setAiError(null); }} className="text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Cancel</button>
                                     <button
                                         onClick={handleGenerate}
                                         disabled={aiLoading || !aiDescription.trim()}
-                                        className="px-3 py-1 rounded-lg bg-white text-black text-[8px] font-bold uppercase tracking-widest hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                        className="px-3 py-1 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                                     >
                                         {aiLoading && <MaterialIcon name="autorenew" className="text-xs animate-spin" />}
                                         {aiLoading ? 'Generating…' : 'Generate'}
@@ -116,12 +116,12 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
 
                     {/* Format */}
                     <div className="space-y-1.5">
-                        <label className="text-[7px] font-bold text-gray-600 uppercase tracking-widest pl-1">Output Format</label>
+                        <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Output Format</label>
                         <div className="bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 focus-within:border-white/20 transition-all">
                             <select
                                 value={task.extractionFormat || 'json'}
                                 onChange={e => { onUpdate({ extractionFormat: e.target.value as 'json' | 'csv' }); }}
-                                className="custom-select w-full bg-transparent border-none px-0 py-0 text-[11px] text-white"
+                                className="custom-select w-full bg-transparent border-none px-0 py-0 text-xs text-white"
                             >
                                 <option value="json">JSON</option>
                                 <option value="csv">CSV</option>
@@ -130,7 +130,7 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                     </div>
                 </div>
 
-                <button onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); onAutoSave(); }} className="shrink-0 w-full py-3 rounded-2xl bg-white text-black text-[10px] font-bold uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none">
+                <button onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); onAutoSave(); }} className="shrink-0 w-full py-3 rounded-xl bg-white text-black text-xs font-bold uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none">
                     Done
                 </button>
             </div>
@@ -151,7 +151,7 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
             >
                 <button
                     onClick={() => { setContextMenu(null); onDelete(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-red-400 hover:bg-white/5 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition-colors"
                 >
                     <MaterialIcon name="delete" className="text-sm" />
                     Remove extraction script
@@ -167,15 +167,15 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                 onClick={() => setIsOpen(true)}
                 onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
                 data-interactive-target="true"
-                className="bg-black min-w-[280px] w-full max-w-sm mx-auto border border-white/20 p-5 rounded-2xl group/item relative transition-all duration-150 select-none touch-none cursor-pointer hover:border-white/40 hover:bg-white/[0.02]"
+                className="bg-black min-w-[280px] w-full max-w-sm mx-auto border border-white/20 p-5 rounded-xl group/item relative transition-all duration-150 select-none touch-none cursor-pointer hover:border-white/40 hover:bg-white/[0.02]"
             >
                 <div className="flex items-center gap-3 min-w-0">
                     <div className="w-4 h-4 flex items-center justify-center shrink-0">
                         <MaterialIcon name="data_object" className="text-[12px] text-white" />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white shrink-0">Extraction Script</span>
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-white shrink-0">Extraction Script</span>
                     {scriptPreview && (
-                        <span className="text-white/40 text-[9px] font-mono truncate min-w-0 pointer-events-none">
+                        <span className="text-white/40 text-xs font-mono truncate min-w-0 pointer-events-none">
                             {scriptPreview.trim()}
                         </span>
                     )}
@@ -356,7 +356,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                         </div>
                         <div className="flex gap-16 mt-4 relative">
                             <div className="flex flex-col items-center min-w-[200px]">
-                                <div className="text-[8px] font-bold text-white/60 uppercase tracking-widest mb-2">
+                                <div className="text-xs font-bold text-white/60 uppercase tracking-widest mb-2">
                                     {action.type === 'while' ? 'Loop' : 'True'}
                                 </div>
                                 <div className="w-px h-6 bg-white/25" />
@@ -377,7 +377,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                             </div>
                             {action.type === 'if' && (
                                 <div className="flex flex-col items-center min-w-[200px]">
-                                    <div className="text-[8px] font-bold text-white/60 uppercase tracking-widest mb-2">Otherwise</div>
+                                    <div className="text-xs font-bold text-white/60 uppercase tracking-widest mb-2">Otherwise</div>
                                     <div className="w-px h-6 bg-white/25" />
                                     <div className="flex flex-col items-center gap-3">
                                         {falseStart !== -1 ? buildAst(falseStart, falseEnd, _depth + 1) : null}
@@ -514,7 +514,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                 ))}
 
                 <div className="relative z-10 flex flex-col items-center pointer-events-none" style={{ paddingTop: '60px', minWidth: '500px' }}>
-                    <div className="w-[360px] bg-black border border-white/15 p-5 rounded-2xl shadow-2xl shadow-black/50 select-text cursor-auto relative z-10 pointer-events-auto">
+                    <div className="w-[360px] bg-black border border-white/15 p-5 rounded-xl shadow-2xl shadow-black/50 select-text cursor-auto relative z-10 pointer-events-auto">
                         <div className="flex items-center justify-between">
                             <button
                                 type="button"
@@ -525,7 +525,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 className="flex items-center gap-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-lg pr-2 transition-all"
                             >
                                 <MaterialIcon name="bolt" className="text-white/40 text-base" />
-                                <h3 className="text-white/60 font-bold tracking-widest uppercase text-[10px]">On Execution</h3>
+                                <h3 className="text-white/60 font-bold tracking-widest uppercase text-xs">On Execution</h3>
                                 <MaterialIcon name={triggerExpanded ? 'expand_less' : 'expand_more'} className="text-xs text-gray-600" />
                             </button>
                             <button
@@ -538,12 +538,12 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                             </button>
                         </div>
                         {currentTask.description && (
-                            <p className="text-[10px] text-gray-500 mt-2 leading-relaxed">{currentTask.description}</p>
+                            <p className="text-xs text-gray-500 mt-2 leading-relaxed">{currentTask.description}</p>
                         )}
                         {triggerExpanded && (
                             <div className="space-y-4 mt-4 pt-3 border-t border-white/10">
                                 <div className="space-y-1.5">
-                                    <label className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em]">URL</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">URL</label>
                                     <div className="w-full bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-sm focus-within:border-white/30 transition-all">
                                         <RichInput
                                             value={currentTask.url}
@@ -555,7 +555,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[8px] font-bold text-gray-500 uppercase tracking-[0.2em]">Wait (sec)</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Wait (sec)</label>
                                     <input
                                         type="number"
                                         value={currentTask.wait}
@@ -581,10 +581,10 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <button
                                     onClick={() => { const t = { ...currentTask, extractionScript: '' }; setCurrentTask(t); handleAutoSave(t); }}
                                     data-interactive-target="true"
-                                    className="w-full border border-dashed border-white/15 rounded-2xl p-5 hover:border-white/30 hover:bg-white/[0.03] transition-all flex items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                    className="w-full border border-dashed border-white/15 rounded-xl p-5 hover:border-white/30 hover:bg-white/[0.03] transition-all flex items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                 >
                                     <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
-                                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-300 transition-colors">Add Extraction Script</span>
+                                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-300 transition-colors">Add Extraction Script</span>
                                 </button>
                             )}
                         </div>
@@ -597,14 +597,14 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     <div className="w-px h-6 bg-white/10" />
                                     <button
                                         onClick={() => openActionPalette()}
-                                        className="w-[360px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-2xl p-6 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                        className="w-[360px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-xl p-6 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                         aria-label="Add action (Ctrl + K)"
                                         title="Add action (Ctrl + K)"
                                     >
                                         <div className="w-10 h-10 rounded-xl bg-white/5 group-hover:bg-white/10 transition-all flex items-center justify-center">
                                             <MaterialIcon name="add" className="text-2xl text-gray-500 group-hover:text-white transition-colors" />
                                         </div>
-                                        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-300 transition-colors">Add Action</span>
+                                        <span className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-300 transition-colors">Add Action</span>
                                     </button>
                                 </div>
                                 <div className="w-px h-6 bg-white/25" />
@@ -620,10 +620,10 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                         <button
                                             onClick={() => { const t = { ...currentTask, extractionScript: '' }; setCurrentTask(t); handleAutoSave(t); }}
                                             data-interactive-target="true"
-                                            className="w-full border border-dashed border-white/15 rounded-2xl p-5 hover:border-white/30 hover:bg-white/[0.03] transition-all flex items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                            className="w-full border border-dashed border-white/15 rounded-xl p-5 hover:border-white/30 hover:bg-white/[0.03] transition-all flex items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                         >
                                             <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
-                                            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-300 transition-colors">Add Extraction Script</span>
+                                            <span className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-300 transition-colors">Add Extraction Script</span>
                                         </button>
                                     )}
                                 </div>
@@ -650,7 +650,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setCanvasContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setCanvasContextMenu(null); }} />
                     <div
-                        className="fixed z-50 w-[180px] bg-[#0b0b0b] border border-white/10 rounded-xl shadow-2xl p-2 text-[10px] font-bold uppercase tracking-widest text-white/80"
+                        className="fixed z-50 w-[180px] bg-[#0b0b0b] border border-white/10 rounded-xl shadow-2xl p-2 text-xs font-bold uppercase tracking-widest text-white/80"
                         style={{ left: canvasContextMenu.x, top: canvasContextMenu.y }}
                     >
                         <button

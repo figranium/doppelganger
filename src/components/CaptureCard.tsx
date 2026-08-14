@@ -21,9 +21,9 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
     const fullUrl = new URL(capture.url, window.location.origin).toString();
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
             <div className="p-3 border-b border-white/10 flex items-center justify-between">
-                <div className="text-[9px] font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
+                <div className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
                     <MaterialIcon
                         name={capture.type === 'recording' ? 'play_circle' : 'photo_camera'}
                         className="text-xs text-white/50"
@@ -76,10 +76,10 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
                 )}
             </div>
             <div className="p-3 border-t border-white/5 bg-white/[0.01]">
-                <div className="text-[9px] text-white font-bold uppercase tracking-widest truncate" title={capture.name}>
+                <div className="text-xs text-white font-bold uppercase tracking-widest truncate" title={capture.name}>
                     {capture.name}
                 </div>
-                <div className="flex items-center justify-between mt-1 text-[8px] text-gray-500 uppercase tracking-widest">
+                <div className="flex items-center justify-between mt-1 text-xs text-gray-500 uppercase tracking-widest">
                     <span>{formatBytes(capture.size)}</span>
                     <span>{new Date(capture.modified).toLocaleDateString()}</span>
                 </div>

@@ -25,7 +25,7 @@ const SettingsHeader: React.FC<SettingsHeaderProps> = ({ tab, onTabChange }) => 
                         role="tab"
                         aria-selected={tab === t}
                         onClick={() => onTabChange(t)}
-                        className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all focus:outline-none focus-visible:ring-2 flex items-center gap-2 ${tab === t ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
+                        className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all focus:outline-none focus-visible:ring-2 flex items-center gap-2 ${tab === t ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
                     >
                         <MaterialIcon name={TAB_ICONS[t]} className="text-[14px]" />
                         {t}

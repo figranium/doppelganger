@@ -66,7 +66,7 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
     };
 
     return (
-        <div className="glass-card theme-border rounded-[24px] p-5 mb-6 flex flex-col items-stretch gap-4 animate-in fade-in slide-in-from-top-4 duration-500 relative overflow-hidden" style={{ backgroundColor: 'var(--app-surface-2)' }}>
+        <div className="glass-card theme-border rounded-2xl p-5 mb-6 flex flex-col items-stretch gap-4 animate-in fade-in slide-in-from-top-4 duration-500 relative overflow-hidden" style={{ backgroundColor: 'var(--app-surface-2)' }}>
             <div className="absolute top-0 left-0 w-1.5 h-full theme-accent-bg" style={{ backgroundColor: 'var(--app-accent)' }} />
 
             <div className="flex items-start gap-4">
@@ -77,11 +77,11 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
                     <h4 className="text-xs font-bold uppercase tracking-widest text-white leading-snug" style={{ color: 'var(--app-text)' }}>
                         Success! Figranium executed perfectly. ⭐
                     </h4>
-                    <p className="text-[10px] uppercase tracking-wider leading-relaxed text-gray-400" style={{ color: 'var(--app-text-faint)' }}>
+                    <p className="text-xs uppercase tracking-wider leading-relaxed text-gray-400" style={{ color: 'var(--app-text-faint)' }}>
                         Figranium is open-source. If it saved you time, support us with a GitHub star! It takes 5 seconds.
                     </p>
                     {helperText && (
-                        <p className="text-[10px] font-medium text-amber-400 mt-1 animate-pulse">
+                        <p className="text-xs font-medium text-amber-400 mt-1 animate-pulse">
                             {helperText}
                         </p>
                     )}
@@ -91,7 +91,7 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
             <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5">
                 <button
                     onClick={handleStarClick}
-                    className="flex-1 px-3 py-2 rounded-xl border text-[9px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 hover:scale-102 active:scale-98 bg-transparent"
+                    className="flex-1 px-3 py-2 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 hover:scale-102 active:scale-98 bg-transparent"
                     style={{ borderColor: 'var(--app-border)', color: 'var(--app-text)' }}
                 >
                     <MaterialIcon name="star_border" className="text-sm" />
@@ -99,7 +99,7 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
                 </button>
                 <button
                     onClick={handleStarredConfirm}
-                    className="flex-1 px-3 py-2 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 hover:scale-102 active:scale-98"
+                    className="flex-1 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 hover:scale-102 active:scale-98"
                     style={{
                         backgroundColor: hasOpenedUrl ? 'var(--app-accent)' : 'var(--app-surface-3)',
                         color: hasOpenedUrl ? 'var(--app-accent-text)' : 'var(--app-text-faint)',

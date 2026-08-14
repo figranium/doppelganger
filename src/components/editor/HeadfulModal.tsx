@@ -39,11 +39,11 @@ const HeadfulModal: React.FC<HeadfulModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md flex items-center justify-center p-8 pointer-events-auto">
-            <div className="w-full max-w-6xl bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
+            <div className="w-full max-w-6xl bg-black/60 backdrop-blur-3xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 border-b border-white/10 bg-black/20 gap-4">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-white">Active Browser Session</span>
+                            <span className="text-xs font-bold uppercase tracking-widest text-white">Active Browser Session</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -51,7 +51,7 @@ const HeadfulModal: React.FC<HeadfulModalProps> = ({
                             type="button"
                             onClick={onToggleInspect}
                             disabled={isInspectLoading || isExecuting}
-                            className={`px-3 py-1.5 rounded-xl border text-[9px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${isInspectMode
+                            className={`px-3 py-1.5 rounded-xl border text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${isInspectMode
                                 ? 'border-green-500/30 bg-green-500/20 text-green-400 hover:bg-green-500/30'
                                 : 'border-white/10 text-white/60 hover:text-white hover:bg-white/10'}`}
                             title={isInspectMode ? 'Stop inspecting elements' : 'Highlight elements on hover'}

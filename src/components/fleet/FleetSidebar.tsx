@@ -18,7 +18,7 @@ const FleetSidebar: React.FC<FleetSidebarProps> = ({ activeTab, onTabChange }) =
     return (
         <aside className="w-64 h-full border-r border-white/10 bg-[#0a0a0a] flex flex-col overflow-y-auto custom-scrollbar shrink-0">
             <div className="p-4">
-                <p className="text-[7px] font-bold text-gray-600 uppercase tracking-widest pl-1 mb-3">Fleet Console</p>
+                <p className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1 mb-3">Fleet Console</p>
                 <div className="flex flex-col gap-1">
                     {tabs.map((tab) => (
                         <button
@@ -39,21 +39,21 @@ const FleetSidebar: React.FC<FleetSidebarProps> = ({ activeTab, onTabChange }) =
 
             {/* Quick status strip */}
             <div className="mt-auto p-3 border-t border-white/10">
-                <div className="grid grid-cols-2 gap-2 text-[9px]">
+                <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-1.5 text-gray-500">
-                        <MaterialIcon name="circle" className="text-[6px] text-cyan-400" />
+                        <MaterialIcon name="circle" className="text-xs text-cyan-400" />
                         <span>Active workers</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-500">
-                        <MaterialIcon name="circle" className="text-[6px] text-green-400" />
+                        <MaterialIcon name="circle" className="text-xs text-green-400" />
                         <span>Healthy proxies</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-500">
-                        <MaterialIcon name="circle" className="text-[6px] text-yellow-400" />
+                        <MaterialIcon name="circle" className="text-xs text-yellow-400" />
                         <span>Signals live</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-gray-500">
-                        <MaterialIcon name="circle" className="text-[6px] text-white/20" />
+                        <MaterialIcon name="circle" className="text-xs text-white/20" />
                         <span>System ready</span>
                     </div>
                 </div>
