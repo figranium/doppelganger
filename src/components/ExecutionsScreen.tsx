@@ -151,6 +151,9 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                     <div className="flex items-center gap-4">
                         <div className="space-y-2">
                             <h2 className="text-4xl font-bold text-white">Run History</h2>
+                            <div className="text-xs text-gray-500 uppercase tracking-[0.2em]">
+                                Past task executions and their results
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">

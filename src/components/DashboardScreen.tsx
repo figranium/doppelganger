@@ -63,7 +63,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                 <div className="h-full flex flex-col px-6 py-8 md:px-12 md:py-12 max-w-7xl mx-auto space-y-8 md:space-y-12 w-full">
                     <div className="relative flex flex-wrap items-center justify-between gap-6">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-4xl font-bold theme-text shrink-0">Dashboard</h2>
+                            <div className="space-y-2">
+                                <h2 className="text-4xl font-bold theme-text shrink-0">Dashboard</h2>
+                                <div className="text-xs text-gray-500 uppercase tracking-[0.2em]">
+                                    Your automation tasks
+                                </div>
+                            </div>
                         </div>
                         <div className="flex items-center gap-5">
                             {tasks.length > 0 && (
@@ -132,36 +137,36 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                         </div>
                     </div>
 
-                    <div className="relative flex-1 min-h-0">
-                        <div className="pointer-events-none absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-theme-bg via-theme-bg/50 to-transparent z-10" />
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 content-start gap-6 overflow-y-auto custom-scrollbar pb-12 pr-4 h-full">
-                            {searchQuery && filteredTasks.length === 0 && (
-                                <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4">
-                                    <MaterialIcon name="search_off" className="text-5xl text-white/10" />
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">No matching tasks</p>
-                                        <p className="text-xs text-gray-600">Try a different search term or clear the filter.</p>
+                    {tasks.length > 0 ? (
+                        <div className="relative flex-1 min-h-0">
+                            <div className="pointer-events-none absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-theme-bg via-theme-bg/50 to-transparent z-10" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 content-start gap-6 overflow-y-auto custom-scrollbar pb-12 pr-4 h-full">
+                                {searchQuery && filteredTasks.length === 0 && (
+                                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center space-y-4">
+                                        <MaterialIcon name="search_off" className="text-5xl text-white/10" />
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">No matching tasks</p>
+                                            <p className="text-xs text-gray-600">Try a different search term or clear the filter.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="text-xs font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
+                                        >
+                                            Clear Filter
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => setSearchQuery('')}
-                                        className="text-xs font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
-                                    >
-                                        Clear Filter
-                                    </button>
-                                </div>
-                            )}
-                            {filteredTasks.map(task => (
-                                <TaskCard
-                                    key={task.id}
-                                    task={task}
-                                    onEditTask={onEditTask}
-                                    onDeleteTask={onDeleteTask}
-                                />
-                            ))}
+                                )}
+                                {filteredTasks.map(task => (
+                                    <TaskCard
+                                        key={task.id}
+                                        task={task}
+                                        onEditTask={onEditTask}
+                                        onDeleteTask={onDeleteTask}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </div>
-
-                    {tasks.length === 0 && (
+                    ) : (
                         <div className="flex-1 flex flex-col items-center justify-center">
                             <button
                                 onClick={onNewTask}

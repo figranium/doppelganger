@@ -2,13 +2,12 @@ import React from 'react';
 import MaterialIcon from '../MaterialIcon';
 
 interface SettingsHeaderProps {
-    tab: 'system' | 'data' | 'proxies';
-    onTabChange: (tab: 'system' | 'data' | 'proxies') => void;
+    tab: 'system' | 'proxies';
+    onTabChange: (tab: 'system' | 'proxies') => void;
 }
 
 const TAB_ICONS = {
     system: 'settings',
-    data: 'database',
     proxies: 'security'
 } as const;
 
@@ -17,9 +16,12 @@ const SettingsHeader: React.FC<SettingsHeaderProps> = ({ tab, onTabChange }) => 
         <div className="flex items-end justify-between mb-8">
             <div className="space-y-2">
                 <h2 className="text-4xl font-bold text-white">Settings</h2>
+                <div className="text-xs text-gray-500 uppercase tracking-[0.2em]">
+                    Configure integrations and network options
+                </div>
             </div>
             <div role="tablist" className="flex bg-white/5 rounded-xl p-1 border border-white/5">
-                {(['system', 'data', 'proxies'] as const).map((t) => (
+                {(['system', 'proxies'] as const).map((t) => (
                     <button
                         key={t}
                         role="tab"

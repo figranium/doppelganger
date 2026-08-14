@@ -3,8 +3,6 @@ import GithubStarPill from './GithubStarPill';
 import { ConfirmRequest, Credential } from '../types';
 import ApiKeysPanel, { ApiKeyConfig, ProviderConfig, DbProviderConfig } from './settings/ApiKeysPanel';
 import StoragePanel from './settings/StoragePanel';
-import CapturesPanel from './settings/CapturesPanel';
-import CookiesPanel from './settings/CookiesPanel';
 import SettingsHeader from './settings/SettingsHeader';
 import ProxiesPanel from './settings/ProxiesPanel';
 import UserAgentPanel from './settings/UserAgentPanel';
@@ -135,14 +133,10 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     onConfirm,
     onNotify
 }) => {
-    const [tab, setTab] = useState<'system' | 'data' | 'proxies'>('system');
+    const [tab, setTab] = useState<'system' | 'proxies'>('system');
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [credentialsLoading, setCredentialsLoading] = useState(false);
     const [addedProviders, setAddedProviders] = useState<string[]>([]);
-    const [captures, setCaptures] = useState<{ name: string; url: string; size: number; modified: number; type: 'screenshot' | 'recording' }[]>([]);
-    const [cookies, setCookies] = useState<{ name: string; value: string; domain?: string; path?: string; expires?: number }[]>([]);
-    const [cookieOrigins, setCookieOrigins] = useState<any[]>([]);
-    const [dataLoading, setDataLoading] = useState(false);
     const [apiKey, setApiKey] = useState<string | null>(null);
     const [apiKeyLoading, setApiKeyLoading] = useState(true);
     const [apiKeySaving, setApiKeySaving] = useState(false);
@@ -172,27 +166,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
     const { theme, setTheme } = useTheme();
 
-    const loadData = useCallback(async () => {
-        setDataLoading(true);
-        try {
-            const [capturesRes, cookiesRes] = await Promise.all([
-                fetch('/api/data/captures'),
-                fetch('/api/data/cookies')
-            ]);
-            const capturesData = capturesRes.ok ? await capturesRes.json() : { captures: [] };
-            const cookiesData = cookiesRes.ok ? await cookiesRes.json() : { cookies: [], origins: [] };
-            setCaptures(Array.isArray(capturesData.captures) ? capturesData.captures : []);
-            setCookies(Array.isArray(cookiesData.cookies) ? cookiesData.cookies : []);
-            setCookieOrigins(Array.isArray(cookiesData.origins) ? cookiesData.origins : []);
-        } catch {
-            setCaptures([]);
-            setCookies([]);
-            setCookieOrigins([]);
-        } finally {
-            setDataLoading(false);
-        }
-    }, []);
-
     const loadCredentials = useCallback(async () => {
         setCredentialsLoading(true);
         try {
@@ -210,33 +183,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
         setCredentials(prev => prev.filter(c => c.id !== id));
     }, []);
 
-    const deleteCapture = useCallback(async (name: string) => {
-        const confirmed = await onConfirm(`Delete capture ${name}?`);
-        if (!confirmed) return;
-        const res = await fetch(`/api/data/captures/${encodeURIComponent(name)}`, { method: 'DELETE' });
-        if (res.ok) {
-            onNotify('Capture deleted.', 'success');
-            loadData();
-        } else {
-            onNotify('Delete failed.', 'error');
-        }
-    }, [onConfirm, onNotify, loadData]);
-
-    const deleteCookie = useCallback(async (cookie: { name: string; domain?: string; path?: string }) => {
-        const confirmed = await onConfirm(`Delete cookie ${cookie.name}?`);
-        if (!confirmed) return;
-        const res = await fetch('/api/data/cookies/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: cookie.name, domain: cookie.domain, path: cookie.path })
-        });
-        if (res.ok) {
-            onNotify('Cookie deleted.', 'success');
-            loadData();
-        } else {
-            onNotify('Delete failed.', 'error');
-        }
-    }, [onConfirm, onNotify, loadData]);
 
     const loadApiKey = async () => {
         setApiKeyLoading(true);
@@ -822,7 +768,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
     // Load system data on mount and when tab changes to system
     useEffect(() => {
-        if (tab === 'data') loadData();
         if (tab === 'system') {
             loadApiKey();
             loadGeminiApiKeys();
@@ -1227,24 +1172,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     </>
                 )}
 
-                {tab === 'data' && (
-                    <>
-                        <CapturesPanel
-                            captures={captures}
-                            loading={dataLoading}
-                            onRefresh={loadData}
-                            onDelete={deleteCapture}
-                        />
-
-                        <CookiesPanel
-                            cookies={cookies}
-                            originsCount={cookieOrigins.length}
-                            loading={dataLoading}
-                            onClear={() => onClearStorage('cookies')}
-                            onDelete={deleteCookie}
-                        />
-                    </>
-                )}
 
                 {tab === 'proxies' && (
                     <ProxiesPanel
