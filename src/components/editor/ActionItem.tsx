@@ -171,7 +171,7 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
                     setIsModalOpen(true);
                 }}
                 onContextMenu={(e) => onOpenContextMenu(e, action.id)}
-                className={`bg-black min-w-[280px] w-full max-w-sm mx-auto border p-5 rounded-xl group/item relative transition-[transform,box-shadow,opacity,filter,background-color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform select-none touch-none ${statusClass || (isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/20')} ${isDragging ? 'ring-2 ring-white/40 scale-[1.02] shadow-[0_30px_80px_rgba(0,0,0,0.45)] opacity-85 z-20 mx-auto' : ''} ${isDragOver && !isDragging ? 'ring-2 ring-blue-400/60 bg-blue-500/5' : ''} ${action.disabled ? 'opacity-40 grayscale' : ''}`}
+                className={`bg-black min-w-[280px] w-full max-w-sm mx-auto border p-5 rounded-2xl group/item relative transition-[transform,box-shadow,opacity,filter,background-color,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform select-none touch-none ${statusClass || (isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-white/20')} ${isDragging ? 'ring-2 ring-white/40 scale-[1.02] shadow-[0_30px_80px_rgba(0,0,0,0.45)] opacity-85 z-20 mx-auto' : ''} ${isDragOver && !isDragging ? 'ring-2 ring-blue-400/60 bg-blue-500/5' : ''} ${action.disabled ? 'opacity-40 grayscale' : ''}`}
                 style={{ transform: transformStyle }}
             >
                 <div className="flex items-center gap-3 min-w-0">

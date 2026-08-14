@@ -58,7 +58,7 @@ const ModelRow: React.FC<{
     return (
         <div className="flex flex-col gap-3 py-4 border-b border-white/5 last:border-0">
             <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
                     <img src={iconUrl} alt={label} className="w-6 h-6 object-contain" />
                 </div>
                 <div className="flex-1">
@@ -67,17 +67,17 @@ const ModelRow: React.FC<{
             </div>
             {!editing ? (
                 <div className="flex items-center gap-3">
-                    <div className="flex-1 rounded-xl theme-input border theme-border px-4 py-3 font-mono text-xs theme-text min-h-[44px] flex items-center" style={{ backgroundColor: 'var(--app-input)', color: 'var(--app-text)' }}>
+                    <div className="flex-1 rounded-2xl theme-input border theme-border px-4 py-3 font-mono text-xs theme-text min-h-[44px] flex items-center" style={{ backgroundColor: 'var(--app-input)', color: 'var(--app-text)' }}>
                         {loading ? <span className="opacity-50">Loading…</span> : <span>{value}</span>}
                     </div>
-                    <button onClick={handleEdit} disabled={loading || saving} className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest theme-accent-bg hover:bg-white/20 transition-all disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={handleEdit} disabled={loading || saving} className="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest theme-accent-bg hover:bg-white/20 transition-all disabled:opacity-50 flex items-center gap-2">
                         <MaterialIcon name="edit" className="text-base" />
                         Edit
                     </button>
                 </div>
             ) : (
                 <div className="flex items-center gap-3">
-                    <div className="flex-1 rounded-xl theme-input border theme-border focus-within:border-white px-4 py-3 transition-all">
+                    <div className="flex-1 rounded-2xl theme-input border theme-border focus-within:border-white px-4 py-3 transition-all">
                         <input
                             list={`model-list-${providerKey}`}
                             value={draft}
@@ -90,8 +90,8 @@ const ModelRow: React.FC<{
                             {AI_MODEL_OPTIONS[providerKey].map(m => <option key={m} value={m} />)}
                         </datalist>
                     </div>
-                    <button onClick={handleCancel} disabled={saving} className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest theme-border text-white hover:bg-white/10 transition-all disabled:opacity-50">Cancel</button>
-                    <button onClick={handleSave} disabled={saving || !draft.trim()} className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest theme-accent-bg hover:bg-blue-400 transition-all disabled:opacity-50 flex items-center gap-2">
+                    <button onClick={handleCancel} disabled={saving} className="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest theme-border text-white hover:bg-white/10 transition-all disabled:opacity-50">Cancel</button>
+                    <button onClick={handleSave} disabled={saving || !draft.trim()} className="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest theme-accent-bg hover:bg-blue-400 transition-all disabled:opacity-50 flex items-center gap-2">
                         <MaterialIcon name="save" className="text-base" />
                         {saving ? 'Saving…' : 'Save'}
                     </button>
@@ -102,7 +102,7 @@ const ModelRow: React.FC<{
 };
 
 const AiModelsPanel: React.FC<AiModelsPanelProps> = ({ models, loading, saving, onSave }) => (
-    <div className="glass-card p-8 rounded-2xl">
+    <div className="glass-card p-8 rounded-[40px]">
         <div className="mb-6">
             <h3 className="text-lg font-bold text-white uppercase tracking-widest">AI Models</h3>
             <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Preferred model for each AI provider</p>

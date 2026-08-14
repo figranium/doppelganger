@@ -458,7 +458,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
         };
         if (headfulViewer === 'native') {
             return (
-                <div className="glass-card rounded-2xl overflow-hidden h-[80vh] w-full relative flex flex-col items-center justify-center p-8 text-center gap-4">
+                <div className="glass-card rounded-[32px] overflow-hidden h-[80vh] w-full relative flex flex-col items-center justify-center p-8 text-center gap-4">
                     <div className="text-[12px] font-bold uppercase tracking-widest text-white">
                         Headful Session Active
                     </div>
@@ -470,7 +470,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
         }
         if (headfulViewer === 'checking') {
             return (
-                <div className="glass-card rounded-2xl overflow-hidden h-[80vh] w-full relative flex items-center justify-center">
+                <div className="glass-card rounded-[32px] overflow-hidden h-[80vh] w-full relative flex items-center justify-center">
                     <div className="text-xs font-bold uppercase tracking-widest text-gray-500">
                         Checking headful viewer...
                     </div>
@@ -478,7 +478,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
             );
         }
         return (
-            <div ref={headfulFrameRef} className="glass-card rounded-2xl overflow-hidden h-[80vh] w-full relative">
+            <div ref={headfulFrameRef} className="glass-card rounded-[32px] overflow-hidden h-[80vh] w-full relative">
                 <button
                     type="button"
                     onClick={requestFullscreen}
@@ -532,7 +532,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
             </div>
 
             <div className={`grid grid-cols-1 ${fullWidth ? 'gap-6' : 'xl:grid-cols-2 gap-8'}`}>
-                <div className={`glass-card overflow-hidden flex flex-col ${fullWidth ? 'rounded-2xl min-h-[260px]' : 'rounded-2xl min-h-[400px]'}`}>
+                <div className={`glass-card overflow-hidden flex flex-col ${fullWidth ? 'rounded-2xl min-h-[260px]' : 'rounded-[32px] min-h-[400px]'}`}>
                     <div className={`border-b border-white/5 flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-widest ${fullWidth ? 'p-4' : 'p-6'}`}>
                         <span>Screenshot</span>
                         <div className="flex items-center gap-2">
@@ -560,7 +560,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                         )}
                     </div>
                 </div>
-                <div className={`glass-card flex flex-col ${fullWidth ? 'rounded-2xl p-4 h-[240px]' : 'rounded-2xl p-8 h-[400px]'}`}>
+                <div className={`glass-card flex flex-col ${fullWidth ? 'rounded-2xl p-4 h-[240px]' : 'rounded-[32px] p-8 h-[400px]'}`}>
                     <div className={`flex items-center justify-between border-b border-white/5 ${fullWidth ? 'mb-4 pb-3' : 'mb-6 pb-4'}`}>
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Activity Log</span>
                         <button
@@ -586,7 +586,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
 
             {capturesOpen && (
                 <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6">
-                    <div className="glass-card rounded-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+                    <div className="glass-card rounded-[32px] w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
                         <div className="p-6 border-b border-white/10 flex items-center justify-between">
                             <div>
                                 <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">Captures</div>
@@ -627,7 +627,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                 </div>
             )}
 
-            <div className={`glass-card flex flex-col relative ${fullWidth ? 'rounded-2xl p-4' : 'rounded-2xl p-8'}`}>
+            <div className={`glass-card flex flex-col relative ${fullWidth ? 'rounded-2xl p-4' : 'rounded-[32px] p-8'}`}>
                 <div className={`flex items-center justify-between border-b border-white/5 ${fullWidth ? 'flex-wrap gap-2 pb-4 mb-4' : 'pb-4 mb-6'}`}>
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
                         {mainView === 'downloads' ? 'Downloads' : 'Data'}
@@ -863,7 +863,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                                         ))}
                                     </div>
                                 ) : tableData && dataView === 'table' ? (
-                                    <div className="overflow-auto custom-scrollbar rounded-xl border border-white/10">
+                                    <div className="overflow-auto custom-scrollbar rounded-2xl border border-white/10">
                                         <table className="min-w-full table-auto text-xs text-left text-white/80 font-mono">
                                             <thead className="bg-white/5 text-xs uppercase tracking-widest text-white/50">
                                                 <tr>

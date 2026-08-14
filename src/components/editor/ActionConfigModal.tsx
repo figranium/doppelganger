@@ -690,7 +690,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
             onClick={(e) => e.stopPropagation()}
         >
             <div
-                className="glass-card w-full max-w-lg rounded-2xl border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-10 max-h-[85vh]"
+                className="glass-card w-full max-w-lg rounded-[28px] border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-10 max-h-[85vh]"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between shrink-0">
@@ -714,7 +714,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
 
                 <button
                     onClick={onClose}
-                    className="shrink-0 w-full py-3 rounded-xl bg-white text-black text-xs font-bold uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="shrink-0 w-full py-3 rounded-2xl bg-white text-black text-xs font-bold uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                     Done
                 </button>

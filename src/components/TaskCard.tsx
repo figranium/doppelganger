@@ -22,7 +22,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEditTask, onDeleteTask }) =
     const favicon = getFavicon(task.url);
 
     return (
-        <div className="theme-surface-3 border theme-border p-6 rounded-xl flex flex-col gap-6 group hover:-translate-y-1 hover:border-[var(--app-border-strong)] transition-all shadow-xl hover:theme-surface">
+        <div className="theme-surface-3 border theme-border p-6 rounded-2xl flex flex-col gap-6 group hover:-translate-y-1 hover:border-[var(--app-border-strong)] transition-all shadow-xl hover:theme-surface">
             <div className="flex justify-between items-start">
                 <div className="w-12 h-12 rounded-xl theme-input border theme-border flex items-center justify-center overflow-hidden">
                     {favicon ? (

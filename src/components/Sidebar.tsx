@@ -23,7 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, curr
             <div className="flex-1 flex flex-col gap-6">
                 <button
                     onClick={onNewTask}
-                    className="w-12 h-12 rounded-xl flex items-center justify-center theme-text theme-hover transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center theme-text theme-hover transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                     title="New Task (Alt + N)"
                     aria-label="New Task (Alt + N)"
                 >
@@ -39,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, curr
                     <button
                         key={screen}
                         onClick={() => onNavigate(screen)}
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentScreen === screen ? 'theme-highlight' : 'theme-text-faint theme-hover'}`}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentScreen === screen ? 'theme-highlight' : 'theme-text-faint theme-hover'}`}
                         title={title}
                         aria-label={title}
                     >
@@ -50,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, curr
 
             <button
                 onClick={onLogout}
-                className="w-12 h-12 rounded-xl flex items-center justify-center theme-text-faint hover:bg-red-500/10 hover:text-red-500 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                className="w-12 h-12 rounded-2xl flex items-center justify-center theme-text-faint hover:bg-red-500/10 hover:text-red-500 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 title="Logout (Alt + L)"
                 aria-label="Logout (Alt + L)"
             >

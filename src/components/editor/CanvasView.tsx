@@ -50,7 +50,7 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
 
     const modal = isOpen ? createPortal(
         <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6" onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); }}>
-            <div className="glass-card w-full max-w-lg rounded-2xl border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-8 max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <div className="glass-card w-full max-w-lg rounded-[28px] border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-8 max-h-[85vh]" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between shrink-0">
                     <div>
@@ -130,7 +130,7 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                     </div>
                 </div>
 
-                <button onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); onAutoSave(); }} className="shrink-0 w-full py-3 rounded-xl bg-white text-black text-xs font-bold uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none">
+                <button onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); onAutoSave(); }} className="shrink-0 w-full py-3 rounded-2xl bg-white text-black text-xs font-bold uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none">
                     Done
                 </button>
             </div>
@@ -167,7 +167,7 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                 onClick={() => setIsOpen(true)}
                 onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
                 data-interactive-target="true"
-                className="bg-black min-w-[280px] w-full max-w-sm mx-auto border border-white/20 p-5 rounded-xl group/item relative transition-all duration-150 select-none touch-none cursor-pointer hover:border-white/40 hover:bg-white/[0.02]"
+                className="bg-black min-w-[280px] w-full max-w-sm mx-auto border border-white/20 p-5 rounded-2xl group/item relative transition-all duration-150 select-none touch-none cursor-pointer hover:border-white/40 hover:bg-white/[0.02]"
             >
                 <div className="flex items-center gap-3 min-w-0">
                     <div className="w-4 h-4 flex items-center justify-center shrink-0">
@@ -514,7 +514,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                 ))}
 
                 <div className="relative z-10 flex flex-col items-center pointer-events-none" style={{ paddingTop: '60px', minWidth: '500px' }}>
-                    <div className="w-[360px] bg-black border border-white/15 p-5 rounded-xl shadow-2xl shadow-black/50 select-text cursor-auto relative z-10 pointer-events-auto">
+                    <div className="w-[360px] bg-black border border-white/15 p-5 rounded-2xl shadow-2xl shadow-black/50 select-text cursor-auto relative z-10 pointer-events-auto">
                         <div className="flex items-center justify-between">
                             <button
                                 type="button"
@@ -581,7 +581,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <button
                                     onClick={() => { const t = { ...currentTask, extractionScript: '' }; setCurrentTask(t); handleAutoSave(t); }}
                                     data-interactive-target="true"
-                                    className="w-full border border-dashed border-white/15 rounded-xl p-5 hover:border-white/30 hover:bg-white/[0.03] transition-all flex items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                    className="w-full border border-dashed border-white/15 rounded-2xl p-5 hover:border-white/30 hover:bg-white/[0.03] transition-all flex items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                 >
                                     <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
                                     <span className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-300 transition-colors">Add Extraction Script</span>
@@ -597,7 +597,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     <div className="w-px h-6 bg-white/10" />
                                     <button
                                         onClick={() => openActionPalette()}
-                                        className="w-[360px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-xl p-6 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                        className="w-[360px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-2xl p-6 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                         aria-label="Add action (Ctrl + K)"
                                         title="Add action (Ctrl + K)"
                                     >
@@ -620,7 +620,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                         <button
                                             onClick={() => { const t = { ...currentTask, extractionScript: '' }; setCurrentTask(t); handleAutoSave(t); }}
                                             data-interactive-target="true"
-                                            className="w-full border border-dashed border-white/15 rounded-xl p-5 hover:border-white/30 hover:bg-white/[0.03] transition-all flex items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                            className="w-full border border-dashed border-white/15 rounded-2xl p-5 hover:border-white/30 hover:bg-white/[0.03] transition-all flex items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                         >
                                             <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
                                             <span className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 group-hover:text-gray-300 transition-colors">Add Extraction Script</span>

@@ -214,7 +214,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                     </div>
 
                     {/* Tabs Nav */}
-                    <div role="tablist" className="flex flex-wrap gap-2 mb-8 bg-[var(--app-input)] p-1 rounded-xl border border-[var(--app-border)]">
+                    <div role="tablist" className="flex flex-wrap gap-2 mb-8 bg-[var(--app-input)] p-1 rounded-2xl border border-[var(--app-border)]">
                         {renderTabButton('mode', 'Mode', 'settings_input_component')}
                         {renderTabButton('variables', 'Vars', 'data_object')}
                         {renderTabButton('behavior', 'Behavior', 'psychology')}
@@ -234,7 +234,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
                                             onClick={() => onUpdateTask({ mode: 'agent' })}
-                                            className={`p-4 rounded-xl border transition-all text-left space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask.mode === 'agent'
+                                            className={`p-4 rounded-2xl border transition-all text-left space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask.mode === 'agent'
                                                 ? 'bg-[var(--app-surface-2)] border-[var(--app-border-strong)] ring-1 ring-[var(--app-border-strong)]'
                                                 : 'bg-[var(--app-surface-3)] border-[var(--app-border)] opacity-50 hover:opacity-100 hover:border-[var(--app-border-strong)]'
                                                 }`}
@@ -249,7 +249,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                         </button>
                                         <button
                                             onClick={() => onUpdateTask({ mode: 'scrape' })}
-                                            className={`p-4 rounded-xl border transition-all text-left space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask.mode === 'scrape'
+                                            className={`p-4 rounded-2xl border transition-all text-left space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask.mode === 'scrape'
                                                 ? 'bg-[var(--app-surface-2)] border-[var(--app-border-strong)] ring-1 ring-[var(--app-border-strong)]'
                                                 : 'bg-[var(--app-surface-3)] border-[var(--app-border)] opacity-50 hover:opacity-100 hover:border-[var(--app-border-strong)]'
                                                 }`}
@@ -281,7 +281,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
 
                                 <div className="space-y-3">
                                     {Object.entries(currentTask.variables || {}).map(([name, def]) => (
-                                        <div key={name} className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+                                        <div key={name} className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-4 space-y-3">
                                             <div className="flex gap-2">
                                                 <input
                                                     type="text"
@@ -333,7 +333,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                         </div>
                                     ))}
                                     {Object.keys(currentTask.variables || {}).length === 0 && (
-                                        <div className="text-center py-12 border border-dashed border-[var(--app-border)] rounded-xl">
+                                        <div className="text-center py-12 border border-dashed border-[var(--app-border)] rounded-3xl">
                                             <p className="text-xs text-[var(--app-text-faint)] uppercase tracking-widest">No variables defined</p>
                                         </div>
                                     )}
@@ -360,7 +360,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                 role="switch"
                                                 aria-checked={!!currentTask[item.key as keyof Task]}
                                                 onClick={() => onUpdateTask({ [item.key]: !currentTask[item.key as keyof Task] })}
-                                                className={`flex items-center justify-between p-4 rounded-xl border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask[item.key as keyof Task]
+                                                className={`flex items-center justify-between p-4 rounded-2xl border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask[item.key as keyof Task]
                                                     ? 'bg-[var(--app-surface-2)] border-[var(--app-border-strong)] text-[var(--app-text)]'
                                                     : 'bg-[var(--app-surface-3)] border-[var(--app-border)] text-[var(--app-text-muted)] opacity-60 hover:opacity-100 hover:border-[var(--app-border-strong)]'
                                                     } ${item.disabled ? 'opacity-20 cursor-not-allowed' : ''}`}
@@ -395,7 +395,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                 role="switch"
                                                 aria-checked={!!currentTask.stealth[item.key as keyof Task['stealth']]}
                                                 onClick={() => toggleStealth(item.key as keyof Task['stealth'])}
-                                                className={`flex flex-col gap-2 p-4 rounded-xl border transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask.stealth[item.key as keyof Task['stealth']]
+                                                className={`flex flex-col gap-2 p-4 rounded-2xl border transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentTask.stealth[item.key as keyof Task['stealth']]
                                                     ? 'bg-[var(--app-surface-2)] border-[var(--app-border-strong)] text-[var(--app-text)]'
                                                     : 'bg-[var(--app-surface-3)] border-[var(--app-border)] text-[var(--app-text-muted)] opacity-60 hover:opacity-100 hover:border-[var(--app-border-strong)]'
                                                     }`}
@@ -423,7 +423,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                             <option value="csv">CSV</option>
                                         </select>
                                     </div>
-                                    <div className="flex-1 bg-[var(--app-code-bg)] border border-[var(--app-border)] rounded-xl overflow-hidden min-h-[300px]">
+                                    <div className="flex-1 bg-[var(--app-code-bg)] border border-[var(--app-border)] rounded-2xl overflow-hidden min-h-[300px]">
                                         <CodeEditor
                                             language="javascript"
                                             value={currentTask.extractionScript || ''}
@@ -713,7 +713,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
 
                                 <div className="space-y-2">
                                     {versions.map((v) => (
-                                        <div key={v.id} className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-xl p-4 flex items-center justify-between group hover:border-[var(--app-border-strong)] transition-all">
+                                        <div key={v.id} className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-4 flex items-center justify-between group hover:border-[var(--app-border-strong)] transition-all">
                                             <div className="flex flex-col gap-1">
                                                 <div className="text-xs font-bold text-[var(--app-text)] mb-0.5">{new Date(v.timestamp).toLocaleString()}</div>
                                                 <div className="flex items-center gap-2">
@@ -742,7 +742,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                         </div>
                                     ))}
                                     {versions.length === 0 && !versionsLoading && (
-                                        <div className="text-center py-12 border border-dashed border-[var(--app-border)] rounded-xl">
+                                        <div className="text-center py-12 border border-dashed border-[var(--app-border)] rounded-3xl">
                                             <p className="text-xs text-[var(--app-text-faint)] uppercase tracking-widest">No previous versions found</p>
                                         </div>
                                     )}

@@ -38,7 +38,7 @@ const renderExecutionRow = ({ index, style, data }: ListChildComponentProps<Exec
             tabIndex={0}
             className="glass-card w-full rounded-2xl p-5 flex items-center gap-4 text-left hover:bg-white/[0.06] transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
         >
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
+            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
                 {exec.source === 'api' ? <MaterialIcon name="cloud" className="text-xl" /> : <MaterialIcon name="monitor" className="text-xl" />}
             </div>
             <div className="flex-1 min-w-0 space-y-1">
@@ -173,7 +173,7 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                             onClick={loadExecutions}
                             disabled={loading}
                             aria-busy={loading}
-                            className="w-10 h-10 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-10 h-10 rounded-2xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Refresh"
                             aria-label="Refresh executions"
                         >
@@ -181,7 +181,7 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                         </button>
                         <button
                             onClick={clearExecutions}
-                            className="w-10 h-10 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                            className="w-10 h-10 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                             title="Clear all"
                             aria-label="Clear all executions"
                         >
@@ -206,7 +206,7 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                         </div>
                         <button
                             onClick={() => navigate('/dashboard')}
-                            className="px-8 py-3 bg-white text-black rounded-xl text-xs font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
+                            className="px-8 py-3 bg-white text-black rounded-2xl text-xs font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
                         >
                             Go to Dashboard
                         </button>

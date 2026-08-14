@@ -118,7 +118,7 @@ const CookiesPanel: React.FC<CookiesPanelProps> = ({ cookies, originsCount, load
                         ? fullValue
                         : `${fullValue.slice(0, 120)}...`;
                     return (
-                        <div key={key} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                        <div key={key} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
                             <div className="flex items-center justify-between gap-4">
                                 <div className="min-w-0">
                                     <div className="text-xs font-bold text-white uppercase tracking-widest truncate">{cookie.name}</div>

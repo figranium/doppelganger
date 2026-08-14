@@ -299,27 +299,27 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                 <button
                     onClick={submit}
                     disabled={loading}
-                    className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest bg-white text-black hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest bg-white text-black hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                     {loading && <div className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin" />}
                     Add Proxy
                 </button>
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border border-white/10 text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    className="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest border border-white/10 text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 >
                     Import
                 </button>
                 <button
                     onClick={() => onSetDefault('host')}
-                    className={`px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border border-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${defaultProxyId ? 'text-white hover:bg-white/5' : 'bg-white/10 text-white'}`}
+                    className={`px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest border border-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${defaultProxyId ? 'text-white hover:bg-white/5' : 'bg-white/10 text-white'}`}
                 >
                     Use Host IP
                 </button>
             </div>
 
             {(selectedProxyIds.size > 0 || selectableProxies.length > 0) && (
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
                     <label className="flex items-center gap-3 cursor-pointer group">
                         <input
                             type="checkbox"
@@ -355,7 +355,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
             {importError && (
                 <div className="text-xs text-red-400 uppercase tracking-widest">{importError}</div>
             )}
-            <label className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group">
+            <label className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Rotation mode</span>
                 <select
                     value={rotationMode}
@@ -367,7 +367,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                     <option value="random">Random</option>
                 </select>
             </label>
-            <label className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all cursor-pointer group">
+            <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all cursor-pointer group">
                 <input
                     type="checkbox"
                     checked={includeDefaultInRotation}
@@ -384,7 +384,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                     const isDefault = proxy.id === defaultProxyId;
                     const isEditing = proxy.id === editingId;
                     return (
-                        <div key={proxy.id} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+                        <div key={proxy.id} className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
                             {isEditing ? (
                                 <div className="w-full space-y-3">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

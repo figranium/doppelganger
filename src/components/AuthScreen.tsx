@@ -31,13 +31,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ status, onSubmit, error, busy =
         ? (busy ? 'Creating account...' : 'Create Account')
         : (busy ? 'Authenticating...' : 'Authenticate');
 
-    const inputClass = "w-full theme-input border theme-border rounded-xl px-5 py-4 text-sm theme-text focus:outline-none focus:border-[var(--app-border-strong)] focus-visible:ring-2 focus-visible:ring-white/50 transition-all placeholder:text-gray-600";
+    const inputClass = "w-full theme-input border theme-border rounded-2xl px-5 py-4 text-sm theme-text focus:outline-none focus:border-[var(--app-border-strong)] focus-visible:ring-2 focus-visible:ring-white/50 transition-all placeholder:text-gray-600";
 
     return (
         <div className="fixed inset-0 z-[100] theme-bg flex items-center justify-center">
             <div className="absolute inset-0 pointer-events-none"
                 style={{ backgroundImage: 'radial-gradient(var(--app-dot) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-            <div className="w-[400px] glass-card p-10 rounded-2xl space-y-8 relative">
+            <div className="w-[400px] glass-card p-10 rounded-[48px] space-y-8 relative">
                 <div className="text-center space-y-3">
                     <img src="/figranium_logo.svg" alt="Figranium" className="h-24 mx-auto object-contain theme-logo" style={{ color: 'var(--app-logo)' }} />
                 </div>
@@ -127,7 +127,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ status, onSubmit, error, busy =
                         type="submit"
                         disabled={busy}
                         aria-busy={busy}
-                        className="shine-effect w-full theme-accent-bg py-4 rounded-xl font-bold text-xs tracking-[0.3em] uppercase hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-default flex items-center justify-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="shine-effect w-full theme-accent-bg py-4 rounded-2xl font-bold text-xs tracking-[0.3em] uppercase hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-default flex items-center justify-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                         {busy && (
                             <div className="w-4 h-4 border-2 border-current/10 border-t-current rounded-full animate-spin" />

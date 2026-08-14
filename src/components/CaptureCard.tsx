@@ -21,7 +21,7 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
     const fullUrl = new URL(capture.url, window.location.origin).toString();
 
     return (
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
             <div className="p-3 border-b border-white/10 flex items-center justify-between">
                 <div className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
                     <MaterialIcon

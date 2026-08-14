@@ -9,7 +9,7 @@ interface ThemePanelProps {
 
 const ThemePanel: React.FC<ThemePanelProps> = ({ currentThemeId, onSelect }) => {
     return (
-        <div className="glass-card p-8 rounded-2xl">
+        <div className="glass-card p-8 rounded-[40px]">
             <div className="mb-6">
                 <h3 className="text-lg font-bold text-white uppercase tracking-widest flex items-center gap-2">
                     <MaterialIcon name="palette" className="text-xl" />
@@ -25,7 +25,7 @@ const ThemePanel: React.FC<ThemePanelProps> = ({ currentThemeId, onSelect }) => 
                         <button
                             key={theme.id}
                             onClick={() => onSelect(theme)}
-                            className={`group relative rounded-xl overflow-hidden border transition-all duration-300 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
+                            className={`group relative rounded-3xl overflow-hidden border transition-all duration-300 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
                                 isActive
                                     ? 'border-white bg-white/10 ring-2 ring-white/20'
                                     : 'border-white/10 hover:border-white/30 bg-white/[0.02]'

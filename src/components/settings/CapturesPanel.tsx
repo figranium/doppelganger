@@ -26,7 +26,7 @@ const renderCaptureRow = ({ index, style, data }: ListChildComponentProps<Captur
     if (!capture) return null;
     return (
         <div style={{ ...style, paddingBottom: CAPTURE_ROW_SPACING }}>
-            <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+            <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
                 <div className="space-y-1">
                     <div className="text-xs font-bold text-white uppercase tracking-widest">
                         {capture.type === 'recording' ? 'Recording' : 'Screenshot'}

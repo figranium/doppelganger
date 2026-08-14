@@ -80,7 +80,7 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
             onClick={onClose}
         >
             <div
-                className="glass-card w-full max-w-xl rounded-2xl border border-white/10 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+                className="glass-card w-full max-w-xl rounded-[28px] border border-white/10 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between mb-4">
@@ -129,7 +129,7 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
                                 role="option"
                                 aria-selected={idx === activeIndex}
                                 onClick={() => onSelect(item.type)}
-                                className={`flex flex-col items-start gap-2 text-left p-4 rounded-xl border transition-all hover:scale-[1.02] active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${idx === activeIndex ? 'bg-white/10 border-white/30 ring-1 ring-white/20' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/20'}`}
+                                className={`flex flex-col items-start gap-2 text-left p-4 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${idx === activeIndex ? 'bg-white/10 border-white/30 ring-1 ring-white/20' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/20'}`}
                             >
                                 <MaterialIcon name={item.icon || 'extension'} className="text-2xl text-white/80 group-hover:text-white transition-colors shrink-0 mb-1" />
                                 <div>

@@ -111,7 +111,7 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                         </button>
                         <button
                             onClick={clearCaptures}
-                            className="w-10 h-10 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                            className="w-10 h-10 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                             title="Clear all"
                             aria-label="Clear all captures"
                         >
@@ -129,7 +129,7 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                     </div>
                 </div>
 
-                <div className="glass-card rounded-2xl p-8">
+                <div className="glass-card rounded-[32px] p-8">
                     {loading && (
                         <div className="text-xs text-gray-500 uppercase tracking-widest flex items-center gap-3">
                             <MaterialIcon name="sync" className="text-base animate-spin" />
@@ -149,7 +149,7 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                             </div>
                             <button
                                 onClick={() => navigate('/dashboard')}
-                                className="px-8 py-3 bg-white text-black rounded-xl text-xs font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
+                                className="px-8 py-3 bg-white text-black rounded-2xl text-xs font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
                             >
                                 Go to Dashboard
                             </button>

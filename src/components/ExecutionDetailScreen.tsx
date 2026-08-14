@@ -114,7 +114,7 @@ const ExecutionDetailScreen: React.FC<ExecutionDetailScreenProps> = ({ onConfirm
                     </button>
                 </div>
 
-                <div className="glass-card rounded-2xl p-8 flex flex-col min-h-[420px]">
+                <div className="glass-card rounded-[32px] p-8 flex flex-col min-h-[420px]">
                         <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-6">
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Output</span>
                         </div>

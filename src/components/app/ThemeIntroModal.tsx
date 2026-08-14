@@ -19,7 +19,7 @@ const ThemeIntroModal: React.FC<ThemeIntroModalProps> = ({ open, currentThemeId,
 
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
-            <div className="glass-card w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl border border-white/10 p-8 text-left shadow-2xl overflow-hidden">
+            <div className="glass-card w-full max-w-3xl max-h-[85vh] flex flex-col rounded-[32px] border border-white/10 p-8 text-left shadow-2xl overflow-hidden">
                 <div className="flex justify-between items-center mb-2 shrink-0">
                     <h2 className="text-lg md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                         <MaterialIcon name="palette" className="text-3xl" />
@@ -37,7 +37,7 @@ const ThemeIntroModal: React.FC<ThemeIntroModalProps> = ({ open, currentThemeId,
                             <button
                                 key={theme.id}
                                 onClick={() => handleSelect(theme)}
-                                className={`group relative rounded-xl overflow-hidden border transition-all duration-300 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                                className={`group relative rounded-3xl overflow-hidden border transition-all duration-300 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                                     isActive
                                         ? 'border-white/70 ring-2 ring-white/30'
                                         : 'border-white/10 hover:border-white/40'
@@ -73,7 +73,7 @@ const ThemeIntroModal: React.FC<ThemeIntroModalProps> = ({ open, currentThemeId,
                 <div className="mt-8 flex justify-end shrink-0">
                     <button
                         onClick={onDismiss}
-                        className="rounded-xl px-8 py-3 text-xs font-bold uppercase tracking-[0.3em] transition-all bg-white text-black hover:scale-105 shadow-xl shadow-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="rounded-2xl px-8 py-3 text-xs font-bold uppercase tracking-[0.3em] transition-all bg-white text-black hover:scale-105 shadow-xl shadow-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                         Skip
                     </button>

@@ -66,7 +66,7 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
     };
 
     return (
-        <div className="glass-card theme-border rounded-2xl p-5 mb-6 flex flex-col items-stretch gap-4 animate-in fade-in slide-in-from-top-4 duration-500 relative overflow-hidden" style={{ backgroundColor: 'var(--app-surface-2)' }}>
+        <div className="glass-card theme-border rounded-[24px] p-5 mb-6 flex flex-col items-stretch gap-4 animate-in fade-in slide-in-from-top-4 duration-500 relative overflow-hidden" style={{ backgroundColor: 'var(--app-surface-2)' }}>
             <div className="absolute top-0 left-0 w-1.5 h-full theme-accent-bg" style={{ backgroundColor: 'var(--app-accent)' }} />
 
             <div className="flex items-start gap-4">

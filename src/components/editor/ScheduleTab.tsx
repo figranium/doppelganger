@@ -344,7 +344,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ currentTask, onUpdateTask }) 
 
             {/* Human-readable description */}
             {description && (
-                <div className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-xl p-4">
+                <div className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                         <MaterialIcon name="event_repeat" className="text-sm text-[var(--app-text-faint)]" />
                         <span className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Schedule</span>
@@ -355,7 +355,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ currentTask, onUpdateTask }) 
 
             {/* Next run preview */}
             {nextRunPreview && (
-                <div className="flex items-center justify-between bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-xl p-4">
+                <div className="flex items-center justify-between bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-4">
                     <div>
                         <span className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Next Run</span>
                         <p className="text-xs text-[var(--app-text)] mt-1">{new Date(nextRunPreview).toLocaleString()}</p>
@@ -366,7 +366,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ currentTask, onUpdateTask }) 
 
             {/* Last run status */}
             {schedule.lastRun && (
-                <div className="flex items-center justify-between bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-xl p-4">
+                <div className="flex items-center justify-between bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-4">
                     <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${schedule.lastRunStatus === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`} />
                         <div>
@@ -390,7 +390,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ currentTask, onUpdateTask }) 
             <button
                 onClick={() => saveSchedule()}
                 disabled={saving}
-                className={`w-full py-3 rounded-xl text-xs font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 focus:outline-none focus-visible:ring-2 ${
+                className={`w-full py-3 rounded-2xl text-xs font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 focus:outline-none focus-visible:ring-2 ${
                     saveSuccess 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 focus-visible:ring-white'
                         : 'bg-[var(--app-accent)] text-[var(--app-accent-text)] hover:opacity-90 shadow-xl shadow-black/5 focus-visible:ring-blue-500'

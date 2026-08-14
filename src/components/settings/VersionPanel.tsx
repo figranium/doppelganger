@@ -33,9 +33,9 @@ const VersionPanel = ({ version }: VersionPanelProps) => {
     };
 
     return (
-        <div className="glass-card p-8 rounded-2xl space-y-6">
+        <div className="glass-card p-8 rounded-[40px] space-y-6">
             <div className="flex items-center gap-4 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
+                <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
                     <MaterialIcon name="content_copy" className="text-xl" />
                 </div>
                 <div>

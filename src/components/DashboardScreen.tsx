@@ -76,7 +76,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Filter tasks... (/)"
-                                    className="w-full theme-input border theme-border rounded-xl py-3 pl-12 pr-10 text-xs font-bold uppercase tracking-widest theme-text placeholder:text-gray-600 focus:outline-none focus:border-[var(--app-border-strong)] focus-visible:ring-2 focus-visible:ring-white/20 transition-all"
+                                    className="w-full theme-input border theme-border rounded-2xl py-3 pl-12 pr-10 text-xs font-bold uppercase tracking-widest theme-text placeholder:text-gray-600 focus:outline-none focus:border-[var(--app-border-strong)] focus-visible:ring-2 focus-visible:ring-white/20 transition-all"
                                     aria-label="Filter tasks"
                                     title="Filter tasks by name or URL (/)"
                                 />
@@ -98,7 +98,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                                     setSelectedTaskIds([]);
                                     setIsExportModalOpen(true);
                                 }}
-                                className="px-5 py-3 rounded-xl border border-white/10 text-white text-xs font-bold uppercase tracking-[0.3em] hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                className="px-5 py-3 rounded-2xl border border-white/10 text-white text-xs font-bold uppercase tracking-[0.3em] hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                 title="Export tasks"
                                 aria-label="Export tasks"
                             >
@@ -107,7 +107,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                             </button>
                             <button
                                 onClick={handleImportClick}
-                                className="px-5 py-3 rounded-xl border border-white/10 text-white text-xs font-bold uppercase tracking-[0.3em] hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                className="px-5 py-3 rounded-2xl border border-white/10 text-white text-xs font-bold uppercase tracking-[0.3em] hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                 title="Import tasks"
                                 aria-label="Import tasks"
                             >
@@ -116,7 +116,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                             </button>
                             <button
                                 onClick={onNewTask}
-                                className="shine-effect bg-white text-black px-9 py-3 rounded-xl font-bold text-xs tracking-[0.2em] uppercase transition-all hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 inline-flex items-center gap-2"
+                                className="shine-effect bg-white text-black px-9 py-3 rounded-2xl font-bold text-xs tracking-[0.2em] uppercase transition-all hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 inline-flex items-center gap-2"
                                 aria-label="Create new task (Alt + N)"
                                 title="Create new task (Alt + N)"
                             >
@@ -167,7 +167,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                         <div className="flex-1 flex flex-col items-center justify-center">
                             <button
                                 onClick={onNewTask}
-                                className="w-full max-w-[400px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-xl p-8 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-4 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                className="w-full max-w-[400px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-2xl p-8 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-4 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                 title="Create first task"
                                 aria-label="Create first task"
                             >
@@ -221,7 +221,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                                     <button
                                         key={task.id}
                                         onClick={() => toggleExportSelection(task.id!)}
-                                        className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 ${selectedTaskIds.includes(task.id!) ? 'bg-blue-500/10 border-blue-500/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
+                                        className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-4 ${selectedTaskIds.includes(task.id!) ? 'bg-blue-500/10 border-blue-500/30' : 'bg-white/5 border-white/5 hover:border-white/10'}`}
                                     >
                                         <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${selectedTaskIds.includes(task.id!) ? 'bg-blue-500 border-blue-400 text-white' : 'border-white/20'}`}>
                                             {selectedTaskIds.includes(task.id!) && <MaterialIcon name="check" className="text-[14px]" />}

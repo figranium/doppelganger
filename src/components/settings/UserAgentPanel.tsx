@@ -12,7 +12,7 @@ const UserAgentPanel: React.FC<UserAgentPanelProps> = ({
     onChange
 }) => {
     return (
-        <div className="glass-card p-8 rounded-2xl space-y-4">
+        <div className="glass-card p-8 rounded-[40px] space-y-4">
             <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest">User Agent</h3>
                 <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Default browser identity</p>
