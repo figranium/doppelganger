@@ -57,23 +57,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEditTask, onDeleteTask }) =
                 </div>
             </div>
             <div className="flex gap-3 pt-4 border-t theme-border">
-<button
-                        onClick={() => onEditTask(task)}
-                        className="flex-1 py-2 rounded-lg theme-accent-bg text-xs font-bold uppercase tracking-widest hover:scale-105 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 inline-flex items-center justify-center gap-2"
-                        aria-label="Edit Task"
-                        title="Edit Task"
-                    >
-                        <MaterialIcon name="edit" className="text-[14px]" />
-                        Edit Task
-                    </button>
-                    <button
-                        onClick={() => onDeleteTask(task.id!)}
-                        className="w-10 h-10 rounded-lg bg-transparent border theme-border flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                        aria-label="Delete task"
-                        title="Delete task"
-                    >
-                        <MaterialIcon name="delete" className="text-base theme-text-faint" />
-                    </button>
+                <button
+                    onClick={() => onEditTask(task)}
+                    className="flex-1 py-2 rounded-lg theme-accent-bg text-xs font-bold uppercase tracking-widest hover:brightness-90 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 inline-flex items-center justify-center gap-2"
+                    aria-label="Edit Task"
+                    title="Edit Task"
+                >
+                    <MaterialIcon name="edit" className="text-[14px]" />
+                    Edit Task
+                </button>
+                <button
+                    onClick={() => onDeleteTask(task.id!)}
+                    className="w-10 h-10 rounded-lg bg-transparent border theme-border flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    aria-label="Delete task"
+                    title="Delete task"
+                >
+                    <MaterialIcon name="delete" className="text-base theme-text-faint" />
+                </button>
             </div>
         </div>
     );
