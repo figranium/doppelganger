@@ -122,6 +122,14 @@ async function run() {
     console.log('Successfully arrived on Dashboard. Waiting for session stabilization...');
     await setupPage.waitForTimeout(3000);
 
+    // Bypass/Dismiss the theme intro modal if it is shown
+    await setupPage.evaluate(() => {
+        localStorage.setItem('figranium.seenThemeIntro', 'true');
+    });
+    await setupPage.reload();
+    await setupPage.waitForSelector('button[aria-label="Dashboard (Alt + 1)"]', { timeout: 15000 });
+    await setupPage.waitForTimeout(2000);
+
     // Pre-create/Configure the 'Demo Autoscraper Task' directly via API
     console.log('Pre-configuring "Demo Autoscraper Task"...');
     const apiData = await setupPage.evaluate(async () => {
@@ -229,6 +237,11 @@ async function run() {
     });
 
     const page = await recordingContext.newPage();
+
+    // Set seenThemeIntro in localstorage of this recording page to make sure we don't hit the theme popup
+    await page.addInitScript(() => {
+        localStorage.setItem('figranium.seenThemeIntro', 'true');
+    });
 
     // 1. 0:00 – 0:03 (The Hook): Start on the Dashboard and immediately click into a pre-configured task
     console.log('Navigating to Dashboard (0:00)...');
