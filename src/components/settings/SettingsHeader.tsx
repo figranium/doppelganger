@@ -16,7 +16,7 @@ const SettingsHeader: React.FC<SettingsHeaderProps> = ({ tab, onTabChange }) => 
     return (
         <div className="flex items-end justify-between mb-8">
             <div className="space-y-2">
-                <h2 className="text-2xl font-medium tracking-[0.25em] text-white uppercase">Settings</h2>
+                <h2 className="text-4xl font-bold text-white">Settings</h2>
             </div>
             <div role="tablist" className="flex bg-white/5 rounded-xl p-1 border border-white/5">
                 {(['system', 'data', 'proxies'] as const).map((t) => (

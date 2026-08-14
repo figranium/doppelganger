@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { ConfirmRequest, CaptureEntry } from '../types';
 import CaptureCard from './CaptureCard';
 import MaterialIcon from './MaterialIcon';
-import GithubStarPill from './GithubStarPill';
 
 interface CapturesScreenProps {
     onConfirm: (request: string | ConfirmRequest) => Promise<boolean>;
@@ -90,12 +89,11 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                 <div className="flex items-end justify-between">
                     <div className="flex items-center gap-4">
                         <div className="space-y-2">
-                            <h2 className="text-2xl font-medium tracking-[0.25em] text-white uppercase">All Captures</h2>
+                            <h2 className="text-4xl font-bold text-white">All Captures</h2>
                             <div className="text-xs text-gray-500 uppercase tracking-[0.2em]">
                                 Recordings and screenshots from every run
                             </div>
                         </div>
-                        <GithubStarPill className="hidden sm:inline-flex" />
                     </div>
                     <div className="flex items-center gap-2">
                         <button

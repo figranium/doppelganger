@@ -1193,7 +1193,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
     return (
         <main className="flex-1 p-12 overflow-y-auto custom-scrollbar animate-in fade-in duration-500 theme-bg">
-            <div className="max-w-3xl mx-auto space-y-8">
+            <div className="max-w-6xl mx-auto space-y-8">
                 <SettingsHeader tab={tab} onTabChange={setTab} />
 
                 {tab === 'system' && (

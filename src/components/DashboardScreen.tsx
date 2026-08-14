@@ -63,7 +63,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ tasks, onNewTask, onE
                 <div className="h-full flex flex-col px-6 py-8 md:px-12 md:py-12 max-w-7xl mx-auto space-y-8 md:space-y-12 w-full">
                     <div className="relative flex flex-wrap items-center justify-between gap-6">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-2xl font-medium tracking-[0.25em] theme-text uppercase shrink-0">Dashboard</h2>
+                            <h2 className="text-4xl font-bold theme-text shrink-0">Dashboard</h2>
                         </div>
                         <div className="flex items-center gap-5">
                             {tasks.length > 0 && (

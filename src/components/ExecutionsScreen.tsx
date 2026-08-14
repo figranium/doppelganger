@@ -3,7 +3,6 @@ import { useNavigate, type NavigateFunction } from 'react-router-dom';
 import MaterialIcon from './MaterialIcon';
 import { Execution, ConfirmRequest } from '../types';
 import { FixedSizeList, ListChildComponentProps } from 'react-window';
-import GithubStarPill from './GithubStarPill';
 
 const EXECUTION_ITEM_SIZE = 140;
 const EXECUTION_LIST_MAX_VISIBLE = 6;
@@ -151,9 +150,8 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
                 <div className="flex items-end justify-between">
                     <div className="flex items-center gap-4">
                         <div className="space-y-2">
-                            <h2 className="text-2xl font-medium tracking-[0.25em] text-white uppercase">Run History</h2>
+                            <h2 className="text-4xl font-bold text-white">Run History</h2>
                         </div>
-                        <GithubStarPill className="hidden sm:inline-flex" />
                     </div>
                     <div className="flex items-center gap-3">
                         <div role="tablist" className="flex bg-white/5 rounded-xl p-1 border border-white/5">
