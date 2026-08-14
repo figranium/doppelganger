@@ -1,4 +1,9 @@
+[vnc] Starting Xvfb on :99
+[vnc] Starting x11vnc on :5900
+[vnc] Serving noVNC on 0.0.0.0:54311
+[vnc] Starting server
 Server running at http://localhost:11345
 [SCHEDULER] Loaded 0 scheduled task(s).
+[PROXY] Mode: host; Target: host_ip
 [PROXY] Mode: host; Target: host_ip
 [PROXY] Mode: host; Target: host_ip
