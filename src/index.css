@@ -399,19 +399,6 @@ select option {
     background-color: var(--app-surface-3);
 }
 
-[data-theme='dark'] .bg-black\/40,
-[data-theme='dark'] .bg-black\/60,
-[data-theme='dark'] .bg-black\/70,
-[data-theme='dark'] .bg-black\/80,
-[data-theme='dark'] .bg-black\/90,
-[data-theme='solarized-dark'] .bg-black\/40,
-[data-theme='solarized-dark'] .bg-black\/60,
-[data-theme='solarized-dark'] .bg-black\/70,
-[data-theme='solarized-dark'] .bg-black\/80,
-[data-theme='solarized-dark'] .bg-black\/90 {
-    background-color: var(--app-surface-2);
-}
-
 [data-theme='dark'] .bg-white\/5,
 [data-theme='dark'] .bg-white\/10,
 [data-theme='dark'] .bg-white\/15,

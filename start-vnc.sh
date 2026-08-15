@@ -39,12 +39,12 @@ done
 # 1. -localhost: Only allow connections from localhost (websockify)
 # 2. -passwd: Use the generated password
 # 3. -rfbport 5900: Listen on the default VNC port
-X11VNC_OPTS="-display $DISPLAY -forever -shared -localhost -passwd \"$VNC_PW\" -rfbport 5900 -wait 5"
+X11VNC_ARGS=(-display "$DISPLAY" -forever -shared -localhost -passwd "$VNC_PW" -rfbport 5900 -wait 5)
 (
   set +e
   while true; do
     echo "[vnc] ($(date -u +%FT%TZ)) launching x11vnc" >> /app/data/x11vnc.log
-    x11vnc $X11VNC_OPTS >> /app/data/x11vnc.log 2>&1
+    x11vnc "${X11VNC_ARGS[@]}" >> /app/data/x11vnc.log 2>&1
     echo "[vnc] ($(date -u +%FT%TZ)) x11vnc exited, restarting in 1s" >> /app/data/x11vnc.log
     sleep 1
   done

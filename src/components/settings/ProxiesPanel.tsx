@@ -12,6 +12,15 @@ interface ProxyEntry {
     estimatedPoolSize?: number;
 }
 
+const getProxyDisplayLabel = (proxy: ProxyEntry) => {
+    if (proxy.label) return proxy.label;
+    try {
+        return new URL(proxy.server).host;
+    } catch {
+        return proxy.server;
+    }
+};
+
 interface ProxiesPanelProps {
     proxies: ProxyEntry[];
     defaultProxyId: string | null;
@@ -131,7 +140,16 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
         const trimmed = line.trim();
         if (!trimmed) return null;
         if (trimmed.includes('://')) {
-            return { server: trimmed };
+            try {
+                const parsed = new URL(trimmed);
+                return {
+                    server: `${parsed.protocol}//${parsed.host}`,
+                    username: parsed.username ? decodeURIComponent(parsed.username) : undefined,
+                    password: parsed.password ? decodeURIComponent(parsed.password) : undefined
+                };
+            } catch {
+                return { server: trimmed };
+            }
         }
         const parts = trimmed.split(':');
         if (parts.length < 2) return null;
@@ -485,7 +503,7 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                                     </div>
                                     <div className="flex-1 space-y-1">
                                         <div className="text-xs font-bold text-white uppercase tracking-widest">
-                                            {proxy.label || proxy.server}
+                                            {getProxyDisplayLabel(proxy)}
                                         </div>
                                         <div className="text-xs text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                             <span>{proxy.server}</span>

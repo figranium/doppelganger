@@ -585,7 +585,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
             </div>
 
             {capturesOpen && (
-                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6">
+                <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
                     <div className="glass-card rounded-[32px] w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
                         <div className="p-6 border-b border-white/10 flex items-center justify-between">
                             <div>

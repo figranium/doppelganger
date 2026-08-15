@@ -44,10 +44,20 @@ const normalizeProxy = (entry) => {
     }
     if (typeof entry === 'object') {
         const serverRaw = entry.server || entry.url || entry.proxy;
-        const server = normalizeServer(serverRaw);
+        let server = normalizeServer(serverRaw);
         if (!server) return null;
-        const username = entry.username || entry.user || undefined;
-        const password = entry.password || entry.pass || undefined;
+        let username = entry.username || entry.user || undefined;
+        let password = entry.password || entry.pass || undefined;
+        try {
+            const parsed = new URL(server);
+            if (parsed.username || parsed.password) {
+                server = `${parsed.protocol}//${parsed.host}`;
+                if (!username && parsed.username) username = decodeURIComponent(parsed.username);
+                if (!password && parsed.password) password = decodeURIComponent(parsed.password);
+            }
+        } catch {
+            // server didn't parse as a valid absolute URL; keep it as normalized above
+        }
         const id = entry.id || createProxyId(`${server}|${username || ''}`);
         const isRotatingPool = !!entry.isRotatingPool;
         let estimatedPoolSize = undefined;

@@ -118,6 +118,10 @@ Commit titles should be long and descriptive enough to clearly summarize the ful
 
 Do not add yourself (the agent) as a co-author on commits, and do not mention this instruction or its origin in the commit message.
 
+## Release & Changelog Convention
+
+After pushing to `main`, check `git tag` for release tags that do not yet have a corresponding entry in `CHANGELOG.md`. For each such tag, add an entry summarizing only the commits between the *previous* release tag and *that* tag (`git log <previous-tag>..<tag>`) — not everything up to `main`/`HEAD`. Only tags are treated as releases — a `package.json` version bump alone does not warrant a changelog entry.
+
 ## Key Environment Variables
 
 - `PORT` / `HOST` — Express listen address (default: 11345 / 0.0.0.0)

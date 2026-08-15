@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.14.2] - 2026-08-15
+
+### Bug Fixes
+- **Restore backdrop blur on modals and overlay panels in Dark and Solarized Dark themes** - A theme CSS override was force-replacing translucent `bg-black/NN` backgrounds with a fully opaque solid color regardless of whether the element also had a `backdrop-blur-*` class, defeating the blur on the Task Settings panel, the confirm modal, and several other modals/overlays. Removed the incorrect dark-theme override (light theme was already correct) and restored a translucent, theme-aware background on the confirm modal, which had separately been hardcoded to a fully opaque color.
+- **Fix headful VNC session stuck in a "Reconnecting..." loop** - `start-vnc.sh` was embedding literal double-quote characters into the `x11vnc` `-passwd` argument due to unquoted shell word-splitting of an escaped-quote string, so x11vnc's actual password never matched the password handed to the noVNC client, causing every connection attempt to fail authentication and immediately disconnect. Switched to a bash array for the x11vnc arguments so the password is passed as a single unmodified argument; verified with a real RFB authentication handshake against the running container.
+- **Fix proxy credentials embedded in a pasted URL not being split out** - Proxies added by pasting a full `http://user:pass@host:port` URL into the Server field stored the entire URL (credentials included) as the `server` value instead of splitting out `username`/`password`, causing the Settings > Proxies list to display the same URL twice and causing those proxies to fail upstream authentication when used in a rotation pool. `normalizeProxy` now parses embedded credentials out of `server` on both the add and bulk-import paths; existing broken entries self-heal automatically since proxy config is already re-normalized on every read.
+
+## [0.14.1] - 2026-08-12
+
+### Features
+- **Polite value-driven GitHub Star conversion loop and social proof headers** (#342) - Added a non-intrusive `GithubStarPrompt` component that tracks starred/dismissed/opened state via `localStorage` and delays its appearance until after a successful run; clicking "I've starred it!" redirects to the GitHub repo with guidance text. Embedded inside the editor `ResultsPane` at the high-delight moment right after execution succeeds, alongside new social proof headers.
+
+### Security
+- **Cryptographically secure randomness for proxy selection and viewport sizing** - Replaced `Math.random()` with `crypto.randomInt()` in `proxy-rotation.js`'s `getNextProxy`, and in randomized viewport dimension generation in `scrape.js` and `src/agent/browser.js`, closing a CodeQL "insecure randomness" finding.
+- **Harden proxy credential normalization** - `normalizeProxy` in `proxy-utils.js` now maps null/empty/undefined username and password fields to `undefined` so they're excluded from saved configs; `headful.js`, `scrape.js`, and `src/agent/browser.js` sanitize proxy option objects passed to Playwright to only include truthy credentials, preventing a null-property crash in rotating proxy pools (#341).
+
+### Bug Fixes
+- **Fix Task Settings Panel unreadable on Light and Solarized Light themes** (#340) - Made the panel theme-aware instead of using hardcoded colors.
+- **Fix Docker arm64 builds and headful VNC access on Apple Silicon** (#337, #338) - Removed the redundant `npx playwright install` step since the `mcr.microsoft.com/playwright` base image already ships native per-architecture browser binaries (~1GB smaller images per platform); bound noVNC/websockify to `0.0.0.0:54311` so Docker Desktop on Apple Silicon hosts can reach the VNC port, while connecting to the VNC backend via explicit loopback IPv4 `127.0.0.1:5900` to avoid IPv4/IPv6 address-family mismatches.
+
+### Improvements
+- Added theme-aware light/dark logo variants for the Swiftproxy, SimplyNode, and Mintlify partner badges in the README; reorganized the README's Official Partners/Infrastructure Backers sections and heading hierarchy.
+
+### Tests
+- Added unit test cases to `tests/proxy-utils.test.js` covering normalization of rotating pools with falsy, null, or empty credentials.
+
 ## [0.14.0] - 2026-08-10
 
 ### Features

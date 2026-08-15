@@ -9,8 +9,8 @@ const CenterConfirm: React.FC<CenterConfirmProps> = ({ request, onResolve }) => 
     return (
         <div className="fixed inset-0 z-[201] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
             <div
-                className="w-full max-w-md rounded-[32px] border p-8 text-center shadow-2xl"
-                style={{ background: 'var(--app-surface)', borderColor: 'var(--app-border)' }}
+                className="w-full max-w-md rounded-[32px] border p-8 text-center shadow-2xl backdrop-blur-xl"
+                style={{ background: 'var(--app-glass-modal)', borderColor: 'var(--app-border)' }}
             >
                 <p className="text-xs font-bold uppercase tracking-[0.4em]" style={{ color: 'var(--app-text-faint)' }}>{request.title ?? 'Confirm'}</p>
                 <p className="mt-4 font-mono text-sm" style={{ color: 'var(--app-text)' }}>{request.message}</p>
