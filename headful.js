@@ -112,13 +112,13 @@ async function runHeadful(data, options = {}) {
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
-                '--disable-gpu',
                 '--window-size=1920,1080',
-                '--window-position=0,0',
-                '--start-maximized',
                 '--dns-prefetch-disable',
                 '--force-webrtc-ip-handling-policy=disable_non_proxied_udp'
             ];
+            if (process.platform !== 'darwin') {
+                args.push('--disable-gpu', '--window-position=0,0', '--start-maximized');
+            }
             if (!hasProxy) {
                 args.push(
                     '--enable-features=DnsOverHttps',
@@ -143,8 +143,10 @@ async function runHeadful(data, options = {}) {
                 ...(cleanProxy ? { proxy: cleanProxy } : {})
             };
 
+            const isHeadless = parseBooleanFlag(data.headless) || parseBooleanFlag(process.env.HEADLESS);
+
             if (statelessExecution) {
-                browser = await chromium.launch({ headless: false, args, ...(cleanProxy ? { proxy: cleanProxy } : {}) });
+                browser = await chromium.launch({ headless: isHeadless, args, ...(cleanProxy ? { proxy: cleanProxy } : {}) });
                 context = await browser.newContext(contextOptions);
             } else {
                 await fs.promises.mkdir(HEADFUL_PROFILE_DIR, { recursive: true });
@@ -152,7 +154,7 @@ async function runHeadful(data, options = {}) {
                 for (const lockFile of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
                     try { await fs.promises.unlink(path.join(HEADFUL_PROFILE_DIR, lockFile)); } catch { }
                 }
-                context = await chromium.launchPersistentContext(HEADFUL_PROFILE_DIR, { headless: false, args, ...contextOptions });
+                context = await chromium.launchPersistentContext(HEADFUL_PROFILE_DIR, { headless: isHeadless, args, ...contextOptions });
                 browser = context.browser();
             }
         }
@@ -459,11 +461,13 @@ async function runHeadful(data, options = {}) {
             // Persistent context auto-creates a blank page; reuse it or open a new one
             const existingPages = context.pages();
             page = existingPages.length > 0 ? existingPages[0] : await context.newPage();
-            try {
-                const cdp = await context.newCDPSession(page);
-                const { windowId } = await cdp.send('Browser.getWindowForTarget');
-                await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'maximized' } });
-            } catch (e) { }
+            if (process.platform !== 'darwin') {
+                try {
+                    const cdp = await context.newCDPSession(page);
+                    const { windowId } = await cdp.send('Browser.getWindowForTarget');
+                    await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'maximized' } });
+                } catch (e) { }
+            }
         } else {
             try { await page.evaluate(inspectInitFn); } catch (e) { }
             try {
@@ -536,6 +540,18 @@ async function runHeadful(data, options = {}) {
     }
 }
 
+function isDisplayUnavailableError(err) {
+    const message = String(err && err.message ? err.message : err).toLowerCase();
+    return message.includes('missing x server')
+        || message.includes('$display')
+        || message.includes('platform failed to initialize')
+        || message.includes('no display server')
+        || message.includes('target page, context or browser has been closed')
+        || message.includes('target closed')
+        || message.includes('x11 connection failed')
+        || message.includes('cannot open display');
+}
+
 async function handleHeadful(req, res) {
     await headfulMutex.lock();
     try {
@@ -543,8 +559,7 @@ async function handleHeadful(req, res) {
         await runHeadful(data, { res });
     } catch (error) {
         const message = String(error && error.message ? error.message : error);
-        const displayUnavailable = /missing x server|\$display|platform failed to initialize/i.test(message);
-        if (!res.headersSent && displayUnavailable) {
+        if (!res.headersSent && isDisplayUnavailableError(message)) {
             return res.status(409).json({ error: 'HEADFUL_DISPLAY_UNAVAILABLE', details: message });
         }
         if (!res.headersSent) {
@@ -605,27 +620,44 @@ async function launchApiSession(data = {}) {
         }
         return activeSession;
     }
-    // Use the same headless:false flow managed by handleHeadful, but without a res object
-    // so it doesn't auto-respond. We trigger it asynchronously and then poll for the
-    // session to transition to 'running'.
-    const fakeReq = { body: data, query: {} };
-    const fakeRes = { headersSent: true, json: () => {}, status: () => fakeRes };
-    // Fire-and-forget; runHeadful resolves on browser disconnect which we intentionally
-    // do not await here.
-    runHeadful(data, { res: fakeRes }).catch((e) => {
-        console.error('[HEADFUL] launchApiSession error:', e && e.message ? e.message : e);
-    });
 
-    // Poll until activeSession becomes 'running' or timeout
+    const fakeRes = { headersSent: true, json: () => {}, status: () => fakeRes };
+    let launchError = null;
+
+    const startSession = (sessionData) => {
+        runHeadful(sessionData, { res: fakeRes }).catch((e) => {
+            launchError = e;
+            console.error('[HEADFUL] launchApiSession error:', e && e.message ? e.message : e);
+        });
+    };
+
+    startSession(data);
+
+    // Poll until activeSession becomes 'running' or error occurs
     const deadline = Date.now() + 30000;
     while (Date.now() < deadline) {
         if (activeSession && activeSession.status === 'running') return activeSession;
-        if (!activeSession) {
-            await new Promise(r => setTimeout(r, 200));
-            continue;
-        }
-        await new Promise(r => setTimeout(r, 200));
+        if (launchError) break;
+        await new Promise(r => setTimeout(r, 100));
     }
+
+    // If initial launch failed due to display unavailable, automatically retry in headless mode
+    if (launchError && isDisplayUnavailableError(launchError)) {
+        console.log('[HEADFUL] Display unavailable during API browser launch. Retrying in headless mode...');
+        launchError = null;
+        startSession({ ...data, headless: true });
+        const fallbackDeadline = Date.now() + 30000;
+        while (Date.now() < fallbackDeadline) {
+            if (activeSession && activeSession.status === 'running') return activeSession;
+            if (launchError) break;
+            await new Promise(r => setTimeout(r, 100));
+        }
+    }
+
+    if (launchError) {
+        throw launchError;
+    }
+
     return activeSession;
 }
 

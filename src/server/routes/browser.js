@@ -59,107 +59,137 @@ async function getXPathForElement(page, elementHandle) {
 }
 
 /**
- * Find candidate elements for a targetHint. Strategy:
- *  1. If targetHint looks like a CSS selector (starts with #, ., [ or contains >, :, space-simple), try querySelector.
- *  2. Otherwise, search by visible text, name/placeholder/aria-label attributes.
- * Returns up to 5 unique elements.
+ * Find candidate elements for a targetHint and generate selectors + XPaths in page context.
  */
-async function findCandidateElements(page, targetHint) {
-    return await page.evaluate((hint) => {
-        const results = [];
-        const seen = new Set();
-        const push = (el) => {
-            if (el && !seen.has(el) && results.length < 5) {
-                seen.add(el);
-                results.push(el);
+async function inspectTargetInPage(page, targetHint) {
+    if (!page || !targetHint) return [];
+    try {
+        return await page.evaluate((hint) => {
+            const results = [];
+            const seen = new Set();
+            const push = (el) => {
+                if (el && !seen.has(el) && results.length < 5) {
+                    seen.add(el);
+                    results.push(el);
+                }
+            };
+            const trimmed = (hint || '').trim();
+            if (!trimmed) return [];
+
+            // 1) Try as CSS selector
+            try {
+                const matches = document.querySelectorAll(trimmed);
+                matches.forEach(push);
+            } catch (e) { /* not a valid selector, fall through */ }
+
+            // 2) Attribute-based matching (name, placeholder, aria-label, title, alt, value)
+            if (results.length < 5) {
+                const attrNames = ['name', 'placeholder', 'aria-label', 'title', 'alt', 'value', 'data-testid', 'data-test-id'];
+                const safeAttrVal = trimmed.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                for (const attr of attrNames) {
+                    if (results.length >= 5) break;
+                    try {
+                        document.querySelectorAll(`[${attr}="${safeAttrVal}"]`).forEach(push);
+                    } catch (e) {}
+                }
             }
-        };
-        const trimmed = (hint || '').trim();
-        if (!trimmed) return [];
 
-        // 1) Try as CSS selector
-        try {
-            const matches = document.querySelectorAll(trimmed);
-            matches.forEach(push);
-        } catch (e) { /* not a valid selector, fall through */ }
-
-        // 2) Attribute-based matching (name, placeholder, aria-label, title, alt, value)
-        if (results.length < 5) {
-            const attrNames = ['name', 'placeholder', 'aria-label', 'title', 'alt', 'value', 'data-testid', 'data-test-id'];
-            for (const attr of attrNames) {
-                if (results.length >= 5) break;
-                try {
-                    document.querySelectorAll(`[${attr}="${trimmed.replace(/"/g, '\\"')}"]`).forEach(push);
-                } catch (e) {}
-            }
-        }
-
-        // 3) Text content matching (buttons, links, labels, headings)
-        if (results.length < 5) {
-            const textTags = ['button', 'a', 'label', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'li', 'p'];
-            const lowerHint = trimmed.toLowerCase();
-            for (const tag of textTags) {
-                if (results.length >= 5) break;
-                const els = Array.from(document.querySelectorAll(tag));
-                for (const el of els) {
-                    const text = (el.textContent || '').trim().toLowerCase();
-                    if (text && (text === lowerHint || text.includes(lowerHint))) {
-                        push(el);
-                        if (results.length >= 5) break;
+            // 3) Text content matching (buttons, links, labels, headings)
+            if (results.length < 5) {
+                const textTags = ['button', 'a', 'label', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'li', 'p'];
+                const lowerHint = trimmed.toLowerCase();
+                for (const tag of textTags) {
+                    if (results.length >= 5) break;
+                    const els = Array.from(document.querySelectorAll(tag));
+                    for (const el of els) {
+                        const text = (el.textContent || '').trim().toLowerCase();
+                        if (text && (text === lowerHint || text.includes(lowerHint))) {
+                            push(el);
+                            if (results.length >= 5) break;
+                        }
                     }
                 }
             }
-        }
 
-        return results;
-    }, targetHint);
-}
+            if (results.length === 0) return [];
 
-/**
- * Compute selectors + xpath + confidence for each candidate element.
- */
-async function buildSelectorResults(page, elements) {
-    // Get CSS selectors using existing in-page helper
-    const cssLists = await Promise.all(elements.map(async (el) => {
-        try {
-            return await page.evaluate((node) => {
-                if (window._figraniumGetSelectors) {
-                    return window._figraniumGetSelectors(node);
+            // Visually highlight the top match via overlay rectangle
+            try {
+                const topEl = results[0];
+                const overlayId = 'figranium-api-highlight';
+                let overlay = document.getElementById(overlayId);
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.id = overlayId;
+                    overlay.style.position = 'fixed';
+                    overlay.style.pointerEvents = 'none';
+                    overlay.style.zIndex = '2147483646';
+                    overlay.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+                    overlay.style.border = '2px solid rgb(96, 165, 250)';
+                    overlay.style.boxSizing = 'border-box';
+                    document.body.appendChild(overlay);
                 }
-                // fallback: tag name only
-                return [node.tagName ? node.tagName.toLowerCase() : ''];
-            }, el);
-        } catch (e) {
-            return [];
-        }
-    }));
+                const rect = topEl.getBoundingClientRect();
+                overlay.style.top = rect.top + 'px';
+                overlay.style.left = rect.left + 'px';
+                overlay.style.width = rect.width + 'px';
+                overlay.style.height = rect.height + 'px';
+                overlay.style.display = 'block';
+                topEl.scrollIntoView({ block: 'center', inline: 'center' });
+            } catch (e) {}
 
-    const xpaths = await Promise.all(elements.map((el) => getXPathForElement(page, el)));
+            // Compute XPath for an element
+            function getElementXPath(el) {
+                if (!el || el.nodeType !== 1) return '';
+                if (el.id) return `//*[@id="${el.id}"]`;
+                const parts = [];
+                while (el && el.nodeType === 1) {
+                    let index = 1;
+                    let sibling = el.previousElementSibling;
+                    while (sibling) {
+                        if (sibling.tagName === el.tagName) index++;
+                        sibling = sibling.previousElementSibling;
+                    }
+                    parts.unshift(`${el.tagName.toLowerCase()}[${index}]`);
+                    el = el.parentElement;
+                }
+                return '/' + parts.join('/');
+            }
 
-    const results = [];
-    for (let i = 0; i < elements.length; i++) {
-        const cssList = cssLists[i] || [];
-        const css = cssList[0] || '';
-        const xpath = xpaths[i] || '';
-        if (!css && !xpath) continue;
-        // Confidence heuristic: first CSS selector gets highest score; drop as we fall back
-        const base = 0.98 - (i * 0.05);
-        results.push({ css, xpath, confidence: Math.max(0.5, base) });
+            // Generate selectors for each candidate element
+            const selectorResults = [];
+            for (let i = 0; i < results.length; i++) {
+                const el = results[i];
+                let cssList = [];
+                if (window._figraniumGetSelectors) {
+                    cssList = window._figraniumGetSelectors(el);
+                } else if (el.tagName) {
+                    cssList = [el.tagName.toLowerCase()];
+                }
+                const css = cssList[0] || '';
+                const xpath = getElementXPath(el);
+                if (!css && !xpath) continue;
+                const base = 0.98 - (i * 0.05);
+                selectorResults.push({ css, xpath, confidence: Math.max(0.5, base) });
+            }
+
+            return selectorResults;
+        }, targetHint);
+    } catch (e) {
+        return [];
     }
-    return results;
 }
 
 /**
  * POST /api/browser/open
  * Launch (or reattach) a managed browser session.
- * Body: { url, mode? ('headful'), devTools? }
+ * Body: { url, mode? ('headful'), devTools?, headless? }
  * Returns: { sessionId, status, wsEndpoint }
  */
 router.post('/browser/open', requireAuthOrApiKey, async (req, res) => {
     try {
-        const { url, mode = 'headful', devTools = false } = req.body || {};
-        // mode is currently informational — only headful is supported via VNC stack
-        const session = await launchApiSession({ url });
+        const { url, mode = 'headful', devTools = false, headless } = req.body || {};
+        const session = await launchApiSession({ url, mode, devTools, headless });
         if (!session || session.status !== 'running') {
             return res.status(409).json({ error: 'BROWSER_LAUNCH_FAILED', details: 'Session did not reach running state.' });
         }
@@ -181,7 +211,7 @@ router.post('/browser/open', requireAuthOrApiKey, async (req, res) => {
         res.json({ sessionId, status: 'launched', wsEndpoint });
     } catch (e) {
         const message = String(e && e.message ? e.message : e);
-        const displayUnavailable = /missing x server|\$display|platform failed to initialize/i.test(message);
+        const displayUnavailable = /missing x server|\$display|platform failed to initialize|target page, context or browser has been closed|target closed|no display server|x11 connection failed|cannot open display/i.test(message);
         if (displayUnavailable) {
             return res.status(409).json({ error: 'HEADFUL_DISPLAY_UNAVAILABLE', details: message });
         }
@@ -238,36 +268,7 @@ router.post('/inspector/highlight', requireAuthOrApiKey, async (req, res) => {
 
         let selectors = [];
         if (targetHint) {
-            const candidates = await findCandidateElements(page, targetHint);
-            selectors = await buildSelectorResults(page, candidates);
-
-            // Visually highlight the top match via overlay rectangle
-            if (candidates.length > 0) {
-                try {
-                    await page.evaluate((el) => {
-                        const overlayId = 'figranium-api-highlight';
-                        let overlay = document.getElementById(overlayId);
-                        if (!overlay) {
-                            overlay = document.createElement('div');
-                            overlay.id = overlayId;
-                            overlay.style.position = 'fixed';
-                            overlay.style.pointerEvents = 'none';
-                            overlay.style.zIndex = '2147483646';
-                            overlay.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
-                            overlay.style.border = '2px solid rgb(96, 165, 250)';
-                            overlay.style.boxSizing = 'border-box';
-                            document.body.appendChild(overlay);
-                        }
-                        const rect = el.getBoundingClientRect();
-                        overlay.style.top = rect.top + 'px';
-                        overlay.style.left = rect.left + 'px';
-                        overlay.style.width = rect.width + 'px';
-                        overlay.style.height = rect.height + 'px';
-                        overlay.style.display = 'block';
-                        el.scrollIntoView({ block: 'center', inline: 'center' });
-                    }, candidates[0]);
-                } catch (e) {}
-            }
+            selectors = await inspectTargetInPage(page, targetHint);
         }
 
         // Optional snapshot (small, JPEG to keep size down)
