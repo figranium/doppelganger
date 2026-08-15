@@ -85,10 +85,11 @@ async function inspectTargetInPage(page, targetHint) {
             // 2) Attribute-based matching (name, placeholder, aria-label, title, alt, value)
             if (results.length < 5) {
                 const attrNames = ['name', 'placeholder', 'aria-label', 'title', 'alt', 'value', 'data-testid', 'data-test-id'];
+                const safeAttrVal = trimmed.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
                 for (const attr of attrNames) {
                     if (results.length >= 5) break;
                     try {
-                        document.querySelectorAll(`[${attr}="${trimmed.replace(/"/g, '\\"')}"]`).forEach(push);
+                        document.querySelectorAll(`[${attr}="${safeAttrVal}"]`).forEach(push);
                     } catch (e) {}
                 }
             }
