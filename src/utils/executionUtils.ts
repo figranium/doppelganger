@@ -28,5 +28,9 @@ export const isDisplayUnavailable = (message: string) => {
     return lower.includes('missing x server')
         || lower.includes('$display')
         || lower.includes('platform failed to initialize')
-        || lower.includes('no display server');
+        || lower.includes('no display server')
+        || lower.includes('target page, context or browser has been closed')
+        || lower.includes('target closed')
+        || lower.includes('x11 connection failed')
+        || lower.includes('cannot open display');
 };
