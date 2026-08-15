@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import MaterialIcon from './MaterialIcon';
 
 type GithubStarPromptProps = {
+    runId?: string | null;
     onClose?: () => void;
 };
 
-export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
+export default function GithubStarPrompt({ runId, onClose }: GithubStarPromptProps) {
     const [delayedVisible, setDelayedVisible] = useState(false);
     const [hasOpenedUrl, setHasOpenedUrl] = useState(false);
     const [helperText, setHelperText] = useState<string | null>(null);
@@ -15,16 +16,42 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
         const isStarred = localStorage.getItem('figranium_github_starred') === 'true';
         const isDismissed = localStorage.getItem('figranium_star_prompt_dismissed') === 'true';
 
-        if (!isStarred && !isDismissed) {
+        if (isStarred || isDismissed) {
+            setDelayedVisible(false);
+            return;
+        }
+
+        // Track unique successful run
+        const currentRunKey = runId || 'unnamed_run';
+        const lastCountedRunId = localStorage.getItem('figranium_last_counted_run_id');
+        if (currentRunKey && lastCountedRunId !== currentRunKey) {
+            localStorage.setItem('figranium_last_counted_run_id', currentRunKey);
+
+            const currentCount = parseInt(localStorage.getItem('figranium_successful_runs_count') || '0', 10);
+            localStorage.setItem('figranium_successful_runs_count', String(currentCount + 1));
+
+            if (!localStorage.getItem('figranium_first_run_timestamp')) {
+                localStorage.setItem('figranium_first_run_timestamp', String(Date.now()));
+            }
+        }
+
+        const runsCount = parseInt(localStorage.getItem('figranium_successful_runs_count') || '0', 10);
+        const firstRunTimestamp = parseInt(localStorage.getItem('figranium_first_run_timestamp') || '0', 10);
+
+        const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+        const hasMultipleRuns = runsCount >= 3;
+        const hasThreeDaysPassed = firstRunTimestamp > 0 && (Date.now() - firstRunTimestamp >= THREE_DAYS_MS);
+
+        if (hasMultipleRuns && hasThreeDaysPassed) {
             const timer = setTimeout(() => {
                 setDelayedVisible(true);
-            }, 1500);
+            }, 1000);
             return () => clearTimeout(timer);
         }
 
         const opened = localStorage.getItem('figranium_star_opened') === 'true';
         setHasOpenedUrl(opened);
-    }, []);
+    }, [runId]);
 
     if (!delayedVisible) {
         return null;
@@ -66,7 +93,7 @@ export default function GithubStarPrompt({ onClose }: GithubStarPromptProps) {
     };
 
     return (
-        <div className="glass-card theme-border rounded-[24px] p-5 mb-6 flex flex-col items-stretch gap-4 animate-in fade-in slide-in-from-top-4 duration-500 relative overflow-hidden" style={{ backgroundColor: 'var(--app-surface-2)' }}>
+        <div className="glass-card theme-border rounded-[24px] p-5 mb-6 flex flex-col items-stretch gap-4 animate-in slide-in-from-top-6 duration-150 ease-out relative overflow-hidden" style={{ backgroundColor: 'var(--app-surface-2)' }}>
             <div className="absolute top-0 left-0 w-1.5 h-full theme-accent-bg" style={{ backgroundColor: 'var(--app-accent)' }} />
 
             <div className="flex items-start gap-4">
