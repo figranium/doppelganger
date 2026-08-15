@@ -512,7 +512,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
     return (
         <div className={containerClassName}>
             {!isExecuting && activeResults && (activeResults.data !== undefined || activeResults.screenshotUrl || activeResults.downloads) && (
-                <GithubStarPrompt />
+                <GithubStarPrompt runId={runId} />
             )}
             <div className="flex items-end justify-between border-b border-white/5 pb-4">
                 <div className="space-y-2 min-w-0 mr-3">
