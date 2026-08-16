@@ -4,7 +4,9 @@ import MaterialIcon from './MaterialIcon';
 import { Execution, ConfirmRequest } from '../types';
 import { FixedSizeList, ListChildComponentProps } from 'react-window';
 
-const EXECUTION_ITEM_SIZE = 140;
+const EXECUTION_CARD_HEIGHT = 140;
+const EXECUTION_CARD_SPACING = 12;
+const EXECUTION_ITEM_SIZE = EXECUTION_CARD_HEIGHT + EXECUTION_CARD_SPACING;
 const EXECUTION_LIST_MAX_VISIBLE = 6;
 const EXECUTION_OVERSCAN = 4;
 
@@ -24,55 +26,56 @@ const renderExecutionRow = ({ index, style, data }: ListChildComponentProps<Exec
             : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
 
     return (
-        <div
-            style={style}
-            onClick={() => data.navigate(`/executions/${exec.id}`)}
-            onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    data.navigate(`/executions/${exec.id}`);
-                }
-            }}
-            role="button"
-            tabIndex={0}
-            className="glass-card w-full rounded-2xl p-5 flex items-center gap-4 text-left hover:bg-white/[0.06] transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-        >
-            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
-                {exec.source === 'api' ? <MaterialIcon name="cloud" className="text-xl" /> : <MaterialIcon name="monitor" className="text-xl" />}
-            </div>
-            <div className="flex-1 min-w-0 space-y-1">
-                <div className="text-xs font-bold text-white uppercase tracking-widest truncate">
-                    {exec.taskName || exec.mode}
-                </div>
-                <div className="text-xs text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                    <span>{new Date(exec.timestamp).toLocaleString()}</span>
-                    <span className="opacity-20">|</span>
-                    <span>{exec.source}</span>
-                    <span className="opacity-20">|</span>
-                    <span>{exec.mode}</span>
-                    <span className="opacity-20">|</span>
-                    <span className={`px-1.5 py-0.5 rounded border ${statusClass}`}>
-                        {exec.status}
-                    </span>
-                    <span className="opacity-20">|</span>
-                    <span>{exec.durationMs}ms</span>
-                </div>
-                {exec.url && (
-                    <div className="text-xs text-white/50 truncate font-mono">
-                        {exec.url}
-                    </div>
-                )}
-            </div>
-            <button
-                onClick={(event) => {
-                    event.stopPropagation();
-                    data.deleteExecution(exec.id);
+        <div style={{ ...style, paddingBottom: EXECUTION_CARD_SPACING }} className="overflow-hidden">
+            <div
+                onClick={() => data.navigate(`/executions/${exec.id}`)}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        data.navigate(`/executions/${exec.id}`);
+                    }
                 }}
-                className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                aria-label={`Delete execution ${exec.id}`}
+                role="button"
+                tabIndex={0}
+                className="glass-card w-full h-full rounded-2xl p-5 flex items-center gap-4 text-left hover:bg-white/[0.06] transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
             >
-                Delete
-            </button>
+                <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
+                    {exec.source === 'api' ? <MaterialIcon name="cloud" className="text-xl" /> : <MaterialIcon name="monitor" className="text-xl" />}
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                    <div className="text-xs font-bold text-white uppercase tracking-widest truncate">
+                        {exec.taskName || exec.mode}
+                    </div>
+                    <div className="text-xs text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <span>{new Date(exec.timestamp).toLocaleString()}</span>
+                        <span className="opacity-20">|</span>
+                        <span>{exec.source}</span>
+                        <span className="opacity-20">|</span>
+                        <span>{exec.mode}</span>
+                        <span className="opacity-20">|</span>
+                        <span className={`px-1.5 py-0.5 rounded border ${statusClass}`}>
+                            {exec.status}
+                        </span>
+                        <span className="opacity-20">|</span>
+                        <span>{exec.durationMs}ms</span>
+                    </div>
+                    {exec.url && (
+                        <div className="text-xs text-white/50 truncate font-mono">
+                            {exec.url}
+                        </div>
+                    )}
+                </div>
+                <button
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        data.deleteExecution(exec.id);
+                    }}
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    aria-label={`Delete execution ${exec.id}`}
+                >
+                    Delete
+                </button>
+            </div>
         </div>
     );
 };

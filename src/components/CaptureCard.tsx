@@ -21,8 +21,8 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
     const fullUrl = new URL(capture.url, window.location.origin).toString();
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
-            <div className="p-3 border-b border-white/10 flex items-center justify-between">
+        <div className="h-full flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+            <div className="p-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
                 <div className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
                     <MaterialIcon
                         name={capture.type === 'recording' ? 'play_circle' : 'photo_camera'}
@@ -68,14 +68,14 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
                     )}
                 </div>
             </div>
-            <div className="bg-black relative group">
+            <div className="bg-black relative group flex-1 min-h-0">
                 {capture.type === 'recording' ? (
-                    <video src={capture.url} controls className="w-full h-64 object-contain bg-black" />
+                    <video src={capture.url} controls className="w-full h-full object-contain bg-black" />
                 ) : (
-                    <img src={capture.url} className="w-full h-64 object-contain bg-black" alt={`Screenshot of ${capture.name}`} />
+                    <img src={capture.url} className="w-full h-full object-contain bg-black" alt={`Screenshot of ${capture.name}`} />
                 )}
             </div>
-            <div className="p-3 border-t border-white/5 bg-white/[0.01]">
+            <div className="p-3 border-t border-white/5 bg-white/[0.01] flex-shrink-0">
                 <div className="text-xs text-white font-bold uppercase tracking-widest truncate" title={capture.name}>
                     {capture.name}
                 </div>

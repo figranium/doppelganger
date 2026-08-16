@@ -25,7 +25,7 @@ const renderCaptureItem = ({ index, style, data }: ListChildComponentProps<Captu
     const capture = data.captures[index];
     if (!capture) return null;
     return (
-        <div style={{ ...style, paddingBottom: CAPTURE_CARD_SPACING }}>
+        <div style={{ ...style, paddingBottom: CAPTURE_CARD_SPACING }} className="overflow-hidden">
             <CaptureCard capture={capture} onDelete={data.onDelete} />
         </div>
     );

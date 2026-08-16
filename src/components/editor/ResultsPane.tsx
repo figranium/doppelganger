@@ -60,7 +60,7 @@ const renderCaptureModalItem = ({ index, style, data }: ListChildComponentProps<
     const capture = data[index];
     if (!capture) return null;
     return (
-        <div style={{ ...style, paddingBottom: CAPTURE_MODAL_ITEM_SPACING }}>
+        <div style={{ ...style, paddingBottom: CAPTURE_MODAL_ITEM_SPACING }} className="overflow-hidden">
             <CaptureCard capture={capture} />
         </div>
     );
