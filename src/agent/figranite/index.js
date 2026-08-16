@@ -516,7 +516,7 @@ async function runFigranite(data, options = {}) {
                 if (result !== undefined) setBlockOutput(result);
                 reportProgress(runId, { actionId: act.id, status: 'success' });
             } catch (err) {
-                logs.push(`[FIGRANITE] FAILED action ${act.type}: ${err.message}`);
+                logs.push(`FAILED action ${act.type}: ${err.message}`);
                 reportProgress(runId, { actionId: act.id, status: 'error' });
                 if (errorHandler && !inErrorHandler) {
                     inErrorHandler = true;
@@ -535,7 +535,7 @@ async function runFigranite(data, options = {}) {
         await page.waitForTimeout(baseDelay(500));
 
         if (pendingDownloads.size > 0) {
-            logs.push(`[FIGRANITE] Waiting for ${pendingDownloads.size} pending download(s)...`);
+            logs.push(`Waiting for ${pendingDownloads.size} pending download(s)...`);
             try {
                 await Promise.race([
                     Promise.all(Array.from(pendingDownloads)),
@@ -619,10 +619,10 @@ async function runFigranite(data, options = {}) {
                 try {
                     await fs.promises.mkdir(path.dirname(sessionPath), { recursive: true });
                     await context.storageState({ path: sessionPath });
-                    logs.push(`[FIGRANITE] Saved persistent session state to ${cleanSessionId}.json`);
+                    logs.push(`Saved persistent session state to ${cleanSessionId}.json`);
                 } catch (e) {
-                    console.error('[FIGRANITE] Failed to save session path:', e.message);
-                    logs.push(`[FIGRANITE] Failed to save session state: ${e.message}`);
+                    console.error('Failed to save session path:', e.message);
+                    logs.push(`Failed to save session state: ${e.message}`);
                 }
             }
         }
@@ -677,7 +677,7 @@ async function runFigranite(data, options = {}) {
         try { await browser.close(); } catch { }
         return outputData;
     } catch (error) {
-        console.error('[FIGRANITE] Engine Error:', error);
+        console.error('Engine Error:', error);
         try {
             if (context) await context.close();
         } catch { }
