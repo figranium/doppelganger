@@ -164,7 +164,12 @@ const getResultsPreview = (payload: Results | null): { text: string; truncated: 
     }
     if (Array.isArray(raw)) {
         const sliced = raw.length > MAX_PREVIEW_ITEMS ? raw.slice(0, MAX_PREVIEW_ITEMS) : raw;
-        const text = JSON.stringify(sliced, null, 2);
+        let text: string;
+        try {
+            text = JSON.stringify(sliced, null, 2);
+        } catch {
+            text = String(sliced);
+        }
         const clamped = clampText(text, MAX_PREVIEW_CHARS);
         return { text: clamped.text, truncated: clamped.truncated || raw.length > MAX_PREVIEW_ITEMS, language: 'json' as const };
     }
@@ -179,7 +184,12 @@ const getResultsPreview = (payload: Results | null): { text: string; truncated: 
                 return acc;
             }, {});
         }
-        const text = JSON.stringify(snapshot, null, 2);
+        let text: string;
+        try {
+            text = JSON.stringify(snapshot, null, 2);
+        } catch {
+            text = String(snapshot);
+        }
         const clamped = clampText(text, MAX_PREVIEW_CHARS);
         return { text: clamped.text, truncated: clamped.truncated || truncated, language: 'json' as const };
     }
@@ -340,6 +350,13 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
         if (boolValue !== null) {
             if (!boolValue) return '';
             return <MaterialIcon name="check" className="text-xs text-blue-400" />;
+        }
+        if (value !== null && typeof value === 'object') {
+            try {
+                return JSON.stringify(value);
+            } catch {
+                return String(value);
+            }
         }
         return value ?? '';
     };
