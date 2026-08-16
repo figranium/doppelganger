@@ -17,10 +17,10 @@ async function injectHeadfulCookies(context) {
         const cookies = (state.cookies || []).filter(c => !c.expires || c.expires === -1 || c.expires > now);
         if (cookies.length > 0) {
             await context.addCookies(cookies);
-            console.log(`[FIGRANITE] Injected ${cookies.length} cookies from headful session`);
+            console.log(`Injected ${cookies.length} cookies from headful session`);
         }
     } catch (e) {
-        if (e.code !== 'ENOENT') console.error('[FIGRANITE] Failed to inject headful cookies:', e.message);
+        if (e.code !== 'ENOENT') console.error('Failed to inject headful cookies:', e.message);
     }
 }
 
@@ -106,10 +106,10 @@ async function createBrowserContext(launchOptions, options = {}) {
                 const exists = await fs.promises.access(sessionPath).then(() => true).catch(() => false);
                 if (exists) {
                     contextOptions.storageState = sessionPath;
-                    console.log(`[FIGRANITE] Loading persistent session from ${cleanSessionId}.json`);
+                    console.log(`Loading persistent session from ${cleanSessionId}.json`);
                 }
             } catch (e) {
-                console.error('[FIGRANITE] Failed to load session path:', e.message);
+                console.error('Failed to load session path:', e.message);
             }
         }
     }
