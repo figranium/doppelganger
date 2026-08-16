@@ -244,7 +244,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                             </div>
                                             <div>
                                                 <div className="text-xs font-bold text-[var(--app-text)]">Agent Mode</div>
-                                                <div className="text-xs text-[var(--app-text-faint)]">Autonomous decision making</div>
+                                                <div className="text-xs text-[var(--app-text-faint)]">Custom action sequence with logic</div>
                                             </div>
                                         </button>
                                         <button
