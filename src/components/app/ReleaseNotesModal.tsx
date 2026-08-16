@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { APP_VERSION } from '../../utils/appInfo';
 
-const RELEASE_NOTES_KEY = 'doppelganger.seenReleaseNotes_0_8';
+const RELEASE_NOTES_KEY = 'figranium.seenReleaseNotes_0_8';
 
 export default function ReleaseNotesModal() {
     const [open, setOpen] = useState(false);

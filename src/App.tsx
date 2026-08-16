@@ -80,7 +80,7 @@ export default function App() {
     const [triggerExpanded, setTriggerExpanded] = useState(false);
     const [pinnedResultsByTask, setPinnedResultsByTask] = useState<Record<string, Results>>({});
 
-    const pinnedResultsKey = 'doppelganger.pinnedResults';
+    const pinnedResultsKey = 'figranium.pinnedResults';
     const getTaskKey = (task?: Task | null) => task?.id ? String(task.id) : 'new';
     const currentTaskKey = getTaskKey(currentTask);
     const pinnedResults = currentTask ? pinnedResultsByTask[currentTaskKey] || null : null;

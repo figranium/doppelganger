@@ -713,7 +713,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                                         onNotify('No data to export.', 'error');
                                         return;
                                     }
-                                    const name = `doppelganger-data-${new Date().toISOString().replace(/[:.]/g, '-')}.${payload.ext}`;
+                                    const name = `results-data-${new Date().toISOString().replace(/[:.]/g, '-')}.${payload.ext}`;
                                     downloadText(name, payload.content, payload.mime);
                                     onNotify(`Exported ${payload.ext.toUpperCase()}.`, 'success');
                                 }}
@@ -750,7 +750,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                                         const url = URL.createObjectURL(content);
                                         const link = document.createElement('a');
                                         link.href = url;
-                                        link.download = `doppelganger-downloads-${new Date().toISOString().replace(/[:.]/g, '-')}.zip`;
+                                        link.download = `results-downloads-${new Date().toISOString().replace(/[:.]/g, '-')}.zip`;
                                         document.body.appendChild(link);
                                         link.click();
                                         link.remove();

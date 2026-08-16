@@ -3,8 +3,8 @@
 
 const { spawnSync } = require('child_process');
 
-if (process.env.DOPPELGANGER_SKIP_PLAYWRIGHT_INSTALL === '1') {
-  console.log('[postinstall] Skipping Playwright install (DOPPELGANGER_SKIP_PLAYWRIGHT_INSTALL=1).');
+if (process.env.FIGRANIUM_SKIP_PLAYWRIGHT_INSTALL === '1') {
+  console.log('[postinstall] Skipping Playwright install (FIGRANIUM_SKIP_PLAYWRIGHT_INSTALL=1).');
   process.exit(0);
 }
 

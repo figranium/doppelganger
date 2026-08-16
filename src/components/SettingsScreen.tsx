@@ -854,7 +854,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
     const apiKeysConfig: ApiKeyConfig[] = [
         {
-            id: 'doppelganger_api_key',
+            id: 'figranium_api_key',
             name: 'Tasks API',
             description: 'Manage task API access via `x-api-key` header',
             icon: 'database',

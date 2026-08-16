@@ -16,4 +16,4 @@ jobs:
           embed-url: "${{ github.event.release.html_url }}"
           embed-description: "${{ github.event.release.body }}"
           embed-color: 16777215 # Pure White
-          username: "Doppelganger Bot"
+          username: "Figranium Bot"

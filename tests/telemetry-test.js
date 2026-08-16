@@ -47,7 +47,7 @@ async function testTelemetry() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-telemetry-secret': 'doppelganger-telemetry-v1',
+            'x-telemetry-secret': 'figranium-telemetry-v1',
             'Content-Length': Buffer.byteLength(payload)
         }
     };
