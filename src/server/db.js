@@ -58,6 +58,12 @@ async function initDB() {
                     );
                 `);
                 await client.query(`
+                    CREATE TABLE IF NOT EXISTS theme_config (
+                        id INT PRIMARY KEY DEFAULT 1,
+                        data JSONB NOT NULL
+                    );
+                `);
+                await client.query(`
                     CREATE TABLE IF NOT EXISTS tasks (
                         id VARCHAR(255) PRIMARY KEY,
                         data JSONB NOT NULL

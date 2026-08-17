@@ -12,6 +12,8 @@ const {
     OLLAMA_API_KEY_FILE,
     AI_MODELS_FILE,
     DEFAULT_AI_MODELS,
+    THEME_FILE,
+    DEFAULT_THEME_ID,
     ALLOWED_IPS_FILE,
     STORAGE_STATE_PATH,
     MAX_EXECUTIONS,
@@ -1218,6 +1220,64 @@ async function saveAiModels(models) {
     await fs.promises.writeFile(AI_MODELS_FILE, JSON.stringify(aiModelsCache, null, 2));
 }
 
+// Theme Config Storage
+let themeCache = null;
+
+async function loadThemeConfig() {
+    if (themeCache !== null) return themeCache;
+    const useDB = await ensureDB();
+    if (useDB) {
+        try {
+            const pool = getPool();
+            if (!pool) throw new Error('Database pool not available');
+            const res = await pool.query('SELECT data FROM theme_config WHERE id = 1');
+            if (res.rows.length > 0 && res.rows[0].data && res.rows[0].data.theme) {
+                themeCache = res.rows[0].data.theme;
+            } else {
+                themeCache = null;
+            }
+        } catch (e) {
+            console.error('[STORAGE] Failed to load theme from DB:', e.message);
+            themeCache = null;
+        }
+        return themeCache;
+    }
+    try {
+        const raw = await fs.promises.readFile(THEME_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        themeCache = parsed && typeof parsed.theme === 'string' ? parsed.theme : null;
+    } catch {
+        themeCache = null;
+    }
+    return themeCache;
+}
+
+async function saveThemeConfig(themeId) {
+    const validTheme = typeof themeId === 'string' && themeId.trim() ? themeId.trim() : DEFAULT_THEME_ID;
+    themeCache = validTheme;
+    const payload = { theme: validTheme };
+    const useDB = await ensureDB();
+    if (useDB) {
+        const pool = getPool();
+        try {
+            await pool.query('INSERT INTO theme_config (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data', [payload]);
+        } catch (e) {
+            console.error('[STORAGE] Failed to save theme to DB:', e.message);
+        }
+        return validTheme;
+    }
+    try {
+        const dir = path.dirname(THEME_FILE);
+        if (!fs.existsSync(dir)) {
+            await fs.promises.mkdir(dir, { recursive: true });
+        }
+        await fs.promises.writeFile(THEME_FILE, JSON.stringify(payload, null, 2));
+    } catch (e) {
+        console.error('[STORAGE] Failed to save theme to file:', e.message);
+    }
+    return validTheme;
+}
+
 module.exports = {
     loadUsers,
     saveUsers,
@@ -1246,5 +1306,7 @@ module.exports = {
     loadAllowedIps,
     getStorageStateFile,
     loadAiModels,
-    saveAiModels
+    saveAiModels,
+    loadThemeConfig,
+    saveThemeConfig
 };
