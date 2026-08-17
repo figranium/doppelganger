@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.3] - 2026-08-17
+
+### Features
+- **Visual field-mapping mode for extraction scripts** - Added a Visual/JavaScript toggle to the task-level Extraction Script editor (both the canvas "Extraction Script" block and the Task Settings extraction tab), defaulting to Visual. In Visual mode, users map field names to page content by selector — with Text/HTML/Input Value/Attribute extraction modes and a "multiple" toggle for list results — using the existing headful/VNC selector picker, with no raw JavaScript shown; the underlying `extractionScript` is auto-generated from the field mapping and kept in sync. Switching to JavaScript mode surfaces the generated script, still fully editable, and existing tasks with a hand-written script keep opening in JavaScript mode automatically. Selector candidates using the Playwright-only `:has-text(...)` pseudo-selector are filtered out for extraction-field picks, since extraction scripts run through native `document.querySelector` which doesn't support it.
+
+### UI
+- Removed close-on-backdrop-click from the canvas Extraction Script modal so it no longer dismisses accidentally while interacting with its contents; the Visual/JavaScript mode toggle now shows a solid fill on the selected option instead of a subtle border.
+
 ## [0.14.2] - 2026-08-15
 
 ### Bug Fixes

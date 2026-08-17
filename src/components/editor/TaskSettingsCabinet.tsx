@@ -1,9 +1,11 @@
 import React from 'react';
 import MaterialIcon from '../MaterialIcon';
-import { Task, VarType, Credential, TaskOutput } from '../../types';
+import { Task, VarType, Credential, TaskOutput, ExtractionField } from '../../types';
 import CodeEditor from '../CodeEditor';
 import CopyButton from '../CopyButton';
 import ScheduleTab from './ScheduleTab';
+import RichInput from '../RichInput';
+import { generateExtractionScript } from '../../utils/extractionScriptGen';
 
 interface TaskSettingsCabinetProps {
     isOpen: boolean;
@@ -12,6 +14,8 @@ interface TaskSettingsCabinetProps {
     onUpdateTask: (updates: Partial<Task>) => void;
     proxyListLoaded: boolean;
     proxyList: { id: string }[];
+    onStartFieldInspect?: (fieldId: string) => void;
+    fieldSelectorOptionsById?: Record<string, string[]>;
 }
 
 const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
@@ -27,6 +31,8 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
     onUpdateTask,
     proxyListLoaded,
     proxyList,
+    onStartFieldInspect,
+    fieldSelectorOptionsById,
     initialTab = 'mode',
     versions,
     versionsLoading,
@@ -409,32 +415,168 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                             </div>
                         )}
 
-                        {activeTab === 'extraction' && (
-                            <div className="space-y-6 h-full flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="space-y-4 flex-1 flex flex-col">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Post-Execution Script</label>
-                                        <select
-                                            value={currentTask.extractionFormat || 'json'}
-                                            onChange={(e) => onUpdateTask({ extractionFormat: e.target.value as any })}
-                                            className="bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs font-bold uppercase text-[var(--app-text-muted)]"
-                                        >
-                                            <option value="json">JSON</option>
-                                            <option value="csv">CSV</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex-1 bg-[var(--app-code-bg)] border border-[var(--app-border)] rounded-2xl overflow-hidden min-h-[300px]">
-                                        <CodeEditor
-                                            language="javascript"
-                                            value={currentTask.extractionScript || ''}
-                                            onChange={(val) => onUpdateTask({ extractionScript: val })}
-                                            placeholder="// Example: return { title: document.title };"
-                                            className="h-full text-xs"
-                                        />
+                        {activeTab === 'extraction' && (() => {
+                            const extractionMode: 'visual' | 'javascript' = currentTask.extractionMode
+                                || (currentTask.extractionScript && !(currentTask.extractionFields && currentTask.extractionFields.length) ? 'javascript' : 'visual');
+                            const fields = currentTask.extractionFields || [];
+
+                            const setFields = (next: ExtractionField[]) => {
+                                onUpdateTask({ extractionFields: next, extractionScript: generateExtractionScript(next) });
+                            };
+                            const addField = () => {
+                                setFields([...fields, { id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', selector: '', attribute: 'text' }]);
+                            };
+                            const updateField = (id: string, updates: Partial<ExtractionField>) => {
+                                setFields(fields.map(f => f.id === id ? { ...f, ...updates } : f));
+                            };
+                            const removeField = (id: string) => {
+                                setFields(fields.filter(f => f.id !== id));
+                            };
+                            const switchMode = (mode: 'visual' | 'javascript') => {
+                                onUpdateTask({ extractionMode: mode, extractionScript: generateExtractionScript(fields) });
+                            };
+
+                            return (
+                                <div className="space-y-6 h-full flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                    <div className="space-y-4 flex-1 flex flex-col min-h-0">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-1 bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-lg p-1">
+                                                {(['visual', 'javascript'] as const).map(mode => (
+                                                    <button
+                                                        key={mode}
+                                                        onClick={() => switchMode(mode)}
+                                                        className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-tight transition-all ${extractionMode === mode
+                                                            ? 'bg-[var(--app-text)] text-[var(--app-bg)] shadow-sm'
+                                                            : 'text-[var(--app-text-muted)] hover:text-[var(--app-text)]'
+                                                            }`}
+                                                    >
+                                                        {mode === 'visual' ? 'Visual' : 'JavaScript'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <select
+                                                value={currentTask.extractionFormat || 'json'}
+                                                onChange={(e) => onUpdateTask({ extractionFormat: e.target.value as any })}
+                                                className="bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs font-bold uppercase text-[var(--app-text-muted)]"
+                                            >
+                                                <option value="json">JSON</option>
+                                                <option value="csv">CSV</option>
+                                            </select>
+                                        </div>
+
+                                        {extractionMode === 'visual' ? (
+                                            <div className="flex-1 flex flex-col gap-3 overflow-y-auto min-h-0">
+                                                {fields.length === 0 && (
+                                                    <div className="text-xs text-[var(--app-text-muted)] bg-[var(--app-surface-3)] border border-dashed border-[var(--app-border)] rounded-2xl p-6 text-center">
+                                                        No fields yet. Add a field, then use the target icon to pick its selector from the page.
+                                                    </div>
+                                                )}
+                                                {fields.map(field => (
+                                                    <div key={field.id} className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-3 space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                value={field.name}
+                                                                onChange={(e) => updateField(field.id, { name: e.target.value })}
+                                                                placeholder="fieldName"
+                                                                className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-xs font-mono text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
+                                                            />
+                                                            <button
+                                                                onClick={() => removeField(field.id)}
+                                                                className="text-[var(--app-text-muted)] hover:text-red-400 transition-colors shrink-0"
+                                                                title="Remove field"
+                                                                aria-label="Remove field"
+                                                            >
+                                                                <MaterialIcon name="close" className="text-base" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1.5 focus-within:border-[var(--app-border-strong)]">
+                                                                <RichInput
+                                                                    value={field.selector}
+                                                                    onChange={(v) => updateField(field.id, { selector: v })}
+                                                                    variables={currentTask.variables}
+                                                                    placeholder=".price, h1.title, ..."
+                                                                    className="text-xs"
+                                                                />
+                                                            </div>
+                                                            {onStartFieldInspect && (
+                                                                <button
+                                                                    onClick={() => onStartFieldInspect(field.id)}
+                                                                    className="text-[var(--app-text)] opacity-50 hover:opacity-100 transition-colors shrink-0"
+                                                                    title="Pick Selector in Browser"
+                                                                    aria-label="Pick Selector in Browser"
+                                                                >
+                                                                    <MaterialIcon name="my_location" className="text-lg" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        {fieldSelectorOptionsById?.[field.id] && fieldSelectorOptionsById[field.id].length > 1 && (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {fieldSelectorOptionsById[field.id].map((opt, i) => (
+                                                                    <button
+                                                                        key={i}
+                                                                        onClick={() => updateField(field.id, { selector: opt })}
+                                                                        className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${field.selector === opt ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-white/[0.02] border-white/10 text-white/40 hover:text-white/80 hover:bg-white/[0.05]'}`}
+                                                                    >
+                                                                        {opt}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <select
+                                                                value={field.attribute}
+                                                                onChange={(e) => updateField(field.id, { attribute: e.target.value as ExtractionField['attribute'] })}
+                                                                className="bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs text-[var(--app-text-muted)]"
+                                                            >
+                                                                <option value="text">Text</option>
+                                                                <option value="html">HTML</option>
+                                                                <option value="value">Input Value</option>
+                                                                <option value="attr">Attribute</option>
+                                                            </select>
+                                                            {field.attribute === 'attr' && (
+                                                                <input
+                                                                    value={field.attrName || ''}
+                                                                    onChange={(e) => updateField(field.id, { attrName: e.target.value })}
+                                                                    placeholder="href"
+                                                                    className="w-24 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs font-mono text-[var(--app-text)]"
+                                                                />
+                                                            )}
+                                                            <label className="flex items-center gap-1.5 text-xs text-[var(--app-text-muted)] cursor-pointer ml-auto">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!field.multiple}
+                                                                    onChange={(e) => updateField(field.id, { multiple: e.target.checked })}
+                                                                    className="accent-current"
+                                                                />
+                                                                Multiple (list)
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={addField}
+                                                    className="flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-[var(--app-border)] text-xs font-bold uppercase tracking-tight text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:border-[var(--app-border-strong)] transition-colors"
+                                                >
+                                                    <MaterialIcon name="add" className="text-base" />
+                                                    Add Field
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex-1 bg-[var(--app-code-bg)] border border-[var(--app-border)] rounded-2xl overflow-hidden min-h-[300px]">
+                                                <CodeEditor
+                                                    language="javascript"
+                                                    value={currentTask.extractionScript || ''}
+                                                    onChange={(val) => onUpdateTask({ extractionScript: val })}
+                                                    placeholder="// Example: return { title: document.title };"
+                                                    className="h-full text-xs"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         {activeTab === 'api' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">

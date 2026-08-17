@@ -5,7 +5,9 @@ import RichInput from '../RichInput';
 import CodeEditor from '../CodeEditor';
 import ActionItem from './ActionItem';
 import StickyNote from './StickyNote';
-import { Task, Action, StickyNote as StickyNoteType } from '../../types';
+import { Task, Action, ExtractionField, StickyNote as StickyNoteType } from '../../types';
+import { generateExtractionScript } from '../../utils/extractionScriptGen';
+import { taskFieldInspectId } from '../../utils/extractionFieldIds';
 
 // ── Extraction Script Block (scrape mode) ────────────────────────────────────
 
@@ -14,9 +16,11 @@ interface ExtractionScriptBlockProps {
     onUpdate: (updates: Partial<Task>) => void;
     onAutoSave: () => void;
     onDelete: () => void;
+    onStartInspect?: (id: string) => void;
+    selectorOptionsById?: Record<string, string[]>;
 }
 
-const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onUpdate, onAutoSave, onDelete }) => {
+const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onUpdate, onAutoSave, onDelete, onStartInspect, selectorOptionsById }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showAiPrompt, setShowAiPrompt] = useState(false);
     const [aiDescription, setAiDescription] = useState('');
@@ -25,6 +29,25 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
     const [aiError, setAiError] = useState<string | null>(null);
 
     const scriptPreview = (task.extractionScript || '').split('\n').find(l => l.trim()) || '';
+
+    const extractionMode: 'visual' | 'javascript' = task.extractionMode
+        || (task.extractionScript && !(task.extractionFields && task.extractionFields.length) ? 'javascript' : 'visual');
+    const fields = task.extractionFields || [];
+    const setFields = (next: ExtractionField[]) => {
+        onUpdate({ extractionFields: next, extractionScript: generateExtractionScript(next) });
+    };
+    const addField = () => {
+        setFields([...fields, { id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', selector: '', attribute: 'text' }]);
+    };
+    const updateField = (id: string, updates: Partial<ExtractionField>) => {
+        setFields(fields.map(f => f.id === id ? { ...f, ...updates } : f));
+    };
+    const removeField = (id: string) => {
+        setFields(fields.filter(f => f.id !== id));
+    };
+    const switchExtractionMode = (mode: 'visual' | 'javascript') => {
+        onUpdate({ extractionMode: mode, extractionScript: generateExtractionScript(fields) });
+    };
 
     const handleGenerate = async () => {
         if (!aiDescription.trim()) return;
@@ -49,8 +72,8 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
     };
 
     const modal = isOpen ? createPortal(
-        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6" onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); }}>
-            <div className="glass-card w-full max-w-lg rounded-[28px] border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-8 max-h-[85vh]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
+            <div className="glass-card w-full max-w-lg rounded-[28px] border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-8 max-h-[85vh]">
                 {/* Header */}
                 <div className="flex items-center justify-between shrink-0">
                     <div>
@@ -64,54 +87,173 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
 
                 {/* Scrollable body */}
                 <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-6">
-                    {/* AI prompt row */}
+                    {/* Script */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Script</label>
-                            <button
-                                onClick={() => { setShowAiPrompt(v => !v); setAiError(null); }}
-                                className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors"
-                                title="Generate with AI"
-                            >
-                                <MaterialIcon name="auto_awesome" className="text-sm" />
-                                Generate
-                            </button>
-                        </div>
-                        {showAiPrompt && (
-                            <div className="flex flex-col gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
-                                <input
-                                    autoFocus
-                                    type="text"
-                                    value={aiDescription}
-                                    onChange={e => setAiDescription(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter' && !aiLoading) handleGenerate(); }}
-                                    placeholder="e.g. extract all article titles and links"
-                                    className="bg-transparent text-xs text-white placeholder-gray-600 focus:outline-none"
-                                />
-                                {aiError && <p className="text-xs text-red-400">{aiError}</p>}
-                                <div className="flex justify-end gap-2">
-                                    <button onClick={() => { setShowAiPrompt(false); setAiError(null); }} className="text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Cancel</button>
+                            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg p-1">
+                                {(['visual', 'javascript'] as const).map(mode => (
                                     <button
-                                        onClick={handleGenerate}
-                                        disabled={aiLoading || !aiDescription.trim()}
-                                        className="px-3 py-1 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                        key={mode}
+                                        onClick={() => switchExtractionMode(mode)}
+                                        className={`px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-tight transition-all ${extractionMode === mode
+                                            ? 'bg-white text-black'
+                                            : 'text-white/50 hover:text-white'
+                                            }`}
                                     >
-                                        {aiLoading && <MaterialIcon name="autorenew" className="text-xs animate-spin" />}
-                                        {aiLoading ? 'Generating…' : 'Generate'}
+                                        {mode === 'visual' ? 'Visual' : 'JavaScript'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {extractionMode === 'visual' ? (
+                            <div className="space-y-2">
+                                {fields.length === 0 && (
+                                    <div className="text-xs text-white/40 bg-white/[0.03] border border-dashed border-white/10 rounded-xl p-4 text-center">
+                                        No fields yet. Add a field, then use the target icon to pick its selector from the page.
+                                    </div>
+                                )}
+                                {fields.map(extractionField => (
+                                    <div key={extractionField.id} className="bg-white/[0.03] border border-white/10 rounded-xl p-3 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                value={extractionField.name}
+                                                onChange={(e) => updateField(extractionField.id, { name: e.target.value })}
+                                                placeholder="fieldName"
+                                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-white/25"
+                                            />
+                                            <button
+                                                onClick={() => removeField(extractionField.id)}
+                                                className="text-white/40 hover:text-red-400 transition-colors shrink-0"
+                                                title="Remove field"
+                                                aria-label="Remove field"
+                                            >
+                                                <MaterialIcon name="close" className="text-base" />
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 focus-within:border-white/25">
+                                                <RichInput
+                                                    value={extractionField.selector}
+                                                    onChange={(v) => updateField(extractionField.id, { selector: v })}
+                                                    variables={task.variables}
+                                                    placeholder=".price, h1.title, ..."
+                                                    className="text-xs"
+                                                />
+                                            </div>
+                                            {onStartInspect && (
+                                                <button
+                                                    onClick={() => { setIsOpen(false); onStartInspect(taskFieldInspectId(extractionField.id)); }}
+                                                    className="text-white opacity-50 hover:opacity-100 transition-colors shrink-0"
+                                                    title="Pick Selector in Browser"
+                                                    aria-label="Pick Selector in Browser"
+                                                >
+                                                    <MaterialIcon name="my_location" className="text-lg" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {selectorOptionsById?.[taskFieldInspectId(extractionField.id)] && selectorOptionsById[taskFieldInspectId(extractionField.id)].length > 1 && (
+                                            <div className="flex flex-wrap gap-1">
+                                                {selectorOptionsById[taskFieldInspectId(extractionField.id)].map((opt, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => updateField(extractionField.id, { selector: opt })}
+                                                        className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${extractionField.selector === opt ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-white/[0.02] border-white/10 text-white/40 hover:text-white/80 hover:bg-white/[0.05]'}`}
+                                                    >
+                                                        {opt}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <select
+                                                value={extractionField.attribute}
+                                                onChange={(e) => updateField(extractionField.id, { attribute: e.target.value as ExtractionField['attribute'] })}
+                                                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/60"
+                                            >
+                                                <option value="text">Text</option>
+                                                <option value="html">HTML</option>
+                                                <option value="value">Input Value</option>
+                                                <option value="attr">Attribute</option>
+                                            </select>
+                                            {extractionField.attribute === 'attr' && (
+                                                <input
+                                                    value={extractionField.attrName || ''}
+                                                    onChange={(e) => updateField(extractionField.id, { attrName: e.target.value })}
+                                                    placeholder="href"
+                                                    className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono text-white"
+                                                />
+                                            )}
+                                            <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer ml-auto">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!extractionField.multiple}
+                                                    onChange={(e) => updateField(extractionField.id, { multiple: e.target.checked })}
+                                                    className="accent-current"
+                                                />
+                                                Multiple (list)
+                                            </label>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={addField}
+                                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-white/10 text-xs font-bold uppercase tracking-tight text-white/50 hover:text-white hover:border-white/25 transition-colors"
+                                >
+                                    <MaterialIcon name="add" className="text-base" />
+                                    Add Field
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex items-center justify-end">
+                                    <button
+                                        onClick={() => { setShowAiPrompt(v => !v); setAiError(null); }}
+                                        className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+                                        title="Generate with AI"
+                                    >
+                                        <MaterialIcon name="auto_awesome" className="text-sm" />
+                                        Generate
                                     </button>
                                 </div>
-                            </div>
+                                {showAiPrompt && (
+                                    <div className="flex flex-col gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={aiDescription}
+                                            onChange={e => setAiDescription(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter' && !aiLoading) handleGenerate(); }}
+                                            placeholder="e.g. extract all article titles and links"
+                                            className="bg-transparent text-xs text-white placeholder-gray-600 focus:outline-none"
+                                        />
+                                        {aiError && <p className="text-xs text-red-400">{aiError}</p>}
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={() => { setShowAiPrompt(false); setAiError(null); }} className="text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Cancel</button>
+                                            <button
+                                                onClick={handleGenerate}
+                                                disabled={aiLoading || !aiDescription.trim()}
+                                                className="px-3 py-1 rounded-lg bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                            >
+                                                {aiLoading && <MaterialIcon name="autorenew" className="text-xs animate-spin" />}
+                                                {aiLoading ? 'Generating…' : 'Generate'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 focus-within:border-white/20 transition-all">
+                                    <CodeEditor
+                                        value={task.extractionScript || ''}
+                                        onChange={v => onUpdate({ extractionScript: v })}
+                                        onBlur={onAutoSave}
+                                        language="javascript"
+                                        className="min-h-[180px]"
+                                        placeholder="// Example: return { title: document.title };"
+                                    />
+                                </div>
+                            </>
                         )}
-                        <div className="bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 focus-within:border-white/20 transition-all">
-                            <CodeEditor
-                                value={task.extractionScript || ''}
-                                onChange={v => onUpdate({ extractionScript: v })}
-                                onBlur={onAutoSave}
-                                language="javascript"
-                                className="min-h-[180px]"
-                                placeholder="// Example: return { title: document.title };"
-                            />
-                        </div>
                     </div>
 
                     {/* Format */}
@@ -576,6 +718,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     onUpdate={(updates) => { const merged = { ...currentTask, ...updates }; setCurrentTask(merged); handleAutoSave(merged); }}
                                     onAutoSave={() => handleAutoSave()}
                                     onDelete={() => { const t = { ...currentTask, extractionScript: undefined, extractionFormat: undefined }; setCurrentTask(t); handleAutoSave(t); }}
+                                    onStartInspect={onStartInspect}
+                                    selectorOptionsById={selectorOptionsById}
                                 />
                             ) : (
                                 <button
@@ -615,6 +759,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                             onUpdate={(updates) => { const merged = { ...currentTask, ...updates }; setCurrentTask(merged); handleAutoSave(merged); }}
                                             onAutoSave={() => handleAutoSave()}
                                             onDelete={() => { const t = { ...currentTask, extractionScript: undefined, extractionFormat: undefined }; setCurrentTask(t); handleAutoSave(t); }}
+                                            onStartInspect={onStartInspect}
+                                            selectorOptionsById={selectorOptionsById}
                                         />
                                     ) : (
                                         <button

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction, useRef } from 'react';
 import MaterialIcon from './MaterialIcon';
 import { Task, Action, StickyNote, StickyNoteColor, Results, ConfirmRequest, ViewMode } from '../types';
+import { generateExtractionScript } from '../utils/extractionScriptGen';
+import { TASK_FIELD_INSPECT_PREFIX, taskFieldInspectId } from '../utils/extractionFieldIds';
 import ActionPalette from './editor/ActionPalette';
 import TaskSettingsCabinet from './editor/TaskSettingsCabinet';
 
@@ -73,12 +75,27 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     useEditorHistory(currentTask, (t) => setCurrentTask(t), (t, v) => onSave(t, v));
     const actions = useEditorActions(currentTask, setCurrentTask as any, (t, v) => onSave(t, v));
     const versioning = useEditorVersions(currentTask, onNotify, onConfirm, (t) => setCurrentTask(t));
-    const headful = useEditorHeadful(currentTask, isHeadfulOpen, actions.updateAction, onNotify, onStopHeadful);
-    const { proxyList, proxyListLoaded } = useEditorProxies();
 
     // Local State
     const currentTaskRef = useRef(currentTask);
     useEffect(() => { currentTaskRef.current = currentTask; }, [currentTask]);
+
+    const updateActionOrExtractionField = useCallback((id: string, updates: Partial<Action>, saveImmediately: boolean) => {
+        if (id.startsWith(TASK_FIELD_INSPECT_PREFIX)) {
+            const fieldId = id.slice(TASK_FIELD_INSPECT_PREFIX.length);
+            const nextFields = (currentTaskRef.current.extractionFields || []).map(f =>
+                f.id === fieldId ? { ...f, selector: updates.selector ?? f.selector } : f
+            );
+            const nextTask = { ...currentTaskRef.current, extractionFields: nextFields, extractionScript: generateExtractionScript(nextFields) };
+            setCurrentTask(nextTask);
+            if (saveImmediately) onSave(nextTask, false);
+            return;
+        }
+        actions.updateAction(id, updates, saveImmediately);
+    }, [actions.updateAction, onSave]);
+
+    const headful = useEditorHeadful(currentTask, isHeadfulOpen, updateActionOrExtractionField, onNotify, onStopHeadful);
+    const { proxyList, proxyListLoaded } = useEditorProxies();
 
     const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
     const [actionClipboard, setActionClipboard] = useState<Action[]>([]);
@@ -624,6 +641,13 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 }}
                 proxyListLoaded={proxyListLoaded}
                 proxyList={proxyList}
+                onStartFieldInspect={(fieldId: string) => {
+                    const id = taskFieldInspectId(fieldId);
+                    headful.setActiveInspectActionId(id);
+                    setIsCabinetOpen(false);
+                    onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTaskRef.current, currentTaskRef.current.variables);
+                }}
+                fieldSelectorOptionsById={headful.selectorOptionsById}
                 initialTab={cabinetTab}
                 versions={versioning.versions as any}
                 versionsLoading={versioning.versionsLoading}

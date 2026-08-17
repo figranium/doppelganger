@@ -1,6 +1,6 @@
 {
   "name": "figranium",
-  "version": "0.14.2",
+  "version": "0.14.3",
   "main": "index.js",
   "bin": {
     "figranium": "bin/cli.js"

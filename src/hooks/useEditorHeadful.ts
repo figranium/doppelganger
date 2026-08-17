@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Task, Action } from '../types';
+import { TASK_FIELD_INSPECT_PREFIX } from '../utils/extractionFieldIds';
+
+// Extraction scripts run via native document.querySelector/querySelectorAll, which does not
+// support Playwright-only pseudo-selectors like :has-text(...). Strip those out for extraction picks.
+const stripUnsupportedForExtraction = (selectors: string[]) => {
+    const filtered = selectors.filter(s => !/:has-text\(/i.test(s));
+    return filtered.length > 0 ? filtered : selectors;
+};
 
 export const useEditorHeadful = (
     _currentTask: Task,
@@ -38,8 +46,11 @@ export const useEditorHeadful = (
                     const inspectId = activeInspectActionIdRef.current;
                     if (data.selector && inspectId) {
                         try {
-                            const parsed = JSON.parse(data.selector);
+                            let parsed = JSON.parse(data.selector);
                             if (Array.isArray(parsed) && parsed.length > 0) {
+                                if (inspectId.startsWith(TASK_FIELD_INSPECT_PREFIX)) {
+                                    parsed = stripUnsupportedForExtraction(parsed);
+                                }
                                 setSelectorOptionsById(prev => ({ ...prev, [inspectId]: parsed }));
                                 updateAction(inspectId, { selector: parsed[0] }, true);
                             } else {

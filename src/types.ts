@@ -107,6 +107,15 @@ export interface StickyNote {
     color: StickyNoteColor;
 }
 
+export interface ExtractionField {
+    id: string;
+    name: string;
+    selector: string;
+    attribute: 'text' | 'html' | 'value' | 'attr';
+    attrName?: string;
+    multiple?: boolean;
+}
+
 export interface Task {
     id?: string;
     name: string;
@@ -126,6 +135,8 @@ export interface Task {
     last_opened?: number;
     extractionScript?: string;
     extractionFormat?: 'json' | 'csv';
+    extractionMode?: 'visual' | 'javascript';
+    extractionFields?: ExtractionField[];
     includeHtml?: boolean;
     output?: TaskOutput;
     includeShadowDom?: boolean;
