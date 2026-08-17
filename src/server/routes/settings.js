@@ -8,8 +8,10 @@ const {
     loadOpenAiApiKey, saveOpenAiApiKey,
     loadClaudeApiKey, saveClaudeApiKey,
     loadOllamaApiKey, saveOllamaApiKey,
-    loadAiModels, saveAiModels
+    loadAiModels, saveAiModels,
+    loadThemeConfig, saveThemeConfig
 } = require('../storage');
+const cookie = require('cookie');
 const { getUserAgentConfig, setUserAgentSelection } = require('../../../user-agent-settings');
 const { listProxies, addProxy, addProxies, updateProxy, deleteProxy, deleteProxies, setDefaultProxy, setIncludeDefaultInRotation, setRotationMode } = require('../../../proxy-rotation');
 
@@ -372,6 +374,52 @@ router.post('/ai-models', csrfProtection, dataRateLimiter, requireAuthForSetting
     } catch (e) {
         console.error('[AI_MODELS] Save failed:', e);
         res.status(500).json({ error: 'AI_MODELS_SAVE_FAILED' });
+    }
+});
+
+// Theme Persistence Endpoints
+router.get('/theme', dataRateLimiter, requireAuthForSettings, async (req, res) => {
+    try {
+        let theme = await loadThemeConfig();
+        if (!theme) {
+            // Check for existing theme cookies
+            const cookies = cookie.parse(req.headers.cookie || '');
+            const cookieTheme = cookies['figranium_theme'] || cookies['theme'];
+            const validThemes = ['dark', 'light', 'solarized-light', 'solarized-dark'];
+            if (cookieTheme && validThemes.includes(cookieTheme.trim())) {
+                theme = cookieTheme.trim();
+                await saveThemeConfig(theme);
+            } else {
+                theme = 'dark';
+            }
+        }
+        res.json({ theme });
+    } catch (e) {
+        console.error('[THEME] Load failed:', e);
+        res.status(500).json({ error: 'THEME_LOAD_FAILED' });
+    }
+});
+
+router.post('/theme', csrfProtection, dataRateLimiter, requireAuthForSettings, async (req, res) => {
+    try {
+        const bodyTheme = req.body && typeof req.body.theme === 'string' ? req.body.theme.trim() : '';
+        const validThemes = ['dark', 'light', 'solarized-light', 'solarized-dark'];
+        const selectedTheme = validThemes.includes(bodyTheme) ? bodyTheme : 'dark';
+
+        const savedTheme = await saveThemeConfig(selectedTheme);
+
+        // Set persistent cookie for fast initial page load (1 year TTL)
+        res.setHeader('Set-Cookie', cookie.serialize('figranium_theme', savedTheme, {
+            path: '/',
+            maxAge: 31536000,
+            sameSite: 'lax',
+            httpOnly: false
+        }));
+
+        res.json({ theme: savedTheme });
+    } catch (e) {
+        console.error('[THEME] Save failed:', e);
+        res.status(500).json({ error: 'THEME_SAVE_FAILED' });
     }
 });
 

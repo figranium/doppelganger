@@ -16,6 +16,31 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         rel="stylesheet" />
+    <script>
+        (function() {
+            try {
+                var theme = 'dark';
+                var cookies = document.cookie ? document.cookie.split(';') : [];
+                for (var i = 0; i < cookies.length; i++) {
+                    var c = cookies[i].trim();
+                    if (c.indexOf('figranium_theme=') === 0 || c.indexOf('theme=') === 0) {
+                        var val = c.substring(c.indexOf('=') + 1).trim();
+                        if (['dark', 'light', 'solarized-light', 'solarized-dark'].indexOf(val) !== -1) {
+                            theme = val;
+                            break;
+                        }
+                    }
+                }
+                if (theme === 'dark' && localStorage) {
+                    var local = localStorage.getItem('figranium.theme');
+                    if (local && ['dark', 'light', 'solarized-light', 'solarized-dark'].indexOf(local) !== -1) {
+                        theme = local;
+                    }
+                }
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {}
+        })();
+    </script>
 </head>
 
 <body class="bg-[#020202] text-gray-100 font-sans h-full overflow-hidden selection:bg-white selection:text-black">
