@@ -378,7 +378,7 @@ router.post('/ai-models', csrfProtection, dataRateLimiter, requireAuthForSetting
 });
 
 // Theme Persistence Endpoints
-router.get('/theme', requireAuthForSettings, async (req, res) => {
+router.get('/theme', dataRateLimiter, requireAuthForSettings, async (req, res) => {
     try {
         let theme = await loadThemeConfig();
         if (!theme) {
