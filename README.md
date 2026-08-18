@@ -362,6 +362,7 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 - [x] **Highlight tool** — add a feature to highlight elements on the page (similar to a browser's inspect tool) to easily pick selectors and build workflows.
 - [x] **Cron triggers** — add support for scheduling tasks with cron expressions so workflows can run automatically on defined intervals.
 - [x] **Canvas notes** — add sticky-note-style annotations to the block canvas so operators can leave freeform comments and context alongside their workflows without affecting execution.
+- [ ] **Page triggers** - trigger a task automatically when a web page changes a certain way.
 
 # Security Considerations
 
