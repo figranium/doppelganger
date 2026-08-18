@@ -32,7 +32,7 @@ Figranium is proudly supported by:
   <a href="https://swiftproxy.net/?ref=figranium" target="_blank">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="partner-assets/swiftproxy_white.png">
-      <source media="(prefers-color-scheme: light)" srcset="swiftproxy.png">
+      <source media="(prefers-color-scheme: light)" srcset="partner-assets/swiftproxy.png">
       <img src="partner-assets/swiftproxy.png" width="220" alt="Swiftproxy">
     </picture>
   </a>
@@ -44,7 +44,7 @@ Figranium is proudly supported by:
   <a href="https://simplynode.io/?utm_source=figranium" target="_blank">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="partner-assets/simplynode_white.png">
-      <source media="(prefers-color-scheme: light)" srcset="simplynode.png">
+      <source media="(prefers-color-scheme: light)" srcset="partner-assets/simplynode.png">
       <img src="partner-assets/simplynode.png" width="220" alt="SimplyNode">
     </picture>
   </a>
