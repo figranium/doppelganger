@@ -207,7 +207,8 @@ async function runHeadful(data, options = {}) {
                 tooltip.style.lineHeight = '1.4';
                 document.body.appendChild(tooltip);
 
-                window._figraniumGetSelectors = (el) => {
+                window._figraniumGetSelectors = (el, root) => {
+                    root = root || document;
                     const isRandomId = (id) => {
                         if (!id) return true;
                         // Long numbers, UUIDs, explicit long strings
@@ -233,7 +234,7 @@ async function runHeadful(data, options = {}) {
 
                     const isUnique = (sel) => {
                         try {
-                            const nodes = document.querySelectorAll(sel);
+                            const nodes = root.querySelectorAll(sel);
                             return nodes.length === 1 && nodes[0] === el;
                         } catch (e) { return false; }
                     };
@@ -256,7 +257,7 @@ async function runHeadful(data, options = {}) {
                     if ((tag === 'button' || tag === 'a' || tag === 'span' || tag === 'div' || tag === 'label' || tag === 'li' || tag === 'p' || tag === 'h1' || tag === 'h2' || tag === 'h3') && el.textContent) {
                         const text = el.textContent.trim().substring(0, 40);
                         if (text && !text.includes('\n') && !text.includes('"') && text.length > 1) {
-                            const allTags = Array.from(document.querySelectorAll(tag));
+                            const allTags = Array.from(root.querySelectorAll(tag));
                             const matches = allTags.filter(t => t.textContent.trim() === text);
                             if (matches.length === 1 && matches[0] === el) {
                                 selectors.add(`${tag}:has-text("${text}")`);
@@ -327,7 +328,7 @@ async function runHeadful(data, options = {}) {
                     if (selectors.size < 3) {
                         let path = '';
                         let current = el;
-                        while (current && current !== document.body && current !== document.documentElement) {
+                        while (current && current !== root && current !== document.body && current !== document.documentElement) {
                             let step = current.tagName.toLowerCase();
 
                             // add id if good
@@ -400,13 +401,23 @@ async function runHeadful(data, options = {}) {
                     e.stopImmediatePropagation();
 
                     const element = e.composedPath ? e.composedPath()[0] : e.target;
-                    const selectors = window._figraniumGetSelectors(element);
+
+                    const scopeSelector = window.__figraniumInspectScopeSelector;
+                    let scopeRoot = null;
+                    if (scopeSelector) {
+                        try {
+                            const container = element.closest(scopeSelector);
+                            if (container && container !== element) scopeRoot = container;
+                        } catch (err) { }
+                    }
+
+                    const selectors = window._figraniumGetSelectors(element, scopeRoot || undefined);
                     const bestSelector = selectors[0] || '';
 
                     // Push to backend via Playwright binding
                     if (window.__figraniumOnElementSelected && selectors.length > 0) {
                         try {
-                            await window.__figraniumOnElementSelected(JSON.stringify(selectors));
+                            await window.__figraniumOnElementSelected(JSON.stringify({ selectors }));
                         } catch (err) { }
                     }
 
@@ -584,19 +595,22 @@ async function toggleInspectMode(req, res) {
         return res.status(400).json({ error: 'No active headful session.' });
     }
     const enabled = req.body.enabled === true || req.body.enabled === 'true';
+    const scopeSelector = typeof req.body.scopeSelector === 'string' && req.body.scopeSelector.trim()
+        ? req.body.scopeSelector.trim()
+        : null;
     activeSession.inspectModeEnabled = enabled;
+    activeSession.inspectScopeSelector = scopeSelector;
 
     try {
         const pages = activeSession.context.pages();
-        for (const page of pages) {
-            await page.evaluate((enabled) => {
-                if (enabled) {
-                    if (window.__figraniumInspectInit) window.__figraniumInspectInit();
-                } else {
-                    if (window.__figraniumInspectDestroy) window.__figraniumInspectDestroy();
-                }
-            }, enabled);
-        }
+        await Promise.all(pages.map(page => page.evaluate(({ enabled, scopeSelector }) => {
+            window.__figraniumInspectScopeSelector = scopeSelector || null;
+            if (enabled) {
+                if (window.__figraniumInspectInit) window.__figraniumInspectInit();
+            } else {
+                if (window.__figraniumInspectDestroy) window.__figraniumInspectDestroy();
+            }
+        }, { enabled, scopeSelector })));
         res.json({ message: `Inspect mode ${enabled ? 'enabled' : 'disabled'}` });
     } catch (error) {
         res.status(500).json({ error: 'Failed to toggle inspect mode', details: String(error) });

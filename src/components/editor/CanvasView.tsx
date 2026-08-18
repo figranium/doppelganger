@@ -5,9 +5,9 @@ import RichInput from '../RichInput';
 import CodeEditor from '../CodeEditor';
 import ActionItem from './ActionItem';
 import StickyNote from './StickyNote';
-import { Task, Action, ExtractionField, StickyNote as StickyNoteType } from '../../types';
+import { Task, Action, ExtractionField, ExtractionGroup, StickyNote as StickyNoteType } from '../../types';
 import { generateExtractionScript } from '../../utils/extractionScriptGen';
-import { taskFieldInspectId } from '../../utils/extractionFieldIds';
+import { taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../../utils/extractionFieldIds';
 
 // ── Extraction Script Block (scrape mode) ────────────────────────────────────
 
@@ -17,10 +17,12 @@ interface ExtractionScriptBlockProps {
     onAutoSave: () => void;
     onDelete: () => void;
     onStartInspect?: (id: string) => void;
+    onStartGroupContainerInspect?: (groupId: string) => void;
+    onStartGroupFieldInspect?: (groupId: string, fieldId: string) => void;
     selectorOptionsById?: Record<string, string[]>;
 }
 
-const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onUpdate, onAutoSave, onDelete, onStartInspect, selectorOptionsById }) => {
+const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onUpdate, onAutoSave, onDelete, onStartInspect, onStartGroupContainerInspect, onStartGroupFieldInspect, selectorOptionsById }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showAiPrompt, setShowAiPrompt] = useState(false);
     const [aiDescription, setAiDescription] = useState('');
@@ -33,8 +35,9 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
     const extractionMode: 'visual' | 'javascript' = task.extractionMode
         || (task.extractionScript && !(task.extractionFields && task.extractionFields.length) ? 'javascript' : 'visual');
     const fields = task.extractionFields || [];
+    const groups = task.extractionGroups || [];
     const setFields = (next: ExtractionField[]) => {
-        onUpdate({ extractionFields: next, extractionScript: generateExtractionScript(next) });
+        onUpdate({ extractionFields: next, extractionScript: generateExtractionScript(next, groups) });
     };
     const addField = () => {
         setFields([...fields, { id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', selector: '', attribute: 'text' }]);
@@ -46,7 +49,35 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
         setFields(fields.filter(f => f.id !== id));
     };
     const switchExtractionMode = (mode: 'visual' | 'javascript') => {
-        onUpdate({ extractionMode: mode, extractionScript: generateExtractionScript(fields) });
+        onUpdate({ extractionMode: mode, extractionScript: generateExtractionScript(fields, groups) });
+    };
+
+    const setGroups = (next: ExtractionGroup[]) => {
+        onUpdate({ extractionGroups: next, extractionScript: generateExtractionScript(fields, next) });
+    };
+    const addGroup = () => {
+        setGroups([...groups, { id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', containerSelector: '', fields: [] }]);
+    };
+    const updateGroup = (id: string, updates: Partial<ExtractionGroup>) => {
+        setGroups(groups.map(g => g.id === id ? { ...g, ...updates } : g));
+    };
+    const removeGroup = (id: string) => {
+        setGroups(groups.filter(g => g.id !== id));
+    };
+    const addGroupField = (groupId: string) => {
+        const group = groups.find(g => g.id === groupId);
+        if (!group) return;
+        updateGroup(groupId, { fields: [...group.fields, { id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', selector: '', attribute: 'text' }] });
+    };
+    const updateGroupField = (groupId: string, fieldId: string, updates: Partial<ExtractionField>) => {
+        const group = groups.find(g => g.id === groupId);
+        if (!group) return;
+        updateGroup(groupId, { fields: group.fields.map(f => f.id === fieldId ? { ...f, ...updates } : f) });
+    };
+    const removeGroupField = (groupId: string, fieldId: string) => {
+        const group = groups.find(g => g.id === groupId);
+        if (!group) return;
+        updateGroup(groupId, { fields: group.fields.filter(f => f.id !== fieldId) });
     };
 
     const handleGenerate = async () => {
@@ -176,6 +207,9 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                                                 <option value="html">HTML</option>
                                                 <option value="value">Input Value</option>
                                                 <option value="attr">Attribute</option>
+                                                <option value="image">Image URL</option>
+                                                <option value="link">Link URL</option>
+                                                <option value="exists">Exists (true/false)</option>
                                             </select>
                                             {extractionField.attribute === 'attr' && (
                                                 <input
@@ -185,15 +219,17 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                                                     className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono text-white"
                                                 />
                                             )}
-                                            <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer ml-auto">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={!!extractionField.multiple}
-                                                    onChange={(e) => updateField(extractionField.id, { multiple: e.target.checked })}
-                                                    className="accent-current"
-                                                />
-                                                Multiple (list)
-                                            </label>
+                                            {extractionField.attribute !== 'exists' && (
+                                                <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer ml-auto">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!!extractionField.multiple}
+                                                        onChange={(e) => updateField(extractionField.id, { multiple: e.target.checked })}
+                                                        className="accent-current"
+                                                    />
+                                                    Multiple (list)
+                                                </label>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -204,6 +240,164 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                                     <MaterialIcon name="add" className="text-base" />
                                     Add Field
                                 </button>
+
+                                <div className="pt-2 mt-2 border-t border-dashed border-white/10 space-y-3">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Repeating Groups</label>
+                                        <p className="text-xs text-gray-500 mt-0.5">One row per matched container — e.g. every product card on a search results page — with a column per sub-field. Produces a multi-row CSV.</p>
+                                    </div>
+                                    {groups.map(group => (
+                                        <div key={group.id} className="bg-white/[0.03] border border-white/10 rounded-xl p-3 space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    value={group.name}
+                                                    onChange={(e) => updateGroup(group.id, { name: e.target.value })}
+                                                    placeholder="groupName (e.g. products)"
+                                                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-white/25"
+                                                />
+                                                <button
+                                                    onClick={() => removeGroup(group.id)}
+                                                    className="text-white/40 hover:text-red-400 transition-colors shrink-0"
+                                                    title="Remove group"
+                                                    aria-label="Remove group"
+                                                >
+                                                    <MaterialIcon name="close" className="text-base" />
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 focus-within:border-white/25">
+                                                    <RichInput
+                                                        value={group.containerSelector}
+                                                        onChange={(v) => updateGroup(group.id, { containerSelector: v })}
+                                                        variables={task.variables}
+                                                        placeholder="Row container, e.g. [data-component-type='s-search-result']"
+                                                        className="text-xs"
+                                                    />
+                                                </div>
+                                                {onStartGroupContainerInspect && (
+                                                    <button
+                                                        onClick={() => { setIsOpen(false); onStartGroupContainerInspect(group.id); }}
+                                                        className="text-white opacity-50 hover:opacity-100 transition-colors shrink-0"
+                                                        title="Pick Row Container in Browser"
+                                                        aria-label="Pick Row Container in Browser"
+                                                    >
+                                                        <MaterialIcon name="my_location" className="text-lg" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {selectorOptionsById?.[taskGroupContainerInspectId(group.id)] && selectorOptionsById[taskGroupContainerInspectId(group.id)].length > 1 && (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {selectorOptionsById[taskGroupContainerInspectId(group.id)].map((opt, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => updateGroup(group.id, { containerSelector: opt })}
+                                                            className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${group.containerSelector === opt ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-white/[0.02] border-white/10 text-white/40 hover:text-white/80 hover:bg-white/[0.05]'}`}
+                                                        >
+                                                            {opt}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="pl-3 border-l-2 border-white/10 space-y-2">
+                                                {group.fields.length === 0 && (
+                                                    <p className="text-xs text-gray-500">No columns yet. Add one for each piece of data to pull from every row (e.g. title, price).</p>
+                                                )}
+                                                {group.fields.map(field => (
+                                                    <div key={field.id} className="space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                value={field.name}
+                                                                onChange={(e) => updateGroupField(group.id, field.id, { name: e.target.value })}
+                                                                placeholder="columnName"
+                                                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-white/25"
+                                                            />
+                                                            <button
+                                                                onClick={() => removeGroupField(group.id, field.id)}
+                                                                className="text-white/40 hover:text-red-400 transition-colors shrink-0"
+                                                                title="Remove column"
+                                                                aria-label="Remove column"
+                                                            >
+                                                                <MaterialIcon name="close" className="text-base" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 focus-within:border-white/25">
+                                                                <RichInput
+                                                                    value={field.selector}
+                                                                    onChange={(v) => updateGroupField(group.id, field.id, { selector: v })}
+                                                                    variables={task.variables}
+                                                                    placeholder="Selector relative to row, e.g. h2 span"
+                                                                    className="text-xs"
+                                                                />
+                                                            </div>
+                                                            {onStartGroupFieldInspect && (
+                                                                <button
+                                                                    onClick={() => { setIsOpen(false); onStartGroupFieldInspect(group.id, field.id); }}
+                                                                    className="text-white opacity-50 hover:opacity-100 transition-colors shrink-0"
+                                                                    title="Pick Selector in Browser (within row)"
+                                                                    aria-label="Pick Selector in Browser (within row)"
+                                                                >
+                                                                    <MaterialIcon name="my_location" className="text-lg" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        {selectorOptionsById?.[taskGroupFieldInspectId(group.id, field.id)] && selectorOptionsById[taskGroupFieldInspectId(group.id, field.id)].length > 1 && (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {selectorOptionsById[taskGroupFieldInspectId(group.id, field.id)].map((opt, i) => (
+                                                                    <button
+                                                                        key={i}
+                                                                        onClick={() => updateGroupField(group.id, field.id, { selector: opt })}
+                                                                        className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${field.selector === opt ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-white/[0.02] border-white/10 text-white/40 hover:text-white/80 hover:bg-white/[0.05]'}`}
+                                                                    >
+                                                                        {opt}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <select
+                                                                value={field.attribute}
+                                                                onChange={(e) => updateGroupField(group.id, field.id, { attribute: e.target.value as ExtractionField['attribute'] })}
+                                                                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/60"
+                                                            >
+                                                                <option value="text">Text</option>
+                                                                <option value="html">HTML</option>
+                                                                <option value="value">Input Value</option>
+                                                                <option value="attr">Attribute</option>
+                                                                <option value="image">Image URL</option>
+                                                                <option value="link">Link URL</option>
+                                                                <option value="exists">Exists (true/false)</option>
+                                                            </select>
+                                                            {field.attribute === 'attr' && (
+                                                                <input
+                                                                    value={field.attrName || ''}
+                                                                    onChange={(e) => updateGroupField(group.id, field.id, { attrName: e.target.value })}
+                                                                    placeholder="href"
+                                                                    className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono text-white"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => addGroupField(group.id)}
+                                                    className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-white/10 text-xs font-bold uppercase tracking-tight text-white/50 hover:text-white hover:border-white/25 transition-colors"
+                                                >
+                                                    <MaterialIcon name="add" className="text-sm" />
+                                                    Add Column
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={addGroup}
+                                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-white/10 text-xs font-bold uppercase tracking-tight text-white/50 hover:text-white hover:border-white/25 transition-colors"
+                                    >
+                                        <MaterialIcon name="add" className="text-base" />
+                                        Add Group
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <>
@@ -346,6 +540,8 @@ interface CanvasViewProps {
     actionStatusById: Record<string, string>;
     availableTasks: Task[];
     selectorOptionsById: Record<string, string[]>;
+    onStartGroupContainerInspect?: (groupId: string) => void;
+    onStartGroupFieldInspect?: (groupId: string, fieldId: string) => void;
     updateAction: (id: string, updates: Partial<Action>, saveImmediately?: boolean) => void;
     openActionPalette: (targetId?: string, insertIndex?: number) => void;
     openContextMenu: (e: React.MouseEvent, id: string) => void;
@@ -380,6 +576,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
     actionStatusById,
     availableTasks,
     selectorOptionsById,
+    onStartGroupContainerInspect,
+    onStartGroupFieldInspect,
     updateAction,
     openActionPalette,
     openContextMenu,
@@ -719,6 +917,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     onAutoSave={() => handleAutoSave()}
                                     onDelete={() => { const t = { ...currentTask, extractionScript: undefined, extractionFormat: undefined }; setCurrentTask(t); handleAutoSave(t); }}
                                     onStartInspect={onStartInspect}
+                                    onStartGroupContainerInspect={onStartGroupContainerInspect}
+                                    onStartGroupFieldInspect={onStartGroupFieldInspect}
                                     selectorOptionsById={selectorOptionsById}
                                 />
                             ) : (
@@ -760,6 +960,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                             onAutoSave={() => handleAutoSave()}
                                             onDelete={() => { const t = { ...currentTask, extractionScript: undefined, extractionFormat: undefined }; setCurrentTask(t); handleAutoSave(t); }}
                                             onStartInspect={onStartInspect}
+                                            onStartGroupContainerInspect={onStartGroupContainerInspect}
+                                            onStartGroupFieldInspect={onStartGroupFieldInspect}
                                             selectorOptionsById={selectorOptionsById}
                                         />
                                     ) : (

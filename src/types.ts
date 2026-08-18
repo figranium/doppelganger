@@ -18,7 +18,7 @@ export interface TaskOutput {
     onError: 'fail' | 'ignore';
 }
 export type ViewMode = 'visual' | 'json' | 'api' | 'history';
-export type VarType = 'string' | 'number' | 'boolean';
+export type VarType = 'string' | 'number' | 'boolean' | 'selector';
 
 export interface Variable {
     type: VarType;
@@ -111,9 +111,19 @@ export interface ExtractionField {
     id: string;
     name: string;
     selector: string;
-    attribute: 'text' | 'html' | 'value' | 'attr';
+    attribute: 'text' | 'html' | 'value' | 'attr' | 'exists' | 'image' | 'link';
     attrName?: string;
     multiple?: boolean;
+}
+
+// A repeating group: `containerSelector` matches one element per row (e.g. one
+// product card), and each sub-field's `selector` is queried relative to that
+// row via `container.querySelector(...)`, producing one object per match.
+export interface ExtractionGroup {
+    id: string;
+    name: string;
+    containerSelector: string;
+    fields: ExtractionField[];
 }
 
 export interface Task {
@@ -137,6 +147,7 @@ export interface Task {
     extractionFormat?: 'json' | 'csv';
     extractionMode?: 'visual' | 'javascript';
     extractionFields?: ExtractionField[];
+    extractionGroups?: ExtractionGroup[];
     includeHtml?: boolean;
     output?: TaskOutput;
     includeShadowDom?: boolean;

@@ -125,6 +125,16 @@ const toCsvString = (raw) => {
         }
         return raw;
     }
+    // A visual-mode "repeating group" result looks like { products: [{...}, {...}] } —
+    // when that's the only key, unwrap it so CSV gets one row per group item instead
+    // of a single row with a stringified array in one cell.
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        const keys = Object.keys(raw);
+        if (keys.length === 1 && Array.isArray(raw[keys[0]]) &&
+            raw[keys[0]].every((item) => item && typeof item === 'object' && !Array.isArray(item))) {
+            raw = raw[keys[0]];
+        }
+    }
     const rows = Array.isArray(raw) ? raw : [raw];
     if (rows.length === 0) return '';
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction, us
 import MaterialIcon from './MaterialIcon';
 import { Task, Action, StickyNote, StickyNoteColor, Results, ConfirmRequest, ViewMode } from '../types';
 import { generateExtractionScript } from '../utils/extractionScriptGen';
-import { TASK_FIELD_INSPECT_PREFIX, taskFieldInspectId } from '../utils/extractionFieldIds';
+import { TASK_FIELD_INSPECT_PREFIX, taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../utils/extractionFieldIds';
 import ActionPalette from './editor/ActionPalette';
 import TaskSettingsCabinet from './editor/TaskSettingsCabinet';
 
@@ -380,6 +380,19 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 actionStatusById={actionStatusById}
                 availableTasks={availableTasks}
                 selectorOptionsById={headful.selectorOptionsById}
+                onStartGroupContainerInspect={useCallback((groupId: string) => {
+                    const id = taskGroupContainerInspectId(groupId);
+                    headful.setActiveInspectActionId(id);
+                    headful.setActiveInspectScopeSelector(null);
+                    if (!isHeadfulOpen) onOpenHeadful?.(currentTaskRef.current.url || 'https://www.google.com', id, currentTaskRef.current, currentTaskRef.current.variables);
+                }, [isHeadfulOpen, onOpenHeadful, headful.setActiveInspectActionId, headful.setActiveInspectScopeSelector])}
+                onStartGroupFieldInspect={useCallback((groupId: string, fieldId: string) => {
+                    const id = taskGroupFieldInspectId(groupId, fieldId);
+                    const group = (currentTaskRef.current.extractionGroups || []).find(g => g.id === groupId);
+                    headful.setActiveInspectActionId(id);
+                    headful.setActiveInspectScopeSelector(group?.containerSelector || null);
+                    if (!isHeadfulOpen) onOpenHeadful?.(currentTaskRef.current.url || 'https://www.google.com', id, currentTaskRef.current, currentTaskRef.current.variables);
+                }, [isHeadfulOpen, onOpenHeadful, headful.setActiveInspectActionId, headful.setActiveInspectScopeSelector])}
                 updateAction={actions.updateAction}
                 openActionPalette={openActionPalette}
                 openContextMenu={openContextMenu}
@@ -644,6 +657,21 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 onStartFieldInspect={(fieldId: string) => {
                     const id = taskFieldInspectId(fieldId);
                     headful.setActiveInspectActionId(id);
+                    setIsCabinetOpen(false);
+                    onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTaskRef.current, currentTaskRef.current.variables);
+                }}
+                onStartGroupContainerInspect={(groupId: string) => {
+                    const id = taskGroupContainerInspectId(groupId);
+                    headful.setActiveInspectActionId(id);
+                    headful.setActiveInspectScopeSelector(null);
+                    setIsCabinetOpen(false);
+                    onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTaskRef.current, currentTaskRef.current.variables);
+                }}
+                onStartGroupFieldInspect={(groupId: string, fieldId: string) => {
+                    const id = taskGroupFieldInspectId(groupId, fieldId);
+                    const group = (currentTaskRef.current.extractionGroups || []).find(g => g.id === groupId);
+                    headful.setActiveInspectActionId(id);
+                    headful.setActiveInspectScopeSelector(group?.containerSelector || null);
                     setIsCabinetOpen(false);
                     onOpenHeadful?.(currentTask.url || 'https://www.google.com', id, currentTaskRef.current, currentTaskRef.current.variables);
                 }}

@@ -353,7 +353,7 @@ async function runFigranite(data, options = {}) {
                     reportProgress(runId, { actionId: act.id, status: 'running' });
                     const hasStructured = act.conditionVarType || act.conditionOp || act.conditionVar || act.conditionValue;
                     const condition = hasStructured
-                        ? evalStructuredCondition(act, runtimeVars, resolveTemplate)
+                        ? await evalStructuredCondition(act, page, runtimeVars, resolveTemplate)
                         : await evalCondition(act.value, page, runtimeVars, lastBlockOutput, resolveTemplate);
                     setBlockOutput(condition);
                     logs.push(`If condition: ${condition ? 'true' : 'false'}`);
@@ -391,7 +391,7 @@ async function runFigranite(data, options = {}) {
                     reportProgress(runId, { actionId: act.id, status: 'running' });
                     const hasStructured = act.conditionVarType || act.conditionOp || act.conditionVar || act.conditionValue;
                     const condition = hasStructured
-                        ? evalStructuredCondition(act, runtimeVars, resolveTemplate)
+                        ? await evalStructuredCondition(act, page, runtimeVars, resolveTemplate)
                         : await evalCondition(act.value, page, runtimeVars, lastBlockOutput, resolveTemplate);
                     setBlockOutput(condition);
                     logs.push(`While condition: ${condition ? 'true' : 'false'}`);

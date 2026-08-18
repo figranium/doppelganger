@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Task, Action } from '../types';
-import { TASK_FIELD_INSPECT_PREFIX } from '../utils/extractionFieldIds';
+import { TASK_FIELD_INSPECT_PREFIX, TASK_GROUP_CONTAINER_INSPECT_PREFIX, TASK_GROUP_FIELD_INSPECT_PREFIX } from '../utils/extractionFieldIds';
 
 // Extraction scripts run via native document.querySelector/querySelectorAll, which does not
 // support Playwright-only pseudo-selectors like :has-text(...). Strip those out for extraction picks.
@@ -19,10 +19,14 @@ export const useEditorHeadful = (
     const [isInspectMode, setIsInspectMode] = useState(false);
     const [isInspectLoading, setIsInspectLoading] = useState(false);
     const [activeInspectActionId, setActiveInspectActionId] = useState<string | null>(null);
+    const [activeInspectScopeSelector, setActiveInspectScopeSelector] = useState<string | null>(null);
     const [selectorOptionsById, setSelectorOptionsById] = useState<Record<string, string[]>>({});
 
     const activeInspectActionIdRef = useRef<string | null>(null);
     useEffect(() => { activeInspectActionIdRef.current = activeInspectActionId; }, [activeInspectActionId]);
+
+    const activeInspectScopeSelectorRef = useRef<string | null>(null);
+    useEffect(() => { activeInspectScopeSelectorRef.current = activeInspectScopeSelector; }, [activeInspectScopeSelector]);
 
     const onStopHeadfulRef = useRef(onStopHeadful);
     useEffect(() => { onStopHeadfulRef.current = onStopHeadful; }, [onStopHeadful]);
@@ -46,9 +50,10 @@ export const useEditorHeadful = (
                     const inspectId = activeInspectActionIdRef.current;
                     if (data.selector && inspectId) {
                         try {
-                            let parsed = JSON.parse(data.selector);
+                            let payload = JSON.parse(data.selector);
+                            let parsed: string[] = Array.isArray(payload) ? payload : payload.selectors;
                             if (Array.isArray(parsed) && parsed.length > 0) {
-                                if (inspectId.startsWith(TASK_FIELD_INSPECT_PREFIX)) {
+                                if (inspectId.startsWith(TASK_FIELD_INSPECT_PREFIX) || inspectId.startsWith(TASK_GROUP_CONTAINER_INSPECT_PREFIX) || inspectId.startsWith(TASK_GROUP_FIELD_INSPECT_PREFIX)) {
                                     parsed = stripUnsupportedForExtraction(parsed);
                                 }
                                 setSelectorOptionsById(prev => ({ ...prev, [inspectId]: parsed }));
@@ -60,6 +65,7 @@ export const useEditorHeadful = (
                             updateAction(inspectId, { selector: data.selector }, true);
                         }
                         setActiveInspectActionId(null);
+                        setActiveInspectScopeSelector(null);
                         onStopHeadfulRef.current?.();
                     }
                 } catch (err) { }
@@ -77,7 +83,7 @@ export const useEditorHeadful = (
             const res = await fetch('/api/headful/inspect', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: nextState })
+                body: JSON.stringify({ enabled: nextState, scopeSelector: nextState ? activeInspectScopeSelectorRef.current : null })
             });
             if (!res.ok) throw new Error('Failed to toggle inspect mode');
             setIsInspectMode(nextState);
@@ -94,6 +100,8 @@ export const useEditorHeadful = (
         isInspectLoading,
         activeInspectActionId,
         setActiveInspectActionId,
+        activeInspectScopeSelector,
+        setActiveInspectScopeSelector,
         selectorOptionsById,
         handleToggleInspect
     };

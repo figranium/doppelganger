@@ -32,7 +32,7 @@ const toString = (value) => {
     return String(value);
 };
 
-const evalStructuredCondition = (act, runtimeVars, resolveTemplate) => {
+const evalStructuredCondition = async (act, page, runtimeVars, resolveTemplate) => {
     const getValueFromVarOrLiteral = (raw) => {
         const name = normalizeVarRef(raw);
         if (name && Object.prototype.hasOwnProperty.call(runtimeVars, name)) return runtimeVars[name];
@@ -42,6 +42,14 @@ const evalStructuredCondition = (act, runtimeVars, resolveTemplate) => {
 
     const varType = act.conditionVarType || 'string';
     const op = act.conditionOp || (varType === 'boolean' ? 'is_true' : 'equals');
+
+    if (varType === 'selector') {
+        const selector = resolveTemplate(String(act.selector || ''));
+        if (!selector.trim()) return false;
+        const found = await page.evaluate((sel) => !!document.querySelector(sel), selector);
+        return op === 'not_exists' ? !found : found;
+    }
+
     const leftRaw = getValueFromVarOrLiteral(act.conditionVar || '');
     const rightRaw = act.conditionValue ?? '';
     const rightResolved = resolveTemplate(String(rightRaw));

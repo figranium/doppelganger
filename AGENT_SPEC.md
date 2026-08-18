@@ -170,6 +170,9 @@ Collect items from selector or variable and iterate.
 `boolean` ops:
 - `is_true`, `is_false`
 
+`selector` ops:
+- `exists`, `not_exists` — checks `action.selector` against the page's DOM (`document.querySelector`), not `conditionVar`/`conditionValue`.
+
 ## 8) JS condition helpers (value expression)
 If you use `value` as JS expression, these helpers exist:
 - `exists(selector)`

@@ -1,11 +1,12 @@
 import React from 'react';
 import MaterialIcon from '../MaterialIcon';
-import { Task, VarType, Credential, TaskOutput, ExtractionField } from '../../types';
+import { Task, VarType, Credential, TaskOutput, ExtractionField, ExtractionGroup } from '../../types';
 import CodeEditor from '../CodeEditor';
 import CopyButton from '../CopyButton';
 import ScheduleTab from './ScheduleTab';
 import RichInput from '../RichInput';
 import { generateExtractionScript } from '../../utils/extractionScriptGen';
+import { taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../../utils/extractionFieldIds';
 
 interface TaskSettingsCabinetProps {
     isOpen: boolean;
@@ -15,6 +16,8 @@ interface TaskSettingsCabinetProps {
     proxyListLoaded: boolean;
     proxyList: { id: string }[];
     onStartFieldInspect?: (fieldId: string) => void;
+    onStartGroupContainerInspect?: (groupId: string) => void;
+    onStartGroupFieldInspect?: (groupId: string, fieldId: string) => void;
     fieldSelectorOptionsById?: Record<string, string[]>;
 }
 
@@ -32,6 +35,8 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
     proxyListLoaded,
     proxyList,
     onStartFieldInspect,
+    onStartGroupContainerInspect,
+    onStartGroupFieldInspect,
     fieldSelectorOptionsById,
     initialTab = 'mode',
     versions,
@@ -419,9 +424,10 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                             const extractionMode: 'visual' | 'javascript' = currentTask.extractionMode
                                 || (currentTask.extractionScript && !(currentTask.extractionFields && currentTask.extractionFields.length) ? 'javascript' : 'visual');
                             const fields = currentTask.extractionFields || [];
+                            const groups = currentTask.extractionGroups || [];
 
                             const setFields = (next: ExtractionField[]) => {
-                                onUpdateTask({ extractionFields: next, extractionScript: generateExtractionScript(next) });
+                                onUpdateTask({ extractionFields: next, extractionScript: generateExtractionScript(next, groups) });
                             };
                             const addField = () => {
                                 setFields([...fields, { id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', selector: '', attribute: 'text' }]);
@@ -433,7 +439,35 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                 setFields(fields.filter(f => f.id !== id));
                             };
                             const switchMode = (mode: 'visual' | 'javascript') => {
-                                onUpdateTask({ extractionMode: mode, extractionScript: generateExtractionScript(fields) });
+                                onUpdateTask({ extractionMode: mode, extractionScript: generateExtractionScript(fields, groups) });
+                            };
+
+                            const setGroups = (next: ExtractionGroup[]) => {
+                                onUpdateTask({ extractionGroups: next, extractionScript: generateExtractionScript(fields, next) });
+                            };
+                            const addGroup = () => {
+                                setGroups([...groups, { id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', containerSelector: '', fields: [] }]);
+                            };
+                            const updateGroup = (id: string, updates: Partial<ExtractionGroup>) => {
+                                setGroups(groups.map(g => g.id === id ? { ...g, ...updates } : g));
+                            };
+                            const removeGroup = (id: string) => {
+                                setGroups(groups.filter(g => g.id !== id));
+                            };
+                            const addGroupField = (groupId: string) => {
+                                const group = groups.find(g => g.id === groupId);
+                                if (!group) return;
+                                updateGroup(groupId, { fields: [...group.fields, { id: `field_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', selector: '', attribute: 'text' }] });
+                            };
+                            const updateGroupField = (groupId: string, fieldId: string, updates: Partial<ExtractionField>) => {
+                                const group = groups.find(g => g.id === groupId);
+                                if (!group) return;
+                                updateGroup(groupId, { fields: group.fields.map(f => f.id === fieldId ? { ...f, ...updates } : f) });
+                            };
+                            const removeGroupField = (groupId: string, fieldId: string) => {
+                                const group = groups.find(g => g.id === groupId);
+                                if (!group) return;
+                                updateGroup(groupId, { fields: group.fields.filter(f => f.id !== fieldId) });
                             };
 
                             return (
@@ -510,9 +544,9 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                                 </button>
                                                             )}
                                                         </div>
-                                                        {fieldSelectorOptionsById?.[field.id] && fieldSelectorOptionsById[field.id].length > 1 && (
+                                                        {fieldSelectorOptionsById?.[taskFieldInspectId(field.id)] && fieldSelectorOptionsById[taskFieldInspectId(field.id)].length > 1 && (
                                                             <div className="flex flex-wrap gap-1">
-                                                                {fieldSelectorOptionsById[field.id].map((opt, i) => (
+                                                                {fieldSelectorOptionsById[taskFieldInspectId(field.id)].map((opt, i) => (
                                                                     <button
                                                                         key={i}
                                                                         onClick={() => updateField(field.id, { selector: opt })}
@@ -533,6 +567,9 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                                 <option value="html">HTML</option>
                                                                 <option value="value">Input Value</option>
                                                                 <option value="attr">Attribute</option>
+                                                                <option value="image">Image URL</option>
+                                                                <option value="link">Link URL</option>
+                                                                <option value="exists">Exists (true/false)</option>
                                                             </select>
                                                             {field.attribute === 'attr' && (
                                                                 <input
@@ -542,15 +579,17 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                                     className="w-24 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs font-mono text-[var(--app-text)]"
                                                                 />
                                                             )}
-                                                            <label className="flex items-center gap-1.5 text-xs text-[var(--app-text-muted)] cursor-pointer ml-auto">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={!!field.multiple}
-                                                                    onChange={(e) => updateField(field.id, { multiple: e.target.checked })}
-                                                                    className="accent-current"
-                                                                />
-                                                                Multiple (list)
-                                                            </label>
+                                                            {field.attribute !== 'exists' && (
+                                                                <label className="flex items-center gap-1.5 text-xs text-[var(--app-text-muted)] cursor-pointer ml-auto">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={!!field.multiple}
+                                                                        onChange={(e) => updateField(field.id, { multiple: e.target.checked })}
+                                                                        className="accent-current"
+                                                                    />
+                                                                    Multiple (list)
+                                                                </label>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -561,6 +600,164 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                     <MaterialIcon name="add" className="text-base" />
                                                     Add Field
                                                 </button>
+
+                                                <div className="pt-2 mt-2 border-t border-dashed border-[var(--app-border)] space-y-3">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Repeating Groups</label>
+                                                        <p className="text-xs text-[var(--app-text-faint)] mt-0.5">One row per matched container — e.g. every product card on a search results page — with a column per sub-field. Produces a multi-row CSV.</p>
+                                                    </div>
+                                                    {groups.map(group => (
+                                                        <div key={group.id} className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-3 space-y-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    value={group.name}
+                                                                    onChange={(e) => updateGroup(group.id, { name: e.target.value })}
+                                                                    placeholder="groupName (e.g. products)"
+                                                                    className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-xs font-mono text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
+                                                                />
+                                                                <button
+                                                                    onClick={() => removeGroup(group.id)}
+                                                                    className="text-[var(--app-text-muted)] hover:text-red-400 transition-colors shrink-0"
+                                                                    title="Remove group"
+                                                                    aria-label="Remove group"
+                                                                >
+                                                                    <MaterialIcon name="close" className="text-base" />
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1.5 focus-within:border-[var(--app-border-strong)]">
+                                                                    <RichInput
+                                                                        value={group.containerSelector}
+                                                                        onChange={(v) => updateGroup(group.id, { containerSelector: v })}
+                                                                        variables={currentTask.variables}
+                                                                        placeholder="Row container, e.g. [data-component-type='s-search-result']"
+                                                                        className="text-xs"
+                                                                    />
+                                                                </div>
+                                                                {onStartGroupContainerInspect && (
+                                                                    <button
+                                                                        onClick={() => onStartGroupContainerInspect(group.id)}
+                                                                        className="text-[var(--app-text)] opacity-50 hover:opacity-100 transition-colors shrink-0"
+                                                                        title="Pick Row Container in Browser"
+                                                                        aria-label="Pick Row Container in Browser"
+                                                                    >
+                                                                        <MaterialIcon name="my_location" className="text-lg" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                            {fieldSelectorOptionsById?.[taskGroupContainerInspectId(group.id)] && fieldSelectorOptionsById[taskGroupContainerInspectId(group.id)].length > 1 && (
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {fieldSelectorOptionsById[taskGroupContainerInspectId(group.id)].map((opt, i) => (
+                                                                        <button
+                                                                            key={i}
+                                                                            onClick={() => updateGroup(group.id, { containerSelector: opt })}
+                                                                            className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${group.containerSelector === opt ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-white/[0.02] border-white/10 text-white/40 hover:text-white/80 hover:bg-white/[0.05]'}`}
+                                                                        >
+                                                                            {opt}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+
+                                                            <div className="pl-3 border-l-2 border-[var(--app-border)] space-y-2">
+                                                                {group.fields.length === 0 && (
+                                                                    <p className="text-xs text-[var(--app-text-faint)]">No columns yet. Add one for each piece of data to pull from every row (e.g. title, price).</p>
+                                                                )}
+                                                                {group.fields.map(field => (
+                                                                    <div key={field.id} className="space-y-2">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <input
+                                                                                value={field.name}
+                                                                                onChange={(e) => updateGroupField(group.id, field.id, { name: e.target.value })}
+                                                                                placeholder="columnName"
+                                                                                className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-xs font-mono text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
+                                                                            />
+                                                                            <button
+                                                                                onClick={() => removeGroupField(group.id, field.id)}
+                                                                                className="text-[var(--app-text-muted)] hover:text-red-400 transition-colors shrink-0"
+                                                                                title="Remove column"
+                                                                                aria-label="Remove column"
+                                                                            >
+                                                                                <MaterialIcon name="close" className="text-base" />
+                                                                            </button>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1.5 focus-within:border-[var(--app-border-strong)]">
+                                                                                <RichInput
+                                                                                    value={field.selector}
+                                                                                    onChange={(v) => updateGroupField(group.id, field.id, { selector: v })}
+                                                                                    variables={currentTask.variables}
+                                                                                    placeholder="Selector relative to row, e.g. h2 span"
+                                                                                    className="text-xs"
+                                                                                />
+                                                                            </div>
+                                                                            {onStartGroupFieldInspect && (
+                                                                                <button
+                                                                                    onClick={() => onStartGroupFieldInspect(group.id, field.id)}
+                                                                                    className="text-[var(--app-text)] opacity-50 hover:opacity-100 transition-colors shrink-0"
+                                                                                    title="Pick Selector in Browser (within row)"
+                                                                                    aria-label="Pick Selector in Browser (within row)"
+                                                                                >
+                                                                                    <MaterialIcon name="my_location" className="text-lg" />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                        {fieldSelectorOptionsById?.[taskGroupFieldInspectId(group.id, field.id)] && fieldSelectorOptionsById[taskGroupFieldInspectId(group.id, field.id)].length > 1 && (
+                                                                            <div className="flex flex-wrap gap-1">
+                                                                                {fieldSelectorOptionsById[taskGroupFieldInspectId(group.id, field.id)].map((opt, i) => (
+                                                                                    <button
+                                                                                        key={i}
+                                                                                        onClick={() => updateGroupField(group.id, field.id, { selector: opt })}
+                                                                                        className={`text-xs px-1.5 py-0.5 rounded border transition-colors ${field.selector === opt ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-white/[0.02] border-white/10 text-white/40 hover:text-white/80 hover:bg-white/[0.05]'}`}
+                                                                                    >
+                                                                                        {opt}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                                            <select
+                                                                                value={field.attribute}
+                                                                                onChange={(e) => updateGroupField(group.id, field.id, { attribute: e.target.value as ExtractionField['attribute'] })}
+                                                                                className="bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs text-[var(--app-text-muted)]"
+                                                                            >
+                                                                                <option value="text">Text</option>
+                                                                                <option value="html">HTML</option>
+                                                                                <option value="value">Input Value</option>
+                                                                                <option value="attr">Attribute</option>
+                                                                                <option value="image">Image URL</option>
+                                                                                <option value="link">Link URL</option>
+                                                                                <option value="exists">Exists (true/false)</option>
+                                                                            </select>
+                                                                            {field.attribute === 'attr' && (
+                                                                                <input
+                                                                                    value={field.attrName || ''}
+                                                                                    onChange={(e) => updateGroupField(group.id, field.id, { attrName: e.target.value })}
+                                                                                    placeholder="href"
+                                                                                    className="w-24 bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs font-mono text-[var(--app-text)]"
+                                                                                />
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                <button
+                                                                    onClick={() => addGroupField(group.id)}
+                                                                    className="flex items-center justify-center gap-1.5 py-1.5 w-full rounded-lg border border-dashed border-[var(--app-border)] text-xs font-bold uppercase tracking-tight text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:border-[var(--app-border-strong)] transition-colors"
+                                                                >
+                                                                    <MaterialIcon name="add" className="text-sm" />
+                                                                    Add Column
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <button
+                                                        onClick={addGroup}
+                                                        className="flex items-center justify-center gap-1.5 py-2 w-full rounded-xl border border-dashed border-[var(--app-border)] text-xs font-bold uppercase tracking-tight text-[var(--app-text-muted)] hover:text-[var(--app-text)] hover:border-[var(--app-border-strong)] transition-colors"
+                                                    >
+                                                        <MaterialIcon name="add" className="text-base" />
+                                                        Add Group
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : (
                                             <div className="flex-1 bg-[var(--app-code-bg)] border border-[var(--app-border)] rounded-2xl overflow-hidden min-h-[300px]">

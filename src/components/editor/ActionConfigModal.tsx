@@ -65,6 +65,10 @@ const conditionOps: Record<VarType, { value: string; label: string }[]> = {
     boolean: [
         { value: 'is_true', label: 'Is true' },
         { value: 'is_false', label: 'Is false' }
+    ],
+    selector: [
+        { value: 'exists', label: 'Exists' },
+        { value: 'not_exists', label: 'Does not exist' }
     ]
 };
 
@@ -412,20 +416,46 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                         <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Condition</label>
                         <div className="grid grid-cols-3 gap-2">
                             <div className="space-y-1">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Variable</span>
-                                <input
-                                    type="text"
-                                    list={`cond-var-${action.id}`}
-                                    value={action.conditionVar || ''}
-                                    onChange={(e) => onUpdate(action.id, { conditionVar: e.target.value })}
-                                    onBlur={() => onAutoSave()}
-                                    placeholder="variable name"
-                                    className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/30"
-                                />
-                                {varKeys.length > 0 && (
-                                    <datalist id={`cond-var-${action.id}`}>
-                                        {varKeys.map((k) => <option key={k} value={k} />)}
-                                    </datalist>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">{condVarType === 'selector' ? 'Selector' : 'Variable'}</span>
+                                {condVarType === 'selector' ? (
+                                    <div className="bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 focus-within:border-white/30 transition-all flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={action.selector || ''}
+                                            onChange={(e) => onUpdate(action.id, { selector: e.target.value })}
+                                            onBlur={() => onAutoSave()}
+                                            placeholder=".verified-badge"
+                                            className="flex-1 min-w-0 bg-transparent text-xs font-mono text-white focus:outline-none"
+                                        />
+                                        {onStartInspect && (
+                                            <button
+                                                onClick={() => { onClose(); onStartInspect(action.id); }}
+                                                disabled={action.disabled}
+                                                className="text-white opacity-50 hover:opacity-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-20 disabled:cursor-not-allowed rounded"
+                                                title="Pick Selector in Browser"
+                                                aria-label="Pick Selector in Browser"
+                                            >
+                                                <MaterialIcon name="my_location" className="text-lg" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <input
+                                            type="text"
+                                            list={`cond-var-${action.id}`}
+                                            value={action.conditionVar || ''}
+                                            onChange={(e) => onUpdate(action.id, { conditionVar: e.target.value })}
+                                            onBlur={() => onAutoSave()}
+                                            placeholder="variable name"
+                                            className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/30"
+                                        />
+                                        {varKeys.length > 0 && (
+                                            <datalist id={`cond-var-${action.id}`}>
+                                                {varKeys.map((k) => <option key={k} value={k} />)}
+                                            </datalist>
+                                        )}
+                                    </>
                                 )}
                             </div>
                             <div className="space-y-1">
@@ -438,7 +468,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                                         onUpdate(action.id, {
                                             conditionVarType: nextType,
                                             conditionOp: nextOps[0].value,
-                                            conditionValue: nextType === 'boolean' ? '' : action.conditionValue || ''
+                                            conditionValue: (nextType === 'boolean' || nextType === 'selector') ? '' : action.conditionValue || ''
                                         }, true);
                                     }}
                                     className="custom-select w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold uppercase text-white/60 focus:outline-none"
@@ -446,6 +476,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                                     <option value="string">String</option>
                                     <option value="number">Number</option>
                                     <option value="boolean">Boolean</option>
+                                    <option value="selector">Selector</option>
                                 </select>
                             </div>
                             <div className="space-y-1">
@@ -459,7 +490,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                                 </select>
                             </div>
                         </div>
-                        {condVarType !== 'boolean' && (
+                        {condVarType !== 'boolean' && condVarType !== 'selector' && (
                             <div className="space-y-1">
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Value</span>
                                 <input

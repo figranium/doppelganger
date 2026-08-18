@@ -38,6 +38,8 @@ Do not create a separate plan file unless explicitly asked. Post the plan in cha
 
 **Headful/VNC stack:** `start-vnc.sh` launches Xvfb (1920x1080) → x11vnc → websockify/noVNC. The browser runs inside Xvfb and is viewed through NoVNC embedded in an iframe (`public/novnc.html`). The selector picker injects inspect overlay JS into pages via `context.addInitScript()` in `headful.js` and streams selected selectors back via SSE (`/api/headful/selector_stream`).
 
+**Duplicated extraction UI:** The Visual extraction-script editor exists in two places that must be kept in sync — `TaskSettingsCabinet.tsx` (Extraction tab in the task settings panel) and the in-canvas `ExtractionScriptBlock` inside `CanvasView.tsx` (the popup opened from the canvas). Any functional change to one (new field types, new attribute/selector picking behavior, new data model like repeating groups, etc.) must be applied to the other as well, unless the change is purely visual/stylistic to one surface (e.g. layout, spacing, panel-specific styling) — use judgment to tell the two apart.
+
 ## Tech Stack
 
 | Layer | Technology |
