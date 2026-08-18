@@ -31,9 +31,9 @@ Figranium is proudly supported by:
 <div align="center">
   <a href="https://swiftproxy.net/?ref=figranium" target="_blank">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="swiftproxy_white.png">
+      <source media="(prefers-color-scheme: dark)" srcset="partner-assets/swiftproxy_white.png">
       <source media="(prefers-color-scheme: light)" srcset="swiftproxy.png">
-      <img src="swiftproxy.png" width="220" alt="Swiftproxy">
+      <img src="partner-assets/swiftproxy.png" width="220" alt="Swiftproxy">
     </picture>
   </a>
 </div>
@@ -43,9 +43,9 @@ Figranium is proudly supported by:
 <div align="center">
   <a href="https://simplynode.io/?utm_source=figranium" target="_blank">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="simplynode_white.png">
+      <source media="(prefers-color-scheme: dark)" srcset="partner-assets/simplynode_white.png">
       <source media="(prefers-color-scheme: light)" srcset="simplynode.png">
-      <img src="simplynode.png" width="220" alt="SimplyNode">
+      <img src="partner-assets/simplynode.png" width="220" alt="SimplyNode">
     </picture>
   </a>
 </div>
@@ -59,14 +59,22 @@ Figranium is proudly supported by:
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.mintlify.com">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="mintlify_white.svg">
-      <source media="(prefers-color-scheme: light)" srcset="mintlify.svg">
-      <img src="mintlify.svg" width="165" alt="Mintlify">
+      <source media="(prefers-color-scheme: dark)" srcset="partner-assets/mintlify_white.svg">
+      <source media="(prefers-color-scheme: light)" srcset="partner-assets/mintlify.svg">
+      <img src="partner-assets/mintlify.svg" width="165" alt="Mintlify">
     </picture>
   </a>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.algolia.com">
     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Algolia_logo_full_blue.svg/1920px-Algolia_logo_full_blue.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20221025105233" width="165" alt="Algolia">
+  </a>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://neon.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="partner-assets/neon_white.png">
+      <source media="(prefers-color-scheme: light)" srcset="partner-assets/neon.png">
+      <img src="partner-assets/neon.png" width="165" alt="Mintlify">
+    </picture>
   </a>
 </div>
 
