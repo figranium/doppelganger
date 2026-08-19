@@ -4,6 +4,7 @@ on:
   push:
     branches: ['main', 'beta']
     tags: ['v*']
+  workflow_dispatch:
 
 env:
   GH_REGISTRY: ghcr.io
