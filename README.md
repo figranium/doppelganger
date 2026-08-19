@@ -195,6 +195,8 @@ Key capabilities of **Figranite** include:
 | `DB_POSTGRESDB_PORT` | Port for the PostgreSQL database (required if DB_TYPE is postgres). | — |
 | `DB_POSTGRESDB_USER` | Username for the PostgreSQL database (required if DB_TYPE is postgres). | — |
 | `DB_POSTGRESDB_PASSWORD` | Password for the PostgreSQL database (required if DB_TYPE is postgres). | — |
+| `USE_CLOAK_ENGINE` | Set to `true` to run the browser engine on CloakBrowser (stealth-patched Chromium) instead of the default Playwright stealth stack. | `false` |
+| `CLOAKBROWSER_LICENSE_KEY` | CloakBrowser license key for the latest binary (read natively by cloakbrowser; `npx cloakbrowser login` writes `~/.cloakbrowser/license.key`). Without a key the free legacy binary is used. | — |
 
 Proxy rotation also respects `data/proxies.json` (see below), and `data/allowed_ips.json` works as an alternate allowlist format.
 
