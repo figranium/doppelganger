@@ -11,6 +11,7 @@ interface ResultsDrawerProps {
     isExecuting: boolean;
     isHeadfulOpen: boolean;
     runId?: string | null;
+    mode?: string;
     onConfirm: (request: string | ConfirmRequest) => Promise<boolean>;
     onNotify: (message: string, tone?: 'success' | 'error') => void;
     onPinResults?: (results: Results) => void;
@@ -26,6 +27,7 @@ const ResultsDrawer: React.FC<ResultsDrawerProps> = ({
     isExecuting,
     isHeadfulOpen,
     runId,
+    mode,
     onConfirm,
     onNotify,
     onPinResults,
@@ -51,6 +53,7 @@ const ResultsDrawer: React.FC<ResultsDrawerProps> = ({
                     isExecuting={isExecuting}
                     isHeadful={isHeadfulOpen}
                     runId={runId}
+                    mode={mode}
                     onConfirm={onConfirm}
                     onNotify={onNotify}
                     onPin={onPinResults}

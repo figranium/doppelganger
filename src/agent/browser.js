@@ -5,6 +5,7 @@ const path = require('path');
 const { getProxySelection } = require('../../proxy-rotation');
 const { setupNavigationProtection } = require('../../url-utils');
 const { installMouseHelper } = require('./dom-utils');
+const { getInjectableScript } = require('idcac-playwright');
 
 const PROFILE_DIR = path.join(__dirname, '../../data/browser-profile');
 const HEADFUL_STATE_PATH = path.join(__dirname, '../../data/headful-storage-state.json');
@@ -145,6 +146,7 @@ async function createBrowserContext(launchOptions, options = {}) {
 
     await setupNavigationProtection(context);
     await context.addInitScript(installMouseHelper);
+    await context.addInitScript(getInjectableScript());
 
     if (includeShadowDom) {
         await context.addInitScript(() => {

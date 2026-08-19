@@ -36,6 +36,7 @@ interface ResultsPaneProps {
     isExecuting: boolean;
     isHeadful?: boolean;
     runId?: string | null;
+    mode?: string;
     onConfirm: (request: ConfirmRequest) => Promise<boolean>;
     onNotify: (message: string, tone?: 'success' | 'error') => void;
     onPin?: (results: Results) => void;
@@ -321,7 +322,7 @@ const downloadText = (filename: string, content: string, mime: string) => {
     URL.revokeObjectURL(url);
 };
 
-const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExecuting, isHeadful, runId, onConfirm, onNotify, onPin, onUnpin, fullWidth, useNovnc }) => {
+const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExecuting, isHeadful, runId, mode, onConfirm, onNotify, onPin, onUnpin, fullWidth, useNovnc }) => {
     const [copied, setCopied] = useState<string | null>(null);
     const [dataView, setDataView] = useState<'raw' | 'table'>('raw');
     const [mainView, setMainView] = useState<'data' | 'downloads'>('data');
@@ -572,6 +573,8 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                                 src={screenshotSrc}
                                 className="absolute inset-0 w-full h-full object-contain transition-opacity duration-1000"
                             />
+                        ) : mode === 'scrape' ? (
+                            <div className="text-xs font-bold text-white/20 uppercase tracking-widest px-6 text-center">Scrape mode does not support screenshots</div>
                         ) : (
                             <div className="text-xs font-bold text-white/5 uppercase tracking-widest">Waiting for Frame...</div>
                         )}

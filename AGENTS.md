@@ -116,7 +116,7 @@ When the user says to **finalize** after a task is complete, stage **all** modif
 
 When publishing finished work, prefer committing and pushing directly on the `main` branch unless the user explicitly asks for a separate feature branch.
 
-Commit titles should be long and descriptive enough to clearly summarize the full scope of the change, not terse or generic.
+Commit titles should be long and descriptive enough to clearly summarize the full scope of the changes (even the ones you did not directly make), not terse or generic.
 
 Do not add yourself (the agent) as a co-author on commits, and do not mention this instruction or its origin in the commit message.
 

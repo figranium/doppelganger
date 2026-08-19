@@ -226,7 +226,10 @@ const updateProxy = (id, entry) => {
     const config = loadProxyConfig();
     const proxies = config.proxies.map((proxy) => {
         if (proxy.id !== id) return proxy;
-        return { ...proxy, ...normalized, id };
+        const merged = { ...proxy, ...normalized, id };
+        if (normalized.username === undefined) merged.username = proxy.username;
+        if (normalized.password === undefined) merged.password = proxy.password;
+        return merged;
     });
     if (!proxies.some((proxy) => proxy.id === id)) return null;
     return saveProxyConfig({ ...config, proxies });

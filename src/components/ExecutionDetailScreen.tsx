@@ -122,6 +122,7 @@ const ExecutionDetailScreen: React.FC<ExecutionDetailScreenProps> = ({ onConfirm
                             <ResultsPane
                                 results={results}
                                 isExecuting={false}
+                                mode={execution.mode}
                                 onConfirm={onConfirm}
                                 onNotify={onNotify}
                                 fullWidth

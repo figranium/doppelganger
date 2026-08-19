@@ -611,6 +611,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 isExecuting={isExecuting}
                 isHeadfulOpen={isHeadfulOpen || false}
                 runId={runId}
+                mode={currentTask.mode}
                 onConfirm={onConfirm}
                 onNotify={onNotify}
                 onPinResults={onPinResults}

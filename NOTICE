@@ -1,6 +1,34 @@
-Figranium
-Copyright 2026 Figranium
+This project includes third-party software, listed below.
 
-This product includes software developed by Mnemosyne.
+--------------------------------------------------------------------------------
 
-This product includes third-party software as listed in THIRD_PARTY_LICENSES.md.
+I Don't Care About Cookies (idcac)
+
+Location in this repo: extensions/idcac-chrome/
+Source: https://github.com/apify/idcac
+License: GNU General Public License, Version 3 (GPLv3)
+
+Vendored unmodified as a browser extension loaded into Playwright via
+--load-extension for automatic cookie-consent dismissal in Agent mode.
+Since Figranium is itself licensed under GPL-3.0-only, no license
+compatibility concerns arise from including this source.
+
+--------------------------------------------------------------------------------
+
+noVNC
+
+Fetched at runtime by start-vnc.sh into /opt/novnc (not vendored in this
+repo's source tree) and served to provide the browser-based VNC viewer
+for Headful mode.
+Source: https://github.com/novnc/noVNC
+License: Mozilla Public License 2.0 (MPL-2.0)
+
+--------------------------------------------------------------------------------
+
+websockify
+
+Used by start-vnc.sh (via novnc_proxy or the standalone websockify
+binary) as the WebSocket-to-TCP bridge between the browser VNC viewer
+and the Xvfb/x11vnc session in Headful mode.
+Source: https://github.com/novnc/websockify
+License: GNU Lesser General Public License, Version 3 (LGPLv3)
