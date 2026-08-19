@@ -47,6 +47,8 @@ jobs:
             type=raw,value=beta,enable=${{ github.ref == 'refs/heads/beta' }}
             type=ref,event=tag
             type=semver,pattern={{version}}
+            # Any other branch (e.g. manual workflow_dispatch runs): tag by branch name
+            type=ref,event=branch,enable=${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/beta' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
