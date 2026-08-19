@@ -23,6 +23,15 @@ if (process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD === '1') {
   process.exit(0);
 }
 
+// CloakBrowser engine is opt-in; pre-fetch its stealth binary only when enabled.
+if (process.env.USE_CLOAK_ENGINE === 'true') {
+  const cloakResult = spawnSync('npx', ['cloakbrowser', 'install'], {
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
+  });
+  process.exit(cloakResult.status || 0);
+}
+
 const result = spawnSync('npx', ['playwright', 'install', '--with-deps'], {
   stdio: 'inherit',
   shell: process.platform === 'win32'

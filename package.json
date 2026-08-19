@@ -48,6 +48,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
+    "cloakbrowser": "^0.5.8",
     "cookie": "^1.0.2",
     "cookie-signature": "^1.2.2",
     "express": "^5.2.1",
