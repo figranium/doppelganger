@@ -146,7 +146,19 @@ async function createBrowserContext(launchOptions, options = {}) {
 
     await setupNavigationProtection(context);
     await context.addInitScript(installMouseHelper);
-    await context.addInitScript(getInjectableScript());
+
+    // idcac-playwright's injectable script relies on document.head existing
+    // (it synchronously inserts a <style> element), so it must run once the
+    // DOM is available rather than via addInitScript, which fires before
+    // <head> is parsed and would throw/no-op.
+    const idcacScript = getInjectableScript();
+    const dismissCookieBanners = (page) => {
+        page.on('domcontentloaded', () => {
+            page.evaluate(idcacScript).catch(() => { });
+        });
+    };
+    context.on('page', dismissCookieBanners);
+    for (const page of context.pages()) dismissCookieBanners(page);
 
     if (includeShadowDom) {
         await context.addInitScript(() => {
