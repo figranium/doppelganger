@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.14.4] - 2026-08-20
+
+### Features
+- **Dual browser engine switch: Playwright stealth stack by default, CloakBrowser opt-in via `USE_CLOAK_ENGINE`** (#349) - `stealth-chromium.js` now exposes a single adapter (`launch`, `launchPersistentContext`, plus a chromium-shaped export for existing callers) that routes to either `playwright-extra` + `puppeteer-extra-plugin-stealth` (the default) or the CloakBrowser stealth-patched Chromium binary when `USE_CLOAK_ENGINE=true`; `CLOAKBROWSER_LICENSE_KEY` is read natively by `cloakbrowser` to unlock the latest binary. `scripts/postinstall.js` pre-fetches the CloakBrowser binary only when the engine is enabled, otherwise installing Playwright browsers as before. Documented both env vars in `AGENTS.md` and the README config table, and added a commented-out example to `docker-compose.yml`.
+- **Rewrite Scrape mode to use `got-scraping` and Cheerio instead of Playwright** - Scrape mode no longer launches a browser: it fetches pages via a lightweight `got-scraping` HTTP request and parses them with Cheerio, dropping screenshot and video capture while preserving selector extraction, shadow-DOM-free HTML cleanup, link extraction, proxy/user-agent rotation, headful cookie handoff, and the existing extraction-worker sandboxed script pipeline. The results panel now shows "Scrape mode does not support screenshots" instead of the misleading "Waiting for Frame..." placeholder when viewing scrape-mode results.
+- **Auto-dismiss IDCAC cookie-consent banners in Agent mode** - Injects the `idcac-playwright` cookie-banner-dismissal script into every Agent mode browser context so runs no longer need to manually click through cookie consent dialogs. Documented the GPLv3-licensed `idcac-playwright`, noVNC, and websockify third-party components in `NOTICE`.
+
+### Bug Fixes
+- **Fix IDCAC cookie-consent dismissal never actually running in Agent mode** - `idcac-playwright`'s injectable script synchronously inserts a `<style>` element via `document.head.appendChild()`, but it was being run via `context.addInitScript()`, which fires before `<head>` is parsed; the resulting `TypeError` was silently swallowed by the script's own outer `try/catch`, so IDCAC never actually clicked anything. Switched to running the script via `page.evaluate()` on each page's `domcontentloaded` event (the package's documented usage pattern), applied to the current page and every future page/navigation in the context.
+
+### CI
+- Added a `workflow_dispatch` trigger to the Publish Docker Image workflow for manual runs, and generated Docker tags for non-main branches so those manual runs can push to GHCR from any branch.
+
+### Chores
+- Deleted the `node_modules` directory that had been accidentally committed, to prevent bloat when cloning.
+- Resynced `package-lock.json` with `package.json`'s earlier removal of the `@google/gemini-cli` dependency.
+- Updated the `NOTICE` file's maintainer/copyright name from Mnemosyne to Figranium.
+
 ## [0.14.3] - 2026-08-17
 
 ### Features
