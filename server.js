@@ -331,6 +331,10 @@ const executeTaskById = async (req, res) => {
         return res.status(404).json({ error: 'TASK_NOT_FOUND' });
     }
 
+    if (!req.body || typeof req.body !== 'object') {
+        req.body = {};
+    }
+
     // Webhook: validate and stash for post-execution delivery
     const webhookUrl = req.body.webhookUrl;
     if (webhookUrl) {

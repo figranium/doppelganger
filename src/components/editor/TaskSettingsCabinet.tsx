@@ -780,13 +780,16 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                 <div className="space-y-4">
                                     <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Trigger via API</label>
                                     <div className="space-y-2">
-                                        <p className="text-xs text-[var(--app-text-muted)]">Run this task from external tools using the endpoint below:</p>
+                                        <p className="text-xs text-[var(--app-text-muted)]">Send a <span className="font-mono font-bold text-[var(--app-text)]">POST</span> request from external tools to the endpoint below:</p>
                                         <div className="relative group">
-                                            <div className="bg-[var(--app-code-bg)] border border-[var(--app-border)] rounded-xl p-4 pr-12 font-mono text-xs text-[var(--app-text-muted)] break-all border-dashed">
-                                                POST /api/tasks/{currentTask.id}/api
+                                            <div className="flex items-center gap-2 bg-[var(--app-code-bg)] border border-[var(--app-border)] rounded-xl p-4 pr-12 border-dashed">
+                                                <span className="flex-shrink-0 text-[10px] font-bold tracking-wide px-1.5 py-0.5 rounded bg-[var(--app-accent)] text-[var(--app-accent-text)]">POST</span>
+                                                <span className="font-mono text-xs text-[var(--app-text-muted)] break-all">
+                                                    {`${window.location.origin}/api/tasks/${currentTask.id}/api`}
+                                                </span>
                                             </div>
                                             <CopyButton
-                                                text={`POST /api/tasks/${currentTask.id}/api`}
+                                                text={`${window.location.origin}/api/tasks/${currentTask.id}/api`}
                                                 className="absolute right-2 top-2 p-2 rounded-lg bg-[var(--app-surface-3)] border border-[var(--app-border)] text-[var(--app-text)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all"
                                                 iconClassName="text-xs"
                                                 title="Copy Endpoint"
