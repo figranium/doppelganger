@@ -1,0 +1,1413 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Figranium API",
+    "description": "REST API for Figranium — a browser automation and web scraping platform (headless scraping, headful VNC browser sessions, and AI agent execution).",
+    "version": "0.14.4"
+  },
+  "servers": [
+    { "url": "http://localhost:11345", "description": "Local server" }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Authentication and session management" },
+    { "name": "Tasks", "description": "CRUD and versioning for automation tasks" },
+    { "name": "Execution", "description": "Running scrape/agent/headful jobs" },
+    { "name": "Executions", "description": "Execution history and streaming" },
+    { "name": "Schedules", "description": "Task scheduling" },
+    { "name": "Settings", "description": "Application settings, API keys, proxies" },
+    { "name": "Credentials", "description": "Third-party integration credentials (e.g. Baserow)" },
+    { "name": "Data", "description": "Captures, screenshots, cookies" },
+    { "name": "Browser", "description": "Managed browser sessions and inspector" },
+    { "name": "Health", "description": "Health check" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "connect.sid",
+        "description": "Session cookie set after login."
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API key configured via /api/settings/api-key."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "description": "Machine-readable error code." },
+          "message": { "type": "string" },
+          "details": {},
+          "detail": {}
+        },
+        "required": ["error"]
+      },
+      "SuccessFlag": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true }
+        },
+        "required": ["success"]
+      },
+      "Task": {
+        "type": "object",
+        "description": "Automation task definition. See AGENT_SPEC.md for the full action schema.",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "mode": { "type": "string", "enum": ["scrape", "agent", "headful"] },
+          "url": { "type": "string" },
+          "actions": { "type": "array", "items": { "type": "object" } },
+          "variables": { "type": "object" },
+          "versions": { "type": "array", "items": { "type": "object" } },
+          "last_opened": { "type": "integer" }
+        }
+      },
+      "TaskSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "Execution": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "timestamp": { "type": "integer" },
+          "method": { "type": "string" },
+          "path": { "type": "string" },
+          "status": { "type": "string" },
+          "durationMs": { "type": "integer" },
+          "source": { "type": "string" },
+          "mode": { "type": "string" },
+          "taskId": { "type": "string" },
+          "taskName": { "type": "string" },
+          "url": { "type": "string" }
+        }
+      },
+      "Proxy": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "server": { "type": "string" },
+          "username": { "type": "string" },
+          "password": { "type": "string" },
+          "label": { "type": "string" },
+          "isRotatingPool": { "type": "boolean" },
+          "estimatedPoolSize": { "type": "integer" },
+          "isDefault": { "type": "boolean" }
+        }
+      },
+      "ProxyList": {
+        "type": "object",
+        "description": "Opaque shape returned by listProxies().",
+        "additionalProperties": true
+      },
+      "Credential": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "provider": { "type": "string", "enum": ["baserow"] },
+          "config": {
+            "type": "object",
+            "properties": {
+              "baseUrl": { "type": "string" },
+              "token": { "type": "string", "description": "Redacted in responses." }
+            }
+          }
+        }
+      },
+      "Capture": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "size": { "type": "integer" },
+          "modified": { "type": "integer" },
+          "type": { "type": "string", "enum": ["recording", "screenshot"] }
+        }
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "frequency": { "type": "string" },
+          "intervalMinutes": { "type": "integer" },
+          "hour": { "type": "integer" },
+          "minute": { "type": "integer" },
+          "daysOfWeek": { "type": "array", "items": { "type": "integer" } },
+          "dayOfMonth": { "type": "integer" },
+          "cron": { "type": "string" }
+        }
+      }
+    },
+    "parameters": {
+      "TaskId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Not authenticated",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "BadRequest": {
+        "description": "Invalid request",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "ServerError": {
+        "description": "Internal server error",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    }
+  },
+  "security": [{ "sessionAuth": [] }, { "apiKeyAuth": [] }],
+  "paths": {
+    "/api/auth/check-setup": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Check whether initial setup (first user) has been completed",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Setup status",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "setupRequired": { "type": "boolean" } } } } }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/auth/setup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Create the first user account",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 100 },
+                  "email": { "type": "string", "maxLength": 255 },
+                  "password": { "type": "string", "minLength": 8, "maxLength": 128 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Account created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "description": "Already set up", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Log in with email and password",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Logged in", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "description": "Invalid credentials", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Log out and destroy the session",
+        "security": [],
+        "responses": {
+          "200": { "description": "Logged out", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get the current session user",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Session state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authenticated": { "type": "boolean" },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "name": { "type": "string" },
+                        "email": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "List all tasks",
+        "responses": {
+          "200": {
+            "description": "Array of tasks (versions stripped)",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Task" } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Create or upsert a task",
+        "parameters": [
+          { "name": "version", "in": "query", "schema": { "type": "string", "enum": ["true"] }, "description": "If true and task exists, snapshot current version before overwrite." }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Task" } } }
+        },
+        "responses": {
+          "200": { "description": "Saved task", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Task" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/tasks/list": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "List tasks (lightweight, API-key auth)",
+        "security": [{ "apiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Task summaries",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "tasks": { "type": "array", "items": { "$ref": "#/components/schemas/TaskSummary" } } } } } }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/touch": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Update a task's last_opened timestamp",
+        "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+        "responses": {
+          "200": { "description": "Updated task", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Task" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "patch": {
+        "tags": ["Tasks"],
+        "summary": "Partially update a task",
+        "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Update result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "updatedAt": { "type": "integer" },
+                    "status": { "type": "string" },
+                    "task": { "$ref": "#/components/schemas/Task" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["Tasks"],
+        "summary": "Delete a task",
+        "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "id": { "type": "string" }, "deleted": { "type": "boolean" }, "message": { "type": "string" } } } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/tasks/{id}/versions": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "List saved versions of a task",
+        "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+        "responses": {
+          "200": {
+            "description": "Version list",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "versions": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "timestamp": { "type": "integer" }, "name": { "type": "string" }, "mode": { "type": "string" } } } } } } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/tasks/{id}/versions/{versionId}": {
+      "get": {
+        "tags": ["Tasks"],
+        "summary": "Get a specific task version snapshot",
+        "parameters": [
+          { "$ref": "#/components/parameters/TaskId" },
+          { "name": "versionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version snapshot",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "snapshot": { "type": "object" }, "metadata": { "type": "object", "properties": { "id": { "type": "string" }, "timestamp": { "type": "integer" } } } } } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/tasks/{id}/versions/clear": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Clear a task's version history",
+        "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+        "responses": {
+          "200": { "description": "Cleared", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/tasks/{id}/rollback": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Roll back a task to a previous version",
+        "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["versionId"], "properties": { "versionId": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Restored task", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Task" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/tasks/generate-selector": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Use AI to generate a CSS selector for an action step",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["task", "actionIndex", "prompt"],
+                "properties": {
+                  "task": { "type": "object" },
+                  "actionIndex": { "type": "integer" },
+                  "prompt": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Generated selector", "content": { "application/json": { "schema": { "type": "object", "properties": { "selector": { "type": "string" } } } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/tasks/generate-script": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Use AI to generate a page.evaluate extraction script",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "required": ["description"], "properties": { "description": { "type": "string" } } }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Generated script", "content": { "application/json": { "schema": { "type": "object", "properties": { "script": { "type": "string" } } } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "502": { "description": "All AI providers failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/tasks/{id}/api": {
+      "post": {
+        "tags": ["Execution"],
+        "summary": "Execute a saved task by ID (API key auth)",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "variables": { "type": "object" },
+                  "taskVariables": { "type": "object" },
+                  "webhookUrl": { "type": "string" },
+                  "runId": { "type": "string" }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Execution result", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/scrape": {
+      "post": {
+        "tags": ["Execution"],
+        "summary": "Run a headless scrape job (got-scraping + Cheerio)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": { "type": "string" },
+                  "selector": { "type": "string" },
+                  "extractionScript": { "type": "string" },
+                  "taskVariables": { "type": "object" },
+                  "variables": { "type": "object" }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Scrape result", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/agent": {
+      "post": {
+        "tags": ["Execution"],
+        "summary": "Run an AI agent task",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "runId": { "type": "string" } },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Agent execution result", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/headful": {
+      "post": {
+        "tags": ["Execution"],
+        "summary": "Run a headful (VNC) browser task",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": { "type": "string" },
+                  "taskVariables": { "type": "object" },
+                  "variables": { "type": "object" }
+                },
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Headful execution result", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/headful/stop": {
+      "post": {
+        "tags": ["Execution"],
+        "summary": "Stop the active headful browser session",
+        "responses": {
+          "200": { "description": "Stopped", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/headful/status": {
+      "get": {
+        "tags": ["Execution"],
+        "summary": "Get headful session display status",
+        "responses": {
+          "200": { "description": "Status", "content": { "application/json": { "schema": { "type": "object", "properties": { "useNovnc": { "type": "boolean" } } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/headful/selector_stream": {
+      "get": {
+        "tags": ["Execution"],
+        "summary": "SSE stream of selector-picker events",
+        "responses": {
+          "200": { "description": "text/event-stream of selector selection events", "content": { "text/event-stream": { "schema": { "type": "string" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/headful/inspect": {
+      "post": {
+        "tags": ["Execution"],
+        "summary": "Toggle the selector inspect overlay in the headful browser",
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/headful/vnc-password": {
+      "get": {
+        "tags": ["Execution"],
+        "summary": "Get the VNC session password",
+        "responses": {
+          "200": { "description": "Password", "content": { "application/json": { "schema": { "type": "object", "properties": { "password": { "type": "string" } } } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/browser/open": {
+      "post": {
+        "tags": ["Browser"],
+        "summary": "Launch or reattach a managed browser session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": { "type": "string" },
+                  "mode": { "type": "string", "default": "headful" },
+                  "devTools": { "type": "boolean" },
+                  "headless": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session launched",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "sessionId": { "type": "string" }, "status": { "type": "string" }, "wsEndpoint": { "type": "string" } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "description": "Launch conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/inspector/highlight": {
+      "post": {
+        "tags": ["Browser"],
+        "summary": "Highlight candidate elements matching a hint and return selectors",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": { "type": "string" },
+                  "url": { "type": "string" },
+                  "targetHint": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Candidate selectors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "selectors": { "type": "array", "items": { "type": "object", "properties": { "css": { "type": "string" }, "xpath": { "type": "string" }, "confidence": { "type": "number" } } } },
+                    "snapshot": { "type": "string", "nullable": true, "description": "Base64-encoded JPEG" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "description": "No active session", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Session ID mismatch", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/credentials": {
+      "get": {
+        "tags": ["Credentials"],
+        "summary": "List saved credentials",
+        "responses": {
+          "200": { "description": "Credential list", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Credential" } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Credentials"],
+        "summary": "Create a credential",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "provider", "config"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "provider": { "type": "string", "enum": ["baserow"] },
+                  "config": {
+                    "type": "object",
+                    "required": ["token", "baseUrl"],
+                    "properties": { "token": { "type": "string" }, "baseUrl": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Created credential", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Credential" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/credentials/{id}": {
+      "put": {
+        "tags": ["Credentials"],
+        "summary": "Update a credential",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "config": {
+                    "type": "object",
+                    "properties": { "baseUrl": { "type": "string" }, "token": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated credential", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Credential" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Credentials"],
+        "summary": "Delete a credential",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "type": "object", "properties": { "ok": { "type": "boolean" } } } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/credentials/{id}/proxy/baserow/databases": {
+      "get": {
+        "tags": ["Credentials"],
+        "summary": "Proxy: list Baserow databases (applications) for a credential",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Databases",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "integer" }, "name": { "type": "string" }, "workspaceName": { "type": "string" } } } } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/credentials/{id}/proxy/baserow/databases/{dbId}/tables": {
+      "get": {
+        "tags": ["Credentials"],
+        "summary": "Proxy: list Baserow tables in a database for a credential",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "dbId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tables",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "integer" }, "name": { "type": "string" } } } } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/executions": {
+      "get": {
+        "tags": ["Executions"],
+        "summary": "List execution history",
+        "responses": {
+          "200": { "description": "Executions", "content": { "application/json": { "schema": { "type": "object", "properties": { "executions": { "type": "array", "items": { "$ref": "#/components/schemas/Execution" } } } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/executions/list": {
+      "get": {
+        "tags": ["Executions"],
+        "summary": "List execution history (API key auth)",
+        "security": [{ "apiKeyAuth": [] }],
+        "responses": {
+          "200": { "description": "Executions", "content": { "application/json": { "schema": { "type": "object", "properties": { "executions": { "type": "array", "items": { "$ref": "#/components/schemas/Execution" } } } } } } }
+        }
+      }
+    },
+    "/api/executions/stream": {
+      "get": {
+        "tags": ["Executions"],
+        "summary": "SSE stream of live execution updates",
+        "parameters": [{ "name": "runId", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "text/event-stream", "content": { "text/event-stream": { "schema": { "type": "string" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/executions/{id}": {
+      "get": {
+        "tags": ["Executions"],
+        "summary": "Get a single execution",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Execution", "content": { "application/json": { "schema": { "type": "object", "properties": { "execution": { "$ref": "#/components/schemas/Execution" } } } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["Executions"],
+        "summary": "Delete an execution record",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/executions/clear": {
+      "post": {
+        "tags": ["Executions"],
+        "summary": "Clear all execution history",
+        "responses": {
+          "200": { "description": "Cleared", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/executions/stop": {
+      "post": {
+        "tags": ["Executions"],
+        "summary": "Stop a running execution",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "required": ["runId"], "properties": { "runId": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Stopped", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Service health check",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "uptime": { "type": "number" }, "storage": { "type": "string" } } } } }
+          },
+          "503": {
+            "description": "Degraded (storage unreachable)",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "uptime": { "type": "number" }, "storage": { "type": "string" }, "storage_error": { "type": "string" } } } } }
+          }
+        }
+      }
+    },
+    "/api/schedules": {
+      "get": {
+        "tags": ["Schedules"],
+        "summary": "List all task schedules",
+        "responses": {
+          "200": {
+            "description": "Schedules",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "schedules": { "type": "array", "items": { "type": "object", "properties": { "taskId": { "type": "string" }, "taskName": { "type": "string" }, "mode": { "type": "string" }, "schedule": { "$ref": "#/components/schemas/Schedule" } } } } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/schedules/{taskId}": {
+      "post": {
+        "tags": ["Schedules"],
+        "summary": "Create or update a task's schedule",
+        "parameters": [{ "name": "taskId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Schedule" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated schedule",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "schedule": { "$ref": "#/components/schemas/Schedule" }, "description": { "type": "string", "nullable": true }, "nextRun": { "type": "integer", "nullable": true } } } } }
+          },
+          "400": { "description": "Invalid schedule", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["Schedules"],
+        "summary": "Disable a task's schedule",
+        "parameters": [{ "name": "taskId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Disabled", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/schedules/{taskId}/status": {
+      "get": {
+        "tags": ["Schedules"],
+        "summary": "Get a task's schedule status",
+        "parameters": [{ "name": "taskId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "schedule": { "$ref": "#/components/schemas/Schedule" }, "cron": { "type": "string", "nullable": true }, "description": { "type": "string", "nullable": true }, "isValid": { "type": "boolean" } } } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/schedules/{taskId}/describe": {
+      "post": {
+        "tags": ["Schedules"],
+        "summary": "Preview/validate a schedule config without saving",
+        "parameters": [{ "name": "taskId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Schedule" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Description",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "valid": { "type": "boolean" }, "description": { "type": "string", "nullable": true }, "cron": { "type": "string", "nullable": true }, "nextRun": { "type": "integer", "nullable": true } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/schedules/status/all": {
+      "get": {
+        "tags": ["Schedules"],
+        "summary": "Get overall scheduler status",
+        "responses": {
+          "200": { "description": "Scheduler status", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/data/captures": {
+      "get": {
+        "tags": ["Data"],
+        "summary": "List capture files (recordings and screenshots)",
+        "parameters": [{ "name": "runId", "in": "query", "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Captures", "content": { "application/json": { "schema": { "type": "object", "properties": { "captures": { "type": "array", "items": { "$ref": "#/components/schemas/Capture" } } } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/data/screenshots": {
+      "get": {
+        "tags": ["Data"],
+        "summary": "List screenshot files",
+        "responses": {
+          "200": { "description": "Screenshots", "content": { "application/json": { "schema": { "type": "object", "properties": { "screenshots": { "type": "array", "items": { "$ref": "#/components/schemas/Capture" } } } } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/data/captures/{name}": {
+      "delete": {
+        "tags": ["Data"],
+        "summary": "Delete a capture file",
+        "parameters": [{ "name": "name", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "400": { "description": "Invalid name", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/data/cookies": {
+      "get": {
+        "tags": ["Data"],
+        "summary": "Get stored browser cookies and origins",
+        "responses": {
+          "200": {
+            "description": "Cookies",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "cookies": { "type": "array", "items": { "type": "object" } }, "origins": { "type": "array", "items": { "type": "object" } } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/data/cookies/delete": {
+      "post": {
+        "tags": ["Data"],
+        "summary": "Delete a specific cookie",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "domain": { "type": "string" }, "path": { "type": "string" } } }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "400": { "description": "Missing name", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/data/clear-screenshots": {
+      "post": {
+        "tags": ["Data"],
+        "summary": "Delete all captures and recordings",
+        "responses": {
+          "200": { "description": "Cleared", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/data/clear-cookies": {
+      "post": {
+        "tags": ["Data"],
+        "summary": "Clear all stored cookies",
+        "responses": {
+          "200": { "description": "Cleared", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessFlag" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/settings/api-key": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get the configured API key",
+        "responses": {
+          "200": { "description": "API key", "content": { "application/json": { "schema": { "type": "object", "properties": { "apiKey": { "type": "string", "nullable": true } } } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set or generate the API key",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "apiKey": { "type": "string", "maxLength": 512 } } } } }
+        },
+        "responses": {
+          "200": { "description": "Saved key", "content": { "application/json": { "schema": { "type": "object", "properties": { "apiKey": { "type": "string" } } } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/user-agent": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get user-agent configuration",
+        "responses": {
+          "200": { "description": "User-agent config", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set user-agent selection",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "selection": { "type": "string", "nullable": true } } } } }
+        },
+        "responses": {
+          "200": { "description": "Updated config", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/gemini-api-key": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get Gemini API keys",
+        "responses": {
+          "200": { "description": "Keys", "content": { "application/json": { "schema": { "type": "object", "properties": { "geminiApiKeys": { "type": "array", "items": { "type": "string" } } } } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set Gemini API keys",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "geminiApiKeys": { "type": "array", "items": { "type": "string" } }, "geminiApiKey": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Saved", "content": { "application/json": { "schema": { "type": "object", "properties": { "geminiApiKeys": { "type": "array", "items": { "type": "string" } } } } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/openai-api-key": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get OpenAI API keys",
+        "responses": {
+          "200": { "description": "Keys", "content": { "application/json": { "schema": { "type": "object", "properties": { "openAiApiKeys": { "type": "array", "items": { "type": "string" } } } } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set OpenAI API keys",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "openAiApiKeys": { "type": "array", "items": { "type": "string" } }, "openAiApiKey": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Saved", "content": { "application/json": { "schema": { "type": "object", "properties": { "openAiApiKeys": { "type": "array", "items": { "type": "string" } } } } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/claude-api-key": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get Claude API keys",
+        "responses": {
+          "200": { "description": "Keys", "content": { "application/json": { "schema": { "type": "object", "properties": { "claudeApiKeys": { "type": "array", "items": { "type": "string" } } } } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set Claude API keys",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "claudeApiKeys": { "type": "array", "items": { "type": "string" } }, "claudeApiKey": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Saved", "content": { "application/json": { "schema": { "type": "object", "properties": { "claudeApiKeys": { "type": "array", "items": { "type": "string" } } } } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/ollama-api-key": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get Ollama endpoints",
+        "responses": {
+          "200": { "description": "Endpoints", "content": { "application/json": { "schema": { "type": "object", "properties": { "ollamaApiKeys": { "type": "array", "items": { "type": "string" } } } } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set Ollama endpoints",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "ollamaApiKeys": { "type": "array", "items": { "type": "string" } }, "ollamaApiKey": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Saved", "content": { "application/json": { "schema": { "type": "object", "properties": { "ollamaApiKeys": { "type": "array", "items": { "type": "string" } } } } } } },
+          "400": { "description": "Invalid URL", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/proxies": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "List proxies",
+        "responses": {
+          "200": { "description": "Proxy list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProxyList" } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Add a proxy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["server"],
+                "properties": {
+                  "server": { "type": "string" },
+                  "username": { "type": "string" },
+                  "password": { "type": "string" },
+                  "label": { "type": "string" },
+                  "isRotatingPool": { "type": "boolean" },
+                  "estimatedPoolSize": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated proxy list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProxyList" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Settings"],
+        "summary": "Bulk delete proxies",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["ids"], "properties": { "ids": { "type": "array", "items": { "type": "string" } } } } } }
+        },
+        "responses": {
+          "200": { "description": "Updated proxy list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProxyList" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/proxies/import": {
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Bulk import proxies",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["proxies"],
+                "properties": { "proxies": { "type": "array", "items": { "type": "object", "additionalProperties": true } } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated proxy list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProxyList" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/proxies/{id}": {
+      "put": {
+        "tags": ["Settings"],
+        "summary": "Update a proxy",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["server"],
+                "properties": {
+                  "server": { "type": "string" },
+                  "username": { "type": "string" },
+                  "password": { "type": "string" },
+                  "label": { "type": "string" },
+                  "isRotatingPool": { "type": "boolean" },
+                  "estimatedPoolSize": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated proxy list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProxyList" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Settings"],
+        "summary": "Delete a proxy",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Updated proxy list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProxyList" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/proxies/default": {
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set (or clear) the default proxy",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "id": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Updated proxy list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProxyList" } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/proxies/rotation": {
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Configure proxy rotation behavior",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "includeDefaultInRotation": { "type": "boolean" }, "rotationMode": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Updated proxy list", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProxyList" } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/ai-models": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get selected AI model per provider",
+        "responses": {
+          "200": {
+            "description": "AI model selection",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "gemini": { "type": "string" }, "openai": { "type": "string" }, "claude": { "type": "string" }, "ollama": { "type": "string" } } } } }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set selected AI model per provider",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "gemini": { "type": "string" }, "openai": { "type": "string" }, "claude": { "type": "string" }, "ollama": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "gemini": { "type": "string" }, "openai": { "type": "string" }, "claude": { "type": "string" }, "ollama": { "type": "string" } } } } }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/settings/theme": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get current UI theme",
+        "responses": {
+          "200": { "description": "Theme", "content": { "application/json": { "schema": { "type": "object", "properties": { "theme": { "type": "string", "enum": ["dark", "light", "solarized-light", "solarized-dark"] } } } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Set UI theme",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["theme"], "properties": { "theme": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Saved", "content": { "application/json": { "schema": { "type": "object", "properties": { "theme": { "type": "string" } } } } } },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    }
+  }
+}
