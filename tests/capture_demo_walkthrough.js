@@ -320,6 +320,32 @@ async function run() {
     const rawVideoPath = path.join(videosDir, files[0]);
     console.log(`Raw video captured at: ${rawVideoPath}`);
 
+    // Convert raw video into root demo.webm, demo.mp4, and demo.gif
+    console.log('Converting raw video to root demo.webm, demo.mp4, and demo.gif...');
+    let ffmpegPath = 'ffmpeg';
+    try {
+        const pathFromPy = execSync('python3 -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"').toString().trim();
+        if (pathFromPy && fs.existsSync(pathFromPy)) {
+            ffmpegPath = pathFromPy;
+        }
+    } catch (e) { }
+
+    const rootDir = path.join(__dirname, '..');
+    const demoWebmPath = path.join(rootDir, 'demo.webm');
+    const demoMp4Path = path.join(rootDir, 'demo.mp4');
+    const demoGifPath = path.join(rootDir, 'demo.gif');
+
+    console.log('Generating demo.webm...');
+    execSync(`"${ffmpegPath}" -y -i "${rawVideoPath}" -c:v libvpx-vp9 -crf 28 -b:v 0 -vf "scale=1280:720" "${demoWebmPath}"`, { stdio: 'inherit' });
+
+    console.log('Generating demo.mp4...');
+    execSync(`"${ffmpegPath}" -y -i "${rawVideoPath}" -c:v libx264 -pix_fmt yuv420p -crf 22 -preset fast -vf "scale=1280:720" -movflags +faststart "${demoMp4Path}"`, { stdio: 'inherit' });
+
+    console.log('Generating demo.gif...');
+    execSync(`"${ffmpegPath}" -y -i "${rawVideoPath}" -vf "fps=15,scale=1280:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a" "${demoGifPath}"`, { stdio: 'inherit' });
+
+    console.log('All demo media files generated successfully at repository root.');
+
     return rawVideoPath;
 }
 

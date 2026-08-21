@@ -51,15 +51,21 @@ X11VNC_ARGS=(-display "$DISPLAY" -forever -shared -localhost -passwd "$VNC_PW" -
 ) &
 
 NOVNC_DIR="/opt/novnc"
-if [ ! -d "$NOVNC_DIR" ]; then
-  echo "[vnc] noVNC not found, downloading..."
-  mkdir -p /opt/novnc
-  if curl -fsSL https://github.com/novnc/noVNC/archive/refs/tags/v1.4.0.tar.gz \
-    | tar -xz --strip-components=1 -C /opt/novnc; then
+if [ ! -d "$NOVNC_DIR" ] || [ ! -w "$NOVNC_DIR" ]; then
+  if [ -d "/opt/novnc" ] && [ -w "/opt/novnc" ]; then
     NOVNC_DIR="/opt/novnc"
   elif [ -d "/usr/share/novnc" ]; then
     NOVNC_DIR="/usr/share/novnc"
+  else
+    NOVNC_DIR="/tmp/novnc"
   fi
+fi
+
+if [ ! -d "$NOVNC_DIR" ]; then
+  echo "[vnc] Downloading noVNC to $NOVNC_DIR..."
+  mkdir -p "$NOVNC_DIR"
+  curl -fsSL https://github.com/novnc/noVNC/archive/refs/tags/v1.4.0.tar.gz \
+    | tar -xz --strip-components=1 -C "$NOVNC_DIR" || true
 fi
 
 echo "[vnc] Serving noVNC on 0.0.0.0:54311"
