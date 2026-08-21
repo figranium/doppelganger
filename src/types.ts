@@ -64,7 +64,8 @@ export interface Action {
     | 'wait_downloads'
     | 'start'
     | 'http_request'
-    | 'get_content';
+    | 'get_content'
+    | 'do_nothing';
     selector?: string;
     value?: string;
     key?: string;
