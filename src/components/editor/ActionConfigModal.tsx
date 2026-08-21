@@ -72,7 +72,7 @@ const conditionOps: Record<VarType, { value: string; label: string }[]> = {
     ]
 };
 
-const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error'];
+const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothing'];
 
 interface ActionConfigModalProps {
     action: Action;

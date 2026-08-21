@@ -600,6 +600,12 @@ const executeAction = async (act, context) => {
             result = parsed;
             break;
         }
+        case 'do_nothing':
+        case 'noop':
+        case 'pass': {
+            logs.push('Do nothing');
+            break;
+        }
         case 'get_content': {
             const selectorValue = resolveMaybe(act.selector || '');
             logs.push(`Getting content${selectorValue ? `: ${selectorValue}` : ' (full page)'}`);

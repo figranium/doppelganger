@@ -50,11 +50,12 @@ const renderBlockMarker = (type: Action['type']) => {
     if (type === 'http_request') return <MaterialIcon name="language" className={`${iconClass} text-white`} />;
     if (type === 'wait_downloads') return <MaterialIcon name="download" className={`${iconClass} text-white`} />;
     if (type === 'get_content') return <MaterialIcon name="article" className={`${iconClass} text-white`} />;
+    if (type === 'do_nothing') return <MaterialIcon name="block" className={`${iconClass} text-white/50`} />;
     return <span className="text-xs text-white/20">|</span>;
 };
 
 // Block types that have no config and shouldn't open a modal
-const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error'];
+const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothing'];
 
 interface ActionItemProps {
     action: Action;
