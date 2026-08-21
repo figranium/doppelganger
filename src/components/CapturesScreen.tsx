@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FixedSizeList, ListChildComponentProps } from 'react-window';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmRequest, CaptureEntry } from '../types';
 import CaptureCard from './CaptureCard';
@@ -9,27 +8,6 @@ interface CapturesScreenProps {
     onConfirm: (request: string | ConfirmRequest) => Promise<boolean>;
     onNotify: (message: string, tone?: 'success' | 'error') => void;
 }
-
-const CAPTURE_CARD_HEIGHT = 360;
-const CAPTURE_CARD_SPACING = 12;
-const CAPTURE_LIST_ITEM_SIZE = CAPTURE_CARD_HEIGHT + CAPTURE_CARD_SPACING;
-const CAPTURE_LIST_MAX_VISIBLE = 6;
-const CAPTURE_OVERSCAN = 4;
-
-interface CaptureListData {
-    captures: CaptureEntry[];
-    onDelete: (name: string) => void;
-}
-
-const renderCaptureItem = ({ index, style, data }: ListChildComponentProps<CaptureListData>) => {
-    const capture = data.captures[index];
-    if (!capture) return null;
-    return (
-        <div style={{ ...style, paddingBottom: CAPTURE_CARD_SPACING }} className="overflow-hidden">
-            <CaptureCard capture={capture} onDelete={data.onDelete} />
-        </div>
-    );
-};
 
 const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) => {
     const navigate = useNavigate();
@@ -77,15 +55,9 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
         loadCaptures();
     }, [loadCaptures]);
 
-    // Memoize itemData to prevent FixedSizeList from re-rendering all rows on every render
-    const itemData = useMemo(() => ({
-        captures,
-        onDelete: deleteCapture
-    }), [captures, deleteCapture]);
-
     return (
         <main className="flex-1 p-12 overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
-            <div className="max-w-6xl mx-auto space-y-8">
+            <div className="max-w-[1600px] mx-auto space-y-8">
                 <div className="flex items-end justify-between">
                     <div className="flex items-center gap-4">
                         <div className="space-y-2">
@@ -154,21 +126,10 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                         </div>
                     )}
                     {!loading && captures.length > 0 && (
-                        <div className="space-y-4">
-                            <FixedSizeList
-                                height={Math.min(
-                                    Math.max(CAPTURE_LIST_ITEM_SIZE, captures.length * CAPTURE_LIST_ITEM_SIZE),
-                                    CAPTURE_LIST_ITEM_SIZE * CAPTURE_LIST_MAX_VISIBLE
-                                )}
-                                width="100%"
-                                itemCount={captures.length}
-                                itemSize={CAPTURE_LIST_ITEM_SIZE}
-                                overscanCount={CAPTURE_OVERSCAN}
-                                itemData={itemData}
-                                className="custom-scrollbar"
-                            >
-                                {renderCaptureItem}
-                            </FixedSizeList>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {captures.map((capture) => (
+                                <CaptureCard key={capture.name} capture={capture} onDelete={deleteCapture} />
+                            ))}
                         </div>
                     )}
                 </div>
