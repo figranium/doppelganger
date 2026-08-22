@@ -12,6 +12,22 @@ const { launchBrowser, createBrowserContext } = require('../browser');
 const { buildBlockMap, randomBetween, getForeachItems } = require('./helpers');
 const { evalStructuredCondition, evalCondition } = require('./logic-handler');
 const { executeAction } = require('./action-handler');
+const { solveCaptcha } = require('./captcha-client');
+
+// Action types after which an auto-solve pass (task-level `autoSolveCaptcha`) checks for
+// a challenge — the points where navigation or a form interaction commonly triggers one.
+const AUTO_CAPTCHA_TRIGGER_TYPES = new Set(['navigate', 'goto', 'click', 'type', 'fill']);
+
+async function maybeAutoSolveCaptcha({ enabled, actionType, page, logs }) {
+    if (!enabled || !AUTO_CAPTCHA_TRIGGER_TYPES.has(actionType)) return;
+    try {
+        const result = await solveCaptcha(page, { timeout: 60000 });
+        logs.push(`Auto-solved captcha: ${result.challenge} (${result.duration}ms)`);
+    } catch (err) {
+        if (err && err.noChallengeFound) return;
+        logs.push(`Auto-solve captcha attempt failed: ${err.message}`);
+    }
+}
 
 let progressReporter = null;
 let stopChecker = null;
@@ -44,6 +60,7 @@ const isStopRequested = (runId) => {
 
 async function runFigranite(data, options = {}) {
     let { url, actions, wait: globalWait, rotateUserAgents, rotateProxies, humanTyping, stealth = {}, sessionId } = data;
+    const autoSolveCaptcha = parseBooleanFlag(data.autoSolveCaptcha);
 
     const runtimeVars = { ...(data.taskVariables || data.variables || {}) };
     let lastBlockOutput = null;
@@ -515,6 +532,8 @@ async function runFigranite(data, options = {}) {
 
                 if (result !== undefined) setBlockOutput(result);
                 reportProgress(runId, { actionId: act.id, status: 'success' });
+
+                await maybeAutoSolveCaptcha({ enabled: autoSolveCaptcha, actionType: act.type, page, logs });
             } catch (err) {
                 logs.push(`FAILED action ${act.type}: ${err.message}`);
                 reportProgress(runId, { actionId: act.id, status: 'error' });
@@ -701,4 +720,4 @@ async function handleAgent(req, res) {
     }
 }
 
-module.exports = { runFigranite, handleAgent, setProgressReporter, setStopChecker };
+module.exports = { runFigranite, handleAgent, setProgressReporter, setStopChecker, maybeAutoSolveCaptcha };

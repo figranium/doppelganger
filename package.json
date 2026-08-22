@@ -1,6 +1,6 @@
 {
   "name": "figranium",
-  "version": "0.14.4",
+  "version": "0.15.0",
   "main": "index.js",
   "bin": {
     "figranium": "bin/cli.js"
@@ -12,6 +12,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "postinstall": "node scripts/postinstall.js",
+    "captcha:dev": "bash scripts/start-captcha-local.sh",
     "test": "npx -y vite-node tests/clipboard.test.ts"
   },
   "files": [
@@ -33,6 +34,8 @@
     "src/server/routes/schedules.js",
     "extraction-worker.js",
     "start-vnc.sh",
+    "start-captcha.sh",
+    "entrypoint.sh",
     "scripts/postinstall.js",
     "README.md",
     "LICENSE",

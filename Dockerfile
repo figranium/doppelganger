@@ -36,8 +36,18 @@ RUN if [ "$INSTALL_VNC" = "1" ]; then \
     fonts-noto-color-emoji \
     fonts-freefont-ttf \
     dbus-x11 \
+    git \
+    python3 \
+    python3-pip \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/*; \
     fi
+
+# Embedded captcha-solving service (ohmycaptcha) — used by default for the `solve_captcha`
+# agent action; skipped at runtime if OHMYCAPTCHA_URL points at an external instance.
+RUN git clone --depth 1 https://github.com/shenhao-stu/ohmycaptcha.git /opt/ohmycaptcha \
+    && pip3 install --no-cache-dir -r /opt/ohmycaptcha/requirements.txt \
+    && python3 -m playwright install --with-deps chromium
 
 # Install production deps only
 COPY package*.json ./
@@ -52,9 +62,12 @@ COPY --from=build /app/public /app/public
 COPY --from=build /app/*.js /app/
 COPY --from=build /app/src /app/src
 COPY --from=build /app/start-vnc.sh /app/start-vnc.sh
-RUN sed -i 's/\r$//' /app/start-vnc.sh && chmod +x /app/start-vnc.sh
+COPY --from=build /app/start-captcha.sh /app/start-captcha.sh
+COPY --from=build /app/entrypoint.sh /app/entrypoint.sh
+RUN sed -i 's/\r$//' /app/start-vnc.sh /app/start-captcha.sh /app/entrypoint.sh \
+    && chmod +x /app/start-vnc.sh /app/start-captcha.sh /app/entrypoint.sh
 
 EXPOSE 11345
 ENV NODE_ENV=production
 
-CMD ["/app/start-vnc.sh"]
+CMD ["/app/entrypoint.sh"]

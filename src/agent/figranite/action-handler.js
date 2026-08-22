@@ -2,6 +2,7 @@ const { validateUrl, fetchWithRedirectValidation } = require('../../../url-utils
 const { parseCoords, parseValue, parseCsv, sanitizeRunId } = require('../../../common-utils');
 const { moveMouseHumanlike, idleMouse, overshootScroll, humanType } = require('./human-interaction');
 const { loadApiKey } = require('../../server/storage'); // Need to access server storage for internal API key loading
+const { solveCaptcha } = require('./captcha-client');
 
 const normalizeVarRef = (raw) => {
     if (!raw) return '';
@@ -598,6 +599,19 @@ const executeAction = async (act, context) => {
             }
             logs.push(`HTTP ${method} ${targetUrl} → ${response.status}`);
             result = parsed;
+            break;
+        }
+        case 'solve_captcha': {
+            const captchaType = resolveMaybe(act.captchaType || '') || undefined;
+            const selectorValue = resolveMaybe(act.selector || '') || undefined;
+            logs.push(`Solving captcha${captchaType ? `: ${captchaType}` : ' (auto-detect)'}`);
+            const captchaResult = await solveCaptcha(page, { captchaType, selector: selectorValue, timeout: act.timeout || 60000 });
+            logs.push(`Captcha solved: ${captchaResult.challenge} (${captchaResult.duration}ms)`);
+            if (act.varName) {
+                const targetName = normalizeVarRef(act.varName);
+                runtimeVars[String(targetName)] = captchaResult;
+            }
+            result = captchaResult;
             break;
         }
         case 'do_nothing':

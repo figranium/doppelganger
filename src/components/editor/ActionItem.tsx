@@ -50,6 +50,7 @@ const renderBlockMarker = (type: Action['type']) => {
     if (type === 'http_request') return <MaterialIcon name="language" className={`${iconClass} text-white`} />;
     if (type === 'wait_downloads') return <MaterialIcon name="download" className={`${iconClass} text-white`} />;
     if (type === 'get_content') return <MaterialIcon name="article" className={`${iconClass} text-white`} />;
+    if (type === 'solve_captcha') return <MaterialIcon name="verified_user" className={`${iconClass} text-white`} />;
     if (type === 'do_nothing') return <MaterialIcon name="block" className={`${iconClass} text-white/50`} />;
     return <span className="text-xs text-white/20">|</span>;
 };

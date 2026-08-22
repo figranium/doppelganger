@@ -14,6 +14,8 @@ const {
     DEFAULT_AI_MODELS,
     THEME_FILE,
     DEFAULT_THEME_ID,
+    CAPTCHA_SETTINGS_FILE,
+    CAPTCHA_CLIENT_KEY_FILE,
     ALLOWED_IPS_FILE,
     STORAGE_STATE_PATH,
     MAX_EXECUTIONS,
@@ -1278,6 +1280,72 @@ async function saveThemeConfig(themeId) {
     return validTheme;
 }
 
+// Captcha Solver Settings Storage
+let captchaSettingsCache = null;
+
+async function loadCaptchaSettings() {
+    if (captchaSettingsCache !== null) return captchaSettingsCache;
+    const useDB = await ensureDB();
+    if (useDB) {
+        try {
+            const pool = getPool();
+            if (!pool) throw new Error('Database pool not available');
+            const res = await pool.query('SELECT data FROM captcha_settings WHERE id = 1');
+            captchaSettingsCache = res.rows.length > 0 && res.rows[0].data ? res.rows[0].data : {};
+        } catch (e) {
+            console.error('[STORAGE] Failed to load captcha settings from DB:', e.message);
+            captchaSettingsCache = {};
+        }
+        return captchaSettingsCache;
+    }
+    try {
+        const raw = await fs.promises.readFile(CAPTCHA_SETTINGS_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        captchaSettingsCache = parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        captchaSettingsCache = {};
+    }
+    return captchaSettingsCache;
+}
+
+async function saveCaptchaSettings(settings) {
+    const baseUrl = settings && typeof settings.baseUrl === 'string' ? settings.baseUrl.trim() : '';
+    const clientKey = settings && typeof settings.clientKey === 'string' ? settings.clientKey.trim() : '';
+    const payload = { baseUrl, clientKey };
+    captchaSettingsCache = payload;
+    const useDB = await ensureDB();
+    if (useDB) {
+        const pool = getPool();
+        try {
+            await pool.query('INSERT INTO captcha_settings (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data', [payload]);
+        } catch (e) {
+            console.error('[STORAGE] Failed to save captcha settings to DB:', e.message);
+        }
+        return payload;
+    }
+    try {
+        const dir = path.dirname(CAPTCHA_SETTINGS_FILE);
+        if (!fs.existsSync(dir)) {
+            await fs.promises.mkdir(dir, { recursive: true });
+        }
+        await fs.promises.writeFile(CAPTCHA_SETTINGS_FILE, JSON.stringify(payload, null, 2));
+    } catch (e) {
+        console.error('[STORAGE] Failed to save captcha settings to file:', e.message);
+    }
+    return payload;
+}
+
+// Reads the CLIENT_KEY that the bundled embedded ohmycaptcha instance auto-generates on
+// startup (see start-captcha.sh), used as the default when no override is configured.
+async function loadEmbeddedCaptchaClientKey() {
+    try {
+        const raw = await fs.promises.readFile(CAPTCHA_CLIENT_KEY_FILE, 'utf8');
+        return raw.trim() || null;
+    } catch {
+        return null;
+    }
+}
+
 module.exports = {
     loadUsers,
     saveUsers,
@@ -1308,5 +1376,8 @@ module.exports = {
     loadAiModels,
     saveAiModels,
     loadThemeConfig,
-    saveThemeConfig
+    saveThemeConfig,
+    loadCaptchaSettings,
+    saveCaptchaSettings,
+    loadEmbeddedCaptchaClientKey
 };

@@ -9,7 +9,8 @@ const {
     loadClaudeApiKey, saveClaudeApiKey,
     loadOllamaApiKey, saveOllamaApiKey,
     loadAiModels, saveAiModels,
-    loadThemeConfig, saveThemeConfig
+    loadThemeConfig, saveThemeConfig,
+    loadCaptchaSettings, saveCaptchaSettings
 } = require('../storage');
 const cookie = require('cookie');
 const { getUserAgentConfig, setUserAgentSelection } = require('../../../user-agent-settings');
@@ -420,6 +421,33 @@ router.post('/theme', csrfProtection, dataRateLimiter, requireAuthForSettings, a
     } catch (e) {
         console.error('[THEME] Save failed:', e);
         res.status(500).json({ error: 'THEME_SAVE_FAILED' });
+    }
+});
+
+// Captcha Solver Settings Endpoints
+// A local ohmycaptcha instance is bundled and used by default; these fields only matter
+// if the user wants to point at an external instance instead.
+router.get('/captcha', requireAuthForSettings, async (req, res) => {
+    try {
+        const settings = await loadCaptchaSettings();
+        res.json({ baseUrl: settings?.baseUrl || '', clientKey: settings?.clientKey ? '••••••••' : '' });
+    } catch (e) {
+        console.error('[SETTINGS] Failed to load captcha settings:', e);
+        res.status(500).json({ error: 'CAPTCHA_SETTINGS_LOAD_FAILED' });
+    }
+});
+
+router.post('/captcha', csrfProtection, dataRateLimiter, requireAuthForSettings, async (req, res) => {
+    try {
+        // Not passed through validateUrl(): this is an admin-configured infrastructure
+        // endpoint (often an internal/private host on purpose), not scraped page content.
+        const bodyBaseUrl = req.body && typeof req.body.baseUrl === 'string' ? req.body.baseUrl.trim() : '';
+        const bodyClientKey = req.body && typeof req.body.clientKey === 'string' ? req.body.clientKey.trim() : '';
+        const saved = await saveCaptchaSettings({ baseUrl: bodyBaseUrl, clientKey: bodyClientKey });
+        res.json({ baseUrl: saved.baseUrl, clientKey: saved.clientKey ? '••••••••' : '' });
+    } catch (e) {
+        console.error('[SETTINGS] Failed to save captcha settings:', e);
+        res.status(500).json({ error: 'CAPTCHA_SETTINGS_SAVE_FAILED' });
     }
 });
 

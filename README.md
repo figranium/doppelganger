@@ -197,6 +197,10 @@ Key capabilities of **Figranite** include:
 | `DB_POSTGRESDB_PASSWORD` | Password for the PostgreSQL database (required if DB_TYPE is postgres). | — |
 | `USE_CLOAK_ENGINE` | Set to `true` to run the browser engine on CloakBrowser (stealth-patched Chromium) instead of the default Playwright stealth stack. | `false` |
 | `CLOAKBROWSER_LICENSE_KEY` | CloakBrowser license key for the latest binary (read natively by cloakbrowser; `npx cloakbrowser login` writes `~/.cloakbrowser/license.key`). Without a key the free legacy binary is used. | — |
+| `OHMYCAPTCHA_URL` | Base URL for the `solve_captcha` agent action's captcha-solving service. An embedded `ohmycaptcha` instance runs locally by default; set this to point at an external instance instead. | `http://127.0.0.1:8000` |
+| `OHMYCAPTCHA_CLIENT_KEY` | Client key for the captcha-solving service. Auto-generated for the embedded instance; required when using an external `OHMYCAPTCHA_URL`. | auto-generated |
+
+> **Note on `solve_captcha` outside Docker:** the embedded `ohmycaptcha` instance is only started automatically inside the Docker image (`entrypoint.sh`/`start-captcha.sh`). If you're running Figranium via `npm run dev`/`npm run server` on bare metal, run `npm run captcha:dev` in a separate terminal first (requires `python3`/`pip3`; it clones and starts `ohmycaptcha` on `127.0.0.1:8000` the same way the container does) — otherwise `solve_captcha` actions will fail with a connection error.
 
 Proxy rotation also respects `data/proxies.json` (see below), and `data/allowed_ips.json` works as an alternate allowlist format.
 

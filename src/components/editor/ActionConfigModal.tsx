@@ -707,6 +707,42 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                         />
                     ))}
                 </>}
+
+                {/* Solve Captcha */}
+                {action.type === 'solve_captcha' && <>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Captcha Type (Optional)</label>
+                        <select
+                            value={action.captchaType || ''}
+                            onChange={(e) => onUpdate(action.id, { captchaType: (e.target.value || undefined) as any }, true)}
+                            className="custom-select w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white/70 focus:outline-none focus:border-white/20"
+                        >
+                            <option value="">Auto-detect</option>
+                            <option value="recaptcha_v2">reCAPTCHA v2</option>
+                            <option value="recaptcha_v3">reCAPTCHA v3</option>
+                            <option value="hcaptcha">hCaptcha</option>
+                            <option value="turnstile">Cloudflare Turnstile</option>
+                        </select>
+                    </div>
+                    {field('Container Selector (Optional)', inputWrap(
+                        <RichInput
+                            value={action.selector || ''}
+                            onChange={(v) => onUpdate(action.id, { selector: v })}
+                            onBlur={() => onAutoSave()}
+                            variables={variables}
+                            placeholder="#recaptcha-container or leave empty for full page"
+                        />
+                    ))}
+                    {field('Store Result In Variable (Optional)', inputWrap(
+                        <RichInput
+                            value={action.varName || ''}
+                            onChange={(v) => onUpdate(action.id, { varName: v })}
+                            onBlur={() => onAutoSave()}
+                            variables={variables}
+                            placeholder="captchaResult"
+                        />
+                    ))}
+                </>}
             </div>
         );
     };

@@ -65,6 +65,7 @@ export interface Action {
     | 'start'
     | 'http_request'
     | 'get_content'
+    | 'solve_captcha'
     | 'do_nothing';
     selector?: string;
     value?: string;
@@ -79,6 +80,8 @@ export interface Action {
     method?: string;
     headers?: string;
     body?: string;
+    timeout?: number;
+    captchaType?: 'recaptcha_v2' | 'recaptcha_v3' | 'hcaptcha' | 'turnstile';
 }
 
 export interface TaskSchedule {
@@ -154,6 +157,7 @@ export interface Task {
     includeShadowDom?: boolean;
     disableRecording?: boolean;
     statelessExecution?: boolean;
+    autoSolveCaptcha?: boolean;
     versions?: TaskVersion[];
     schedule?: TaskSchedule;
 }

@@ -1,6 +1,7 @@
 node_modules/
 dist/
 data/
+.ohmycaptcha/
 public/screenshots/
 public/captures
 src/public/captures/
