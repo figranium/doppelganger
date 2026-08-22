@@ -78,6 +78,8 @@ interface ActionItemProps {
     onDeleteVariable?: (name: string) => void;
     isSelected?: boolean;
     selectorOptions?: string[];
+    autoOpenConfig?: boolean;
+    onCloseConfigModal?: () => void;
 }
 
 const ActionItem: React.FC<ActionItemProps> = React.memo(({
@@ -99,7 +101,9 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
     onCreateVariable,
     onDeleteVariable,
     isSelected,
-    selectorOptions
+    selectorOptions,
+    autoOpenConfig,
+    onCloseConfigModal
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -128,6 +132,12 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
 
     const summary = getActionSummary(action);
     const hasConfig = !NO_CONFIG_TYPES.includes(action.type);
+
+    useEffect(() => {
+        if (autoOpenConfig && hasConfig) {
+            setIsModalOpen(true);
+        }
+    }, [autoOpenConfig, hasConfig]);
 
     useEffect(() => {
         return () => {
@@ -225,7 +235,10 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
                     selectorOptions={selectorOptions}
                     onUpdate={onUpdate}
                     onAutoSave={onAutoSave}
-                    onClose={() => setIsModalOpen(false)}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        onCloseConfigModal?.();
+                    }}
                     onStartInspect={onStartInspect}
                     onCreateVariable={onCreateVariable}
                     onDeleteVariable={onDeleteVariable}
