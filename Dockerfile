@@ -49,8 +49,19 @@ RUN if [ "$INSTALL_VNC" = "1" ]; then \
 # Playwright install writes to its own cache directory instead of the base image's shared
 # /ms-playwright, whose pre-baked Node.js browser build it would otherwise garbage-collect
 # as "unreferenced" when it installs its own (mismatched) browser version there.
+# Only fastapi/uvicorn/httpx/pydantic/playwright/openai/Pillow are installed — the upstream
+# requirements.txt also pins mkdocs* (their docs-site generator) and pytest (their own test
+# suite), neither used at runtime. docs/, tests/, skills/ (Claude/Cursor skill docs), and
+# typings/ (pyright stubs) are likewise dev/doc-only and stripped after cloning, along with
+# .git itself, to keep this layer from carrying content the running service never touches.
 RUN git clone --depth 1 https://github.com/shenhao-stu/ohmycaptcha.git /opt/ohmycaptcha \
-    && pip3 install --no-cache-dir -r /opt/ohmycaptcha/requirements.txt \
+    && rm -rf /opt/ohmycaptcha/.git /opt/ohmycaptcha/docs /opt/ohmycaptcha/tests \
+    /opt/ohmycaptcha/skills /opt/ohmycaptcha/typings /opt/ohmycaptcha/mkdocs.yml \
+    /opt/ohmycaptcha/*.md /opt/ohmycaptcha/render.yaml /opt/ohmycaptcha/Dockerfile.render \
+    /opt/ohmycaptcha/pyrightconfig.json \
+    && grep -viE '^(mkdocs|pymdown-extensions|pytest)' /opt/ohmycaptcha/requirements.txt \
+    > /opt/ohmycaptcha/requirements.runtime.txt \
+    && pip3 install --no-cache-dir -r /opt/ohmycaptcha/requirements.runtime.txt \
     && PLAYWRIGHT_BROWSERS_PATH=/opt/ohmycaptcha-browsers python3 -m playwright install --with-deps chromium
 
 # Install production deps only

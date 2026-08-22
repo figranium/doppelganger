@@ -38,6 +38,12 @@ fi
 if [ ! -d "$OHMYCAPTCHA_DIR" ]; then
   echo "[captcha-dev] Cloning ohmycaptcha into $OHMYCAPTCHA_DIR"
   git clone --depth 1 https://github.com/shenhao-stu/ohmycaptcha.git "$OHMYCAPTCHA_DIR"
+  # docs/, tests/, skills/ (Claude/Cursor skill docs), and typings/ (pyright stubs) are
+  # dev/doc-only — nothing in src/ or main.py imports from them — so drop them here too.
+  rm -rf "$OHMYCAPTCHA_DIR/.git" "$OHMYCAPTCHA_DIR/docs" "$OHMYCAPTCHA_DIR/tests" \
+    "$OHMYCAPTCHA_DIR/skills" "$OHMYCAPTCHA_DIR/typings" "$OHMYCAPTCHA_DIR/mkdocs.yml" \
+    "$OHMYCAPTCHA_DIR"/*.md "$OHMYCAPTCHA_DIR/render.yaml" "$OHMYCAPTCHA_DIR/Dockerfile.render" \
+    "$OHMYCAPTCHA_DIR/pyrightconfig.json"
 fi
 
 # Use a dedicated venv (built with the resolved 3.10+ interpreter) rather than the host's
@@ -52,7 +58,11 @@ BROWSERS_DIR="$OHMYCAPTCHA_DIR/.browsers"
 if [ ! -d "$VENV_DIR" ]; then
   echo "[captcha-dev] Creating venv at $VENV_DIR"
   "$PYTHON_BIN" -m venv "$VENV_DIR"
-  "$VENV_DIR/bin/pip" install --no-cache-dir -r "$OHMYCAPTCHA_DIR/requirements.txt"
+  # Skip mkdocs*/pytest from upstream's requirements.txt — docs-site/test-suite tooling,
+  # not used to actually run the service.
+  grep -viE '^(mkdocs|pymdown-extensions|pytest)' "$OHMYCAPTCHA_DIR/requirements.txt" \
+    > "$OHMYCAPTCHA_DIR/requirements.runtime.txt"
+  "$VENV_DIR/bin/pip" install --no-cache-dir -r "$OHMYCAPTCHA_DIR/requirements.runtime.txt"
   PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR" "$VENV_DIR/bin/python" -m playwright install chromium
 fi
 PYTHON_BIN="$VENV_DIR/bin/python"
