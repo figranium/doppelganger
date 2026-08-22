@@ -9,6 +9,30 @@ if [ -n "${OHMYCAPTCHA_URL:-}" ]; then
   exit 0
 fi
 
+# solve_captcha already refuses to run under 2 GB (captcha-client.js's assertMemoryAllowed),
+# so starting this process on a smaller host would just burn its limited RAM on a service
+# that can never be used. Mirrors that check here: cgroup limit if present (containers are
+# often capped below host RAM), else /proc/meminfo.
+MIN_REQUIRED_MB=2048
+effective_mb() {
+  for f in /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes; do
+    if [ -r "$f" ]; then
+      local raw
+      raw=$(cat "$f" 2>/dev/null || echo "")
+      if [ "$raw" != "max" ] && [ -n "$raw" ] && [ "$raw" -gt 0 ] 2>/dev/null; then
+        echo $((raw / 1024 / 1024))
+        return
+      fi
+    fi
+  done
+  awk '/MemTotal/ { print int($2/1024) }' /proc/meminfo 2>/dev/null || echo 0
+}
+HOST_MB=$(effective_mb)
+if [ "$HOST_MB" -gt 0 ] && [ "$HOST_MB" -lt "$MIN_REQUIRED_MB" ]; then
+  echo "[captcha] Skipping embedded ohmycaptcha instance: ${HOST_MB}MB available, needs ${MIN_REQUIRED_MB}MB (matches solve_captcha's own memory guard)"
+  exit 0
+fi
+
 CLIENT_KEY_FILE="/app/data/captcha_client_key.txt"
 if [ ! -f "$CLIENT_KEY_FILE" ]; then
   openssl rand -base64 24 | tr -d '/+=' > "$CLIENT_KEY_FILE"
