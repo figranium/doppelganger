@@ -80,4 +80,6 @@ PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR"
 
 echo "[captcha-dev] Starting ohmycaptcha on ${SERVER_HOST}:${SERVER_PORT} (client key: $DATA_DIR/captcha_client_key.txt)"
 cd "$OHMYCAPTCHA_DIR"
-exec "$PYTHON_BIN" main.py
+# ohmycaptcha reads the generic PORT env var (Render.com convention) ahead of SERVER_PORT,
+# so pin it explicitly in case your shell already has PORT set for something else.
+exec env PORT=8000 HOST=127.0.0.1 "$PYTHON_BIN" main.py

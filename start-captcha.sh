@@ -48,7 +48,11 @@ echo "[captcha] Starting embedded ohmycaptcha on ${SERVER_HOST}:${SERVER_PORT}"
 cd /opt/ohmycaptcha
 while true; do
   echo "[captcha] ($(date -u +%FT%TZ)) launching ohmycaptcha" >> /app/data/captcha.log
-  python3 main.py >> /app/data/captcha.log 2>&1
+  # ohmycaptcha reads the generic PORT env var (Render.com convention) ahead of its own
+  # SERVER_PORT config, so if PORT happens to be set in this container (e.g. to override
+  # the app's own listen port), it would otherwise leak in here and collide with the app.
+  # PORT/HOST are explicitly pinned for just this process, regardless of what's inherited.
+  PORT=8000 HOST=127.0.0.1 python3 main.py >> /app/data/captcha.log 2>&1
   echo "[captcha] ($(date -u +%FT%TZ)) ohmycaptcha exited, restarting in 1s" >> /app/data/captcha.log
   sleep 1
 done
