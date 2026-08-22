@@ -558,6 +558,8 @@ interface CanvasViewProps {
     onDeleteStickyNote: (id: string) => void;
     onDuplicateStickyNote: (note: StickyNoteType) => void;
     selectedNoteIds: Set<string>;
+    autoOpenActionId?: string | null;
+    onClearAutoOpenActionId?: () => void;
 }
 
 const CanvasView: React.FC<CanvasViewProps> = ({
@@ -594,6 +596,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
     onDeleteStickyNote,
     onDuplicateStickyNote,
     selectedNoteIds,
+    autoOpenActionId,
+    onClearAutoOpenActionId,
 }) => {
     const onStartInspect = useCallback((id: string) => {
         if (!isHeadfulOpen) {
@@ -692,6 +696,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 onStartInspect={onStartInspect}
                                 onCreateVariable={handleCreateVariable}
                                 onDeleteVariable={handleDeleteVariable}
+                                autoOpenConfig={autoOpenActionId === action.id}
+                                onCloseConfigModal={onClearAutoOpenActionId}
                             />
                         </div>
                         <div className="flex gap-16 mt-4 relative">
@@ -788,6 +794,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 onStartInspect={onStartInspect}
                                 onCreateVariable={handleCreateVariable}
                                 onDeleteVariable={handleDeleteVariable}
+                                autoOpenConfig={autoOpenActionId === action.id}
+                                onCloseConfigModal={onClearAutoOpenActionId}
                             />
                         </div>
                         {i < endIndex - 1 && currentTask.actions[i + 1]?.type !== 'end' && (

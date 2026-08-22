@@ -107,6 +107,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     const [actionPaletteQuery, setActionPaletteQuery] = useState('');
     const [actionPaletteTargetId, setActionPaletteTargetId] = useState<string | null>(null);
     const [actionPaletteInsertIndex, setActionPaletteInsertIndex] = useState<number | null>(null);
+    const [autoOpenActionId, setAutoOpenActionId] = useState<string | null>(null);
     const [actionStatusById, setActionStatusById] = useState<Record<string, 'running' | 'success' | 'error' | 'skipped'>>({});
     const [isResultsOpen, setIsResultsOpen] = useState(false);
     const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
@@ -330,8 +331,10 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
         id: "act_" + Date.now() + "_" + Math.floor(Math.random() * 1000)
     });
 
+    const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothing'];
+
     const addActionByType = (type: Action['type']) => {
-        const base: Action = { id: "act_" + Date.now(), type, selector: '', value: '' };
+        const base: Action = { id: "act_" + Date.now() + "_" + Math.floor(Math.random() * 1000), type, selector: '', value: '' };
         if (type === 'set' || type === 'merge') base.varName = '';
         if (type === 'start') base.value = '';
         if (type === 'type') base.typeMode = 'replace';
@@ -349,6 +352,9 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
             const next = { ...currentTask, actions: [...currentTask.actions, base] };
             setCurrentTask(next);
             handleAutoSave(next);
+        }
+        if (!NO_CONFIG_TYPES.includes(type)) {
+            setAutoOpenActionId(base.id);
         }
     };
 
@@ -451,6 +457,8 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 onDeleteStickyNote={handleDeleteStickyNote}
                 onDuplicateStickyNote={handleDuplicateStickyNote}
                 selectedNoteIds={selectedNoteIds}
+                autoOpenActionId={autoOpenActionId}
+                onClearAutoOpenActionId={useCallback(() => setAutoOpenActionId(null), [])}
             />
 
             {/* Zoom Controls */}
@@ -574,7 +582,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                     if (actionPaletteTargetId) {
                         actions.updateAction(actionPaletteTargetId, { type }, true);
                     } else if (actionPaletteInsertIndex !== null) {
-                        const base: Action = { id: 'act_' + Date.now(), type, selector: '', value: '' };
+                        const base: Action = { id: 'act_' + Date.now() + '_' + Math.floor(Math.random() * 1000), type, selector: '', value: '' };
                         if (type === 'set' || type === 'merge') base.varName = '';
                         if (type === 'start') base.value = '';
                         if (type === 'type') base.typeMode = 'replace';
@@ -595,6 +603,9 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                         const next = { ...currentTask, actions: newActions };
                         setCurrentTask(next);
                         handleAutoSave(next);
+                        if (!NO_CONFIG_TYPES.includes(type)) {
+                            setAutoOpenActionId(base.id);
+                        }
                     } else {
                         addActionByType(type);
                     }
