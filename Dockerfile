@@ -45,9 +45,13 @@ RUN if [ "$INSTALL_VNC" = "1" ]; then \
 
 # Embedded captcha-solving service (ohmycaptcha) — used by default for the `solve_captcha`
 # agent action; skipped at runtime if OHMYCAPTCHA_URL points at an external instance.
+# PLAYWRIGHT_BROWSERS_PATH is scoped to this one command so ohmycaptcha's own (Python)
+# Playwright install writes to its own cache directory instead of the base image's shared
+# /ms-playwright, whose pre-baked Node.js browser build it would otherwise garbage-collect
+# as "unreferenced" when it installs its own (mismatched) browser version there.
 RUN git clone --depth 1 https://github.com/shenhao-stu/ohmycaptcha.git /opt/ohmycaptcha \
     && pip3 install --no-cache-dir -r /opt/ohmycaptcha/requirements.txt \
-    && python3 -m playwright install --with-deps chromium
+    && PLAYWRIGHT_BROWSERS_PATH=/opt/ohmycaptcha-browsers python3 -m playwright install --with-deps chromium
 
 # Install production deps only
 COPY package*.json ./

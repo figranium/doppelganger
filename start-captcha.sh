@@ -13,10 +13,12 @@ CLIENT_KEY_FILE="/app/data/captcha_client_key.txt"
 if [ ! -f "$CLIENT_KEY_FILE" ]; then
   openssl rand -base64 24 | tr -d '/+=' > "$CLIENT_KEY_FILE"
 fi
-export CLIENT_KEY SERVER_HOST SERVER_PORT
+export CLIENT_KEY SERVER_HOST SERVER_PORT PLAYWRIGHT_BROWSERS_PATH
 CLIENT_KEY=$(cat "$CLIENT_KEY_FILE")
 SERVER_HOST=127.0.0.1
 SERVER_PORT=8000
+# Isolated from the app's own /ms-playwright cache — see the Dockerfile install step.
+PLAYWRIGHT_BROWSERS_PATH=/opt/ohmycaptcha-browsers
 
 echo "[captcha] Starting embedded ohmycaptcha on ${SERVER_HOST}:${SERVER_PORT}"
 cd /opt/ohmycaptcha

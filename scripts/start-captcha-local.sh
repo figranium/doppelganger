@@ -44,11 +44,16 @@ fi
 # global pip — that keeps deps isolated from whatever python3/pip3 happen to resolve to
 # elsewhere on the system, and avoids installing under one Python but running another.
 VENV_DIR="$OHMYCAPTCHA_DIR/.venv"
+# Isolated from the app's own Node Playwright browser cache (~/.cache/ms-playwright or
+# platform equivalent): `playwright install` prunes browser revisions its own registry
+# doesn't know about, so pointing it at the shared default cache would risk deleting the
+# app's browsers the next time you run `npm run build`/`npx playwright install`.
+BROWSERS_DIR="$OHMYCAPTCHA_DIR/.browsers"
 if [ ! -d "$VENV_DIR" ]; then
   echo "[captcha-dev] Creating venv at $VENV_DIR"
   "$PYTHON_BIN" -m venv "$VENV_DIR"
   "$VENV_DIR/bin/pip" install --no-cache-dir -r "$OHMYCAPTCHA_DIR/requirements.txt"
-  "$VENV_DIR/bin/python" -m playwright install --with-deps chromium
+  PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR" "$VENV_DIR/bin/python" -m playwright install chromium
 fi
 PYTHON_BIN="$VENV_DIR/bin/python"
 
@@ -57,10 +62,11 @@ if [ ! -f "$CLIENT_KEY_FILE" ]; then
   openssl rand -base64 24 | tr -d '/+=' > "$CLIENT_KEY_FILE"
 fi
 
-export CLIENT_KEY SERVER_HOST SERVER_PORT
+export CLIENT_KEY SERVER_HOST SERVER_PORT PLAYWRIGHT_BROWSERS_PATH
 CLIENT_KEY=$(cat "$CLIENT_KEY_FILE")
 SERVER_HOST=127.0.0.1
 SERVER_PORT=8000
+PLAYWRIGHT_BROWSERS_PATH="$BROWSERS_DIR"
 
 echo "[captcha-dev] Starting ohmycaptcha on ${SERVER_HOST}:${SERVER_PORT} (client key: $DATA_DIR/captcha_client_key.txt)"
 cd "$OHMYCAPTCHA_DIR"
