@@ -21,7 +21,7 @@ const AUTO_CAPTCHA_TRIGGER_TYPES = new Set(['navigate', 'goto', 'click', 'type',
 async function maybeAutoSolveCaptcha({ enabled, actionType, page, logs }) {
     if (!enabled || !AUTO_CAPTCHA_TRIGGER_TYPES.has(actionType)) return;
     try {
-        const result = await solveCaptcha(page, { timeout: 60000 });
+        const result = await solveCaptcha(page, { timeout: 120000 });
         logs.push(`Auto-solved captcha: ${result.challenge} (${result.duration}ms)`);
     } catch (err) {
         if (err && err.noChallengeFound) return;

@@ -18,6 +18,13 @@ services:
       # instance instead by uncommenting these:
       # - OHMYCAPTCHA_URL=http://your-host:8000
       # - OHMYCAPTCHA_CLIENT_KEY=your-client-key
+      # reCAPTCHA v2's audio-challenge fallback (used whenever the click-only solve
+      # isn't enough — common for headless/datacenter traffic) needs an OpenAI-compatible
+      # API key configured, or it always fails with ERROR_CAPTCHA_UNSOLVABLE. Without this,
+      # only challenges solvable without the fallback (and hCaptcha/Turnstile/v3) will work.
+      # - CLOUD_API_KEY=sk-xxxxxxxx
+      # - CLOUD_BASE_URL=https://api.openai.com/v1
+      # - CLOUD_MODEL=gpt-4o-audio-preview
     volumes:
       - ./data:/app/data
       # Persist captures on the host and make them visible in the repo's captures
