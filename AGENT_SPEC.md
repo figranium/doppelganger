@@ -303,7 +303,9 @@ Extract the visible text content (`innerText`) of a page or a specific element a
 - `selector`: Optional CSS selector. If omitted, returns the full page body text.
 - `varName`: Optional variable name to store the result. Also available as `{$block.output}` in the next action.
 
-## 16) Solve CAPTCHA
+## 16) Solve CAPTCHA (Broken)
+> **Currently not functional** — reCAPTCHA v2 and Turnstile solves are timing out; under investigation.
+
 Detect and solve a CAPTCHA challenge on the current page using the bundled captcha-solving service (`ohmycaptcha`), then inject the solution back into the page.
 ```json
 {

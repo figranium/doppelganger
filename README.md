@@ -197,7 +197,7 @@ Key capabilities of **Figranite** include:
 | `DB_POSTGRESDB_PASSWORD` | Password for the PostgreSQL database (required if DB_TYPE is postgres). | — |
 | `USE_CLOAK_ENGINE` | Set to `true` to run the browser engine on CloakBrowser (stealth-patched Chromium) instead of the default Playwright stealth stack. | `false` |
 | `CLOAKBROWSER_LICENSE_KEY` | CloakBrowser license key for the latest binary (read natively by cloakbrowser; `npx cloakbrowser login` writes `~/.cloakbrowser/license.key`). Without a key the free legacy binary is used. | — |
-| `OHMYCAPTCHA_URL` | Base URL for the `solve_captcha` agent action's captcha-solving service. An embedded `ohmycaptcha` instance runs locally by default; set this to point at an external instance instead. | `http://127.0.0.1:8000` |
+| `OHMYCAPTCHA_URL` | **[Broken — `solve_captcha` currently not functional; timing out]** Base URL for the `solve_captcha` agent action's captcha-solving service. An embedded `ohmycaptcha` instance runs locally by default; set this to point at an external instance instead. | `http://127.0.0.1:8000` |
 | `OHMYCAPTCHA_CLIENT_KEY` | Client key for the captcha-solving service. Auto-generated for the embedded instance; required when using an external `OHMYCAPTCHA_URL`. | auto-generated |
 | `CLOUD_API_KEY` / `CLOUD_BASE_URL` / `CLOUD_MODEL` | An OpenAI-compatible API key/endpoint/model, forwarded through to the embedded `ohmycaptcha` instance. Required for reCAPTCHA v2's audio-challenge fallback (used whenever a click-only solve isn't enough — common for headless/datacenter traffic); without it, those challenges fail with `ERROR_CAPTCHA_UNSOLVABLE`. hCaptcha, Turnstile, and reCAPTCHA v3 don't need this. | — |
 
