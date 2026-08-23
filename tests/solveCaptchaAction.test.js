@@ -1,7 +1,8 @@
 const assert = require('assert');
 
-process.env.OHMYCAPTCHA_URL = 'http://127.0.0.1:8000';
-process.env.OHMYCAPTCHA_CLIENT_KEY = 'test-client-key';
+process.env.CAPTCHA_SOLVER_URL = 'https://solver.test';
+process.env.CAPTCHA_SOLVER_KEY = 'test-client-key';
+process.env.SKIP_LOCAL_CAPTCHA_MODEL = 'true';
 
 const { executeAction } = require('../src/agent/figranite/action-handler');
 
@@ -57,7 +58,7 @@ async function testSolveCaptchaSuccess() {
     assert.strictEqual(result.success, true);
     assert.strictEqual(result.challenge, 'recaptcha_v2');
     assert.strictEqual(runtimeVars.captchaResult.challenge, 'recaptcha_v2');
-    assert.strictEqual(page.evaluations.length, 2, 'Expected a detection pass and an injection pass');
+    assert.strictEqual(page.evaluations.length, 3, 'Expected detection, user-agent, and injection passes');
     assert(logs.some((l) => l.includes('Solving captcha')));
     assert(logs.some((l) => l.includes('Captcha solved')));
     console.log('✓ solve_captcha success path succeeded.');

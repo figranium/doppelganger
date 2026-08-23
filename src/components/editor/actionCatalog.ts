@@ -26,6 +26,6 @@ export const ACTION_CATALOG: { type: Action['type']; label: string; description:
     { type: 'start', label: 'Start Task', description: 'Run another task', icon: 'play_circle' },
     { type: 'http_request', label: 'HTTP Request', description: 'Make an API call', icon: 'language' },
     { type: 'get_content', label: 'Get Content', description: 'Get page or element text content', icon: 'article' },
-    { type: 'solve_captcha', label: 'Solve Captcha (Broken)', description: 'Detect and solve a CAPTCHA challenge — currently not functional', icon: 'verified_user' },
+    { type: 'solve_captcha', label: 'Solve Captcha', description: 'Solve through a compatible remote endpoint or the active-browser local solver', icon: 'verified_user' },
     { type: 'do_nothing', label: 'Do Nothing', description: 'No operation block', icon: 'block' }
 ];

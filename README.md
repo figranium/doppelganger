@@ -197,11 +197,46 @@ Key capabilities of **Figranite** include:
 | `DB_POSTGRESDB_PASSWORD` | Password for the PostgreSQL database (required if DB_TYPE is postgres). | — |
 | `USE_CLOAK_ENGINE` | Set to `true` to run the browser engine on CloakBrowser (stealth-patched Chromium) instead of the default Playwright stealth stack. | `false` |
 | `CLOAKBROWSER_LICENSE_KEY` | CloakBrowser license key for the latest binary (read natively by cloakbrowser; `npx cloakbrowser login` writes `~/.cloakbrowser/license.key`). Without a key the free legacy binary is used. | — |
-| `OHMYCAPTCHA_URL` | **[Broken — `solve_captcha` currently not functional; timing out]** Base URL for the `solve_captcha` agent action's captcha-solving service. An embedded `ohmycaptcha` instance runs locally by default; set this to point at an external instance instead. | `http://127.0.0.1:8000` |
-| `OHMYCAPTCHA_CLIENT_KEY` | Client key for the captcha-solving service. Auto-generated for the embedded instance; required when using an external `OHMYCAPTCHA_URL`. | auto-generated |
-| `CLOUD_API_KEY` / `CLOUD_BASE_URL` / `CLOUD_MODEL` | An OpenAI-compatible API key/endpoint/model, forwarded through to the embedded `ohmycaptcha` instance. Required for reCAPTCHA v2's audio-challenge fallback (used whenever a click-only solve isn't enough — common for headless/datacenter traffic); without it, those challenges fail with `ERROR_CAPTCHA_UNSOLVABLE`. hCaptcha, Turnstile, and reCAPTCHA v3 don't need this. | — |
+| `CAPTCHA_SOLVER_URL` | Optional YesCaptcha/AntiCaptcha-compatible endpoint. Remote solving is attempted first. | — |
+| `CAPTCHA_SOLVER_KEY` | Client key for `CAPTCHA_SOLVER_URL`. | — |
+| `CAPTCHA_MODEL_TIER` | Local model selection: `auto`, `owlvit`, or `florence2`. Auto selects OWL-ViT for 2–7.99 GiB and Florence-2 at 8 GiB+. | `auto` |
+| `CAPTCHA_MODEL_DEVICE` | Local inference device policy: `auto` or `cpu`. | `auto` |
+| `SKIP_LOCAL_CAPTCHA_MODEL` | Unconditionally disable local model detection, download, startup, reconciliation, and fallback. Cached weights are retained. | `false` |
+| `CAPTCHA_REMOTE_FORWARD_PROXY` | Opt in to sending the active browser proxy and user agent to compatible proxy-backed remote tasks. Unsupported provider/task combinations fail over locally without changing IP. | `false` |
+| `CAPTCHA_REMOTE_FORWARD_CONTEXT` | Opt in to sending origin-scoped cookies, locale, timezone, viewport, and user agent to a custom endpoint advertising `browserContext` version 1. | `false` |
+| `CAPTCHA_REMOTE_TIMEOUT_MS` | Maximum time allocated to the remote route before local fallback. | action deadline minus local reserve |
+| `CAPTCHA_LOCAL_FALLBACK_MIN_MS` | Portion of the action deadline reserved for the active-browser local route. | `15000` |
+| `CAPTCHA_COMPANION_URL` | Optional Apple companion URL. Docker Desktop discovers `http://host.docker.internal:11438`; native macOS uses loopback. | auto-detected |
+| `CAPTCHA_COMPANION_TOKEN` | Bearer token for the Apple companion. If omitted, `data/captcha-companion-token` is used. | generated file |
+| `CAPTCHA_OWLVIT_THRESHOLD` / `CAPTCHA_FLORENCE2_THRESHOLD` | Optional tier-specific confidence overrides in the range 0–1. | calibrated `0.12` / `0.18` |
+| `RUN_CAPTCHA_LIVE_TESTS` | Set to `1` to enable network/model/browser acceptance tests. Ordinary tests never download weights. | disabled |
+| `OHMYCAPTCHA_URL` / `OHMYCAPTCHA_CLIENT_KEY` | Deprecated aliases for the new remote endpoint variables. | — |
 
-> **Note on `solve_captcha` outside Docker:** the embedded `ohmycaptcha` instance is only started automatically inside the Docker image (`entrypoint.sh`/`start-captcha.sh`). If you're running Figranium via `npm run dev`/`npm run server` on bare metal, run `npm run captcha:dev` in a separate terminal first (requires `python3`/`pip3`; it clones and starts `ohmycaptcha` on `127.0.0.1:8000` the same way the container does) — otherwise `solve_captcha` actions will fail with a connection error.
+Local weights are fetched on first use/startup into persistent `data/captcha-model/`; no model weights or secondary browser are included in the Docker image. Every fetched file is pinned to an exact upstream commit, size, and SHA-256 digest, and inference loads with remote access disabled. OWL-ViT uses about 159 MB of artifacts on 2–7.99 GiB hosts; Florence-2 uses about 361 MB at 8 GiB+. Hosts below 2 GiB can still use a configured remote endpoint. At steady state only the active tier is retained.
+
+Proxy and browser-context forwarding are disabled by default because they disclose sensitive connection and session information to the administrator-configured solver endpoint. Standard AntiCaptcha/YesCaptcha payloads never receive cookies. Context is sent only after the custom endpoint advertises `browserContext` version 1, and cookies are filtered to the active page origin.
+
+### Optional Apple Silicon CAPTCHA companion
+
+The native companion lets a Docker Desktop container use Apple unified memory and acceleration without putting model weights into the image:
+
+```bash
+npm run captcha:companion:install       # pinned Python 3.10+ venv + generated token
+npm run captcha:companion:start         # native Figranium, loopback only
+npm run captcha:companion:start:docker  # Docker Desktop, authenticated external bind
+```
+
+OWL-ViT uses ONNX Runtime's CoreML execution provider. Florence-2 first stages and probes the pinned 4-bit MLX format; if MLX is unavailable or its real inference probe fails, the failed MLX data is removed and the verified native ONNX format is activated. The companion exposes only authenticated `GET /v1/health` and `POST /v1/detect`, caps request/image sizes, serializes inference, and applies inference timeouts. The token file is already shared with the container through the persistent `data/` mount; use `CAPTCHA_COMPANION_TOKEN` when the companion and container do not share that directory.
+
+Run deterministic tests normally. The following commands are intentionally opt-in because they download weights or contact official test widgets:
+
+```bash
+RUN_CAPTCHA_LIVE_TESTS=1 npm run captcha:test:live
+RUN_CAPTCHA_LIVE_TESTS=1 RUN_CAPTCHA_FLORENCE_TESTS=1 npm run captcha:test:live
+RUN_CAPTCHA_LIVE_TESTS=1 npm run captcha:test:docker
+```
+
+The Docker acceptance command builds an image, verifies that it contains no weights, then exercises 1/2/4/8 GiB cgroup limits. A release must not claim full CAPTCHA acceptance until the real Florence probe has passed on an 8+ GiB runner. Apple acceptance additionally requires Apple Silicon and the installed companion.
 
 Proxy rotation also respects `data/proxies.json` (see below), and `data/allowed_ips.json` works as an alternate allowlist format.
 

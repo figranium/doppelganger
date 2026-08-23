@@ -18,10 +18,10 @@ const { solveCaptcha } = require('./captcha-client');
 // a challenge — the points where navigation or a form interaction commonly triggers one.
 const AUTO_CAPTCHA_TRIGGER_TYPES = new Set(['navigate', 'goto', 'click', 'type', 'fill']);
 
-async function maybeAutoSolveCaptcha({ enabled, actionType, page, logs }) {
+async function maybeAutoSolveCaptcha({ enabled, actionType, page, logs, identity }) {
     if (!enabled || !AUTO_CAPTCHA_TRIGGER_TYPES.has(actionType)) return;
     try {
-        const result = await solveCaptcha(page, { timeout: 120000 });
+        const result = await solveCaptcha(page, { timeout: 120000, logs, identity });
         logs.push(`Auto-solved captcha: ${result.challenge} (${result.duration}ms)`);
     } catch (err) {
         if (err && err.noChallengeFound) return;
@@ -303,6 +303,13 @@ async function runFigranite(data, options = {}) {
             baseDelay,
             options: actionOptions,
             baseUrl,
+            solverIdentity: {
+                proxy: launchOptions.proxy || null,
+                userAgent: selectedUA,
+                locale: 'en-US',
+                timezone: 'America/New_York',
+                viewport: page.viewportSize?.() || null
+            },
             get lastBlockOutput() { return lastBlockOutput; },
             get lastMouse() { return lastMouse; },
             set lastMouse(val) { lastMouse = val; },
@@ -533,7 +540,7 @@ async function runFigranite(data, options = {}) {
                 if (result !== undefined) setBlockOutput(result);
                 reportProgress(runId, { actionId: act.id, status: 'success' });
 
-                await maybeAutoSolveCaptcha({ enabled: autoSolveCaptcha, actionType: act.type, page, logs });
+                await maybeAutoSolveCaptcha({ enabled: autoSolveCaptcha, actionType: act.type, page, logs, identity: actionContext.solverIdentity });
             } catch (err) {
                 logs.push(`FAILED action ${act.type}: ${err.message}`);
                 reportProgress(runId, { actionId: act.id, status: 'error' });

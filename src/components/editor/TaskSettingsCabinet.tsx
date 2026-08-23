@@ -364,7 +364,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                             { label: 'Rotate User Agents', key: 'rotateUserAgents', icon: 'person_search' },
                                             { label: 'Rotate Viewport', key: 'rotateViewport', icon: 'screenshot_monitor' },
                                             { label: 'Include Shadow DOM', key: 'includeShadowDom', icon: 'layers' },
-                                            { label: 'Auto-Solve Captchas (Broken)', key: 'autoSolveCaptcha', icon: 'verified_user' },
+                                            { label: 'Auto-Solve Captchas', key: 'autoSolveCaptcha', icon: 'verified_user' },
                                         ].map((item) => (
                                             <button
                                                 key={item.key}

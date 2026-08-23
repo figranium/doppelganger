@@ -1,4 +1,7 @@
 const assert = require('assert');
+process.env.CAPTCHA_SOLVER_URL = 'https://solver.test';
+process.env.CAPTCHA_SOLVER_KEY = 'test-client-key';
+process.env.SKIP_LOCAL_CAPTCHA_MODEL = 'true';
 const { maybeAutoSolveCaptcha } = require('../src/agent/figranite/index');
 
 function makeFakePage({ found } = { found: true }) {

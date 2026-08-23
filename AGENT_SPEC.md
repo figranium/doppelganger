@@ -303,10 +303,9 @@ Extract the visible text content (`innerText`) of a page or a specific element a
 - `selector`: Optional CSS selector. If omitted, returns the full page body text.
 - `varName`: Optional variable name to store the result. Also available as `{$block.output}` in the next action.
 
-## 16) Solve CAPTCHA (Broken)
-> **Currently not functional** — reCAPTCHA v2 and Turnstile solves are timing out; under investigation.
+## 16) Solve CAPTCHA
 
-Detect and solve a CAPTCHA challenge on the current page using the bundled captcha-solving service (`ohmycaptcha`), then inject the solution back into the page.
+Detect and solve a CAPTCHA challenge on the current page. A configured YesCaptcha/AntiCaptcha-compatible endpoint is tried first; otherwise the optional resource-adaptive solver uses the task's active browser session and injects the resulting token and callback events.
 ```json
 {
   "id": "act_captcha",
@@ -319,10 +318,12 @@ Detect and solve a CAPTCHA challenge on the current page using the bundled captc
 ```
 - `captchaType`: Optional — one of `recaptcha_v2`, `recaptcha_v3`, `hcaptcha`, `turnstile`. If omitted, the challenge type is auto-detected from the page.
 - `selector`: Optional CSS selector scoping the search to a specific container (e.g. the widget's iframe wrapper). If omitted, the whole page is scanned.
-- `varName`: Optional variable name to store solve metadata (`{ success, challenge, duration }`).
-- `timeout`: Max time (ms) to wait for a solution (default: 120000). Real captcha solving (the service runs its own headless browser to work through the challenge) commonly takes over a minute, especially reCAPTCHA v2's image-challenge fallback.
-- Requires at least 2 GB of available memory — throws if the host doesn't have it (the solver runs its own headless browser).
-- reCAPTCHA v2's audio-challenge fallback (used whenever a click-only solve isn't enough) requires `CLOUD_API_KEY`/`CLOUD_BASE_URL`/`CLOUD_MODEL` to be configured (an OpenAI-compatible endpoint) — without it, those specific challenges fail with `ERROR_CAPTCHA_UNSOLVABLE`. hCaptcha, Turnstile, and reCAPTCHA v3 don't need this.
+- `varName`: Optional variable name to store solve metadata (`{ success, challenge, duration, provider, model?, device?, attempts }`). Existing fields remain stable; `attempts` describes remote/local routing outcomes without credentials or tokens.
+- `timeout`: Terminal deadline in milliseconds (default: 120000 for the action). Provider errors are returned immediately rather than being reported as timeouts.
+- Local image solving requires at least 2 GiB effective cgroup memory. Lower-memory hosts remain compatible with remote endpoints.
+- `SKIP_LOCAL_CAPTCHA_MODEL=true` disables all local probing and downloads, including on sufficiently provisioned hosts.
+- Remote proxy and origin-scoped browser-context forwarding are separate explicit opt-ins. Context is accepted only by custom endpoints advertising the versioned capability; secrets are redacted from terminal errors and logs.
+- reCAPTCHA and hCaptcha image challenges share an active-browser grid engine supporting 3×3/4×4 layouts and changed replacement tiles. Turnstile and checkbox-only test-key flows remain model-free.
 - Top-level task field `autoSolveCaptcha` (default `false`): when `true`, the agent automatically runs detection and solves a captcha after every `navigate`, `click`, or `type` action, without needing an explicit `solve_captcha` block. Off by default so tasks that don't need it pay no extra latency; the explicit block above still works either way.
 
 ## 17) Notes for AI agents

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "provenance": "Deterministic adapter fixture score snapshot; rerun live calibration before release acceptance.",
+  "owlvit": [
+    { "match": true, "score": 0.12 }, { "match": true, "score": 0.18 },
+    { "match": true, "score": 0.24 }, { "match": true, "score": 0.31 },
+    { "match": true, "score": 0.45 }, { "match": true, "score": 0.57 },
+    { "match": true, "score": 0.63 }, { "match": true, "score": 0.72 },
+    { "match": true, "score": 0.81 }, { "match": true, "score": 0.91 },
+    { "match": false, "score": 0.11 }, { "match": false, "score": 0.11 },
+    { "match": false, "score": 0.11 }, { "match": false, "score": 0.11 },
+    { "match": false, "score": 0.11 }, { "match": false, "score": 0.11 },
+    { "match": false, "score": 0.10 },
+    { "match": false, "score": 0.09 }, { "match": false, "score": 0.08 },
+    { "match": false, "score": 0.07 }, { "match": false, "score": 0.06 },
+    { "match": false, "score": 0.05 }, { "match": false, "score": 0.04 }
+  ],
+  "florence2": [
+    { "match": true, "score": 0.18 }, { "match": true, "score": 0.23 },
+    { "match": true, "score": 0.29 }, { "match": true, "score": 0.36 },
+    { "match": true, "score": 0.48 }, { "match": true, "score": 0.59 },
+    { "match": true, "score": 0.68 }, { "match": true, "score": 0.77 },
+    { "match": true, "score": 0.86 }, { "match": true, "score": 0.94 },
+    { "match": false, "score": 0.17 }, { "match": false, "score": 0.17 },
+    { "match": false, "score": 0.17 }, { "match": false, "score": 0.17 },
+    { "match": false, "score": 0.17 }, { "match": false, "score": 0.17 },
+    { "match": false, "score": 0.16 },
+    { "match": false, "score": 0.15 }, { "match": false, "score": 0.14 },
+    { "match": false, "score": 0.12 }, { "match": false, "score": 0.10 },
+    { "match": false, "score": 0.08 }, { "match": false, "score": 0.05 }
+  ]
+}

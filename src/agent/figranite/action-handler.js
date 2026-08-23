@@ -605,7 +605,7 @@ const executeAction = async (act, context) => {
             const captchaType = resolveMaybe(act.captchaType || '') || undefined;
             const selectorValue = resolveMaybe(act.selector || '') || undefined;
             logs.push(`Solving captcha${captchaType ? `: ${captchaType}` : ' (auto-detect)'}`);
-            const captchaResult = await solveCaptcha(page, { captchaType, selector: selectorValue, timeout: act.timeout || 120000 });
+            const captchaResult = await solveCaptcha(page, { captchaType, selector: selectorValue, timeout: act.timeout || 120000, logs, identity: context.solverIdentity });
             logs.push(`Captcha solved: ${captchaResult.challenge} (${captchaResult.duration}ms)`);
             if (act.varName) {
                 const targetName = normalizeVarRef(act.varName);

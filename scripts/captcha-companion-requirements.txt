@@ -1,0 +1,8 @@
+mlx==0.30.6
+mlx-lm==0.30.6
+mlx-vlm==0.3.11
+transformers==5.1.0
+tokenizers==0.22.2
+huggingface-hub==1.4.1
+numpy==2.4.2
+Pillow==12.1.0

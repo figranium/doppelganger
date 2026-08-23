@@ -425,8 +425,8 @@ router.post('/theme', csrfProtection, dataRateLimiter, requireAuthForSettings, a
 });
 
 // Captcha Solver Settings Endpoints
-// A local ohmycaptcha instance is bundled and used by default; these fields only matter
-// if the user wants to point at an external instance instead.
+// Optional YesCaptcha/AntiCaptcha-compatible endpoint. Environment variables take
+// precedence over these persisted values.
 router.get('/captcha', requireAuthForSettings, async (req, res) => {
     try {
         const settings = await loadCaptchaSettings();
@@ -439,15 +439,15 @@ router.get('/captcha', requireAuthForSettings, async (req, res) => {
 
 router.post('/captcha', csrfProtection, dataRateLimiter, requireAuthForSettings, async (req, res) => {
     try {
-        // Not passed through validateUrl(): this is an admin-configured infrastructure
-        // endpoint (often an internal/private host on purpose), not scraped page content.
         const bodyBaseUrl = req.body && typeof req.body.baseUrl === 'string' ? req.body.baseUrl.trim() : '';
         const bodyClientKey = req.body && typeof req.body.clientKey === 'string' ? req.body.clientKey.trim() : '';
-        const saved = await saveCaptchaSettings({ baseUrl: bodyBaseUrl, clientKey: bodyClientKey });
+        const validatedBaseUrl = bodyBaseUrl ? await validateUrl(bodyBaseUrl) : '';
+        const saved = await saveCaptchaSettings({ baseUrl: validatedBaseUrl, clientKey: bodyClientKey });
         res.json({ baseUrl: saved.baseUrl, clientKey: saved.clientKey ? '••••••••' : '' });
     } catch (e) {
         console.error('[SETTINGS] Failed to save captcha settings:', e);
-        res.status(500).json({ error: 'CAPTCHA_SETTINGS_SAVE_FAILED' });
+        const invalidUrl = /Invalid URL|Only HTTP|private network/i.test(e.message || '');
+        res.status(invalidUrl ? 400 : 500).json({ error: invalidUrl ? 'INVALID_BASE_URL' : 'CAPTCHA_SETTINGS_SAVE_FAILED' });
     }
 });
 

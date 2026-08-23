@@ -587,6 +587,11 @@ findAvailablePort(port, 20)
             // Initialize proxies from DB if available
             const { loadProxyConfigAsync } = require('./proxy-rotation');
             loadProxyConfigAsync().catch(err => console.error('[PROXIES] Initial DB load failed:', err.message));
+
+            // Reconcile the optional downloaded CAPTCHA model independently of browser
+            // startup. The skip flag returns before resource probing or downloads.
+            const { captchaModelManager } = require('./src/agent/figranite/captcha-model-manager');
+            captchaModelManager.start().catch(err => console.warn('[CAPTCHA_MODEL] Startup skipped:', err.message));
         });
         server.on('upgrade', async (req, socket, head) => {
             if (!await isIpAllowed(req.socket?.remoteAddress)) {
@@ -662,6 +667,11 @@ findAvailablePort(port, 20)
             try {
                 const { stopScheduler } = require('./src/server/scheduler');
                 stopScheduler();
+            } catch { }
+
+            try {
+                const { captchaModelManager } = require('./src/agent/figranite/captcha-model-manager');
+                await captchaModelManager.stop();
             } catch { }
 
             // Flush pending execution writes
