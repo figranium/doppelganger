@@ -2,13 +2,22 @@
 
 ## [0.15.0] - 2026-08-22
 
-### Features
-- **Captcha solving in Agent mode via a bundled `ohmycaptcha` service** - Added a `solve_captcha` action (documented in `AGENT_SPEC.md`) that detects a reCAPTCHA v2/v3, hCaptcha, or Cloudflare Turnstile challenge on the page (auto-detected by default, or an explicit `captchaType`/`selector`), solves it through the `ohmycaptcha` proxyless task API, and injects the resulting token into the page's response field, firing the site's own callback. A new task-level `autoSolveCaptcha` setting (default off, toggle in the task settings Behavior tab) additionally runs this detection/solve pass automatically after every `navigate`, `click`, or `type` action, so tasks don't need to know in advance where a captcha will appear; it silently no-ops when no challenge is present and only adds cost/latency when explicitly enabled. Enforces the existing "at least 2 GB RAM" requirement since the solver runs its own headless browser.
-- **Embedded `ohmycaptcha` runtime, bundled by default** - The `Dockerfile`'s runtime stage now installs Python + the `ohmycaptcha` checkout + its own Chromium; a new `start-captcha.sh` launches and supervises it on `127.0.0.1:8000` (same restart-loop pattern as the existing VNC scripts) with an auto-generated client key, run alongside `start-vnc.sh` via a new `entrypoint.sh`. `docker-compose.yml` and the README document `OHMYCAPTCHA_URL`/`OHMYCAPTCHA_CLIENT_KEY` for pointing at an external instance instead. A new `npm run captcha:dev` (`scripts/start-captcha-local.sh`) mirrors this for bare-metal local development, resolving a Python 3.10+ interpreter (ohmycaptcha's `X | None` syntax fails on older Pythons, including macOS's default Command Line Tools Python 3.9) and installing into an isolated venv rather than the host's global `pip3`.
-- **Captcha solver settings storage** - Added `captcha_settings` persistence (disk JSON or Postgres, matching the existing settings tables) and `/api/settings/captcha` GET/POST endpoints for optionally overriding the embedded solver's base URL/client key with an external instance.
-- **Add 'Do Nothing' block** (#350) - New `do_nothing`/`noop`/`pass` action for the task editor and agent runtime, useful as a placeholder or explicit no-op step in a flow.
-- **Add `openapi.json` documenting the full REST API surface** - Covers auth, task CRUD/versioning, scrape/agent/headful execution, execution history, schedules, settings (API keys, proxies, AI models, theme), Baserow credentials, captures/screenshots/cookies data endpoints, browser/inspector sessions, and health checks.
-- **Show full origin-aware POST endpoint with a method badge in the task API trigger panel** - The Task Settings panel now displays the complete, origin-aware endpoint URL with its HTTP method badge instead of a partial path.
+### Solve CAPTCHAs from Agent mode
+ Agent mode can now solve reCAPTCHA v2, reCAPTCHA v3, hCaptcha, and Cloudflare Turnstile challenges without leaving the task flow. Solves are routed through an optional YesCaptcha/AntiCaptcha-compatible remote endpoint first, then fall back to a built-in active-browser local model (OWL-ViT on 2–7.99 GiB hosts, Florence-2 at 8 GiB\+). Local weights are fetched on first use into persistent `data/captcha-model/`; nothing is bundled into the image.
+ 
+### `Do Nothing` action block
+A new `do_nothing` action block is available in the block picker. Drop it onto the canvas as a placeholder while you're drafting a task, or use it as the body of an `If` or `On Error` branch when you want the branch to fall through without side effects.
+
+  - The block takes no configuration. It logs `Do nothing` and completes successfully.
+  - `noop` and `pass` are accepted as aliases and behave identically.
+
+  ### API trigger endpoint now accepts bodyless requests
+
+  `POST /api/tasks/:id/api` no longer requires a JSON body or a `Content-Type: application/json` header. Requests without a parsed body are treated as `{}` and the task runs with its default variables. Tools that can't set request headers on outbound calls (for example, Clay's HTTP action) can now trigger a task with a bare `POST` to the endpoint URL.
+
+### Full endpoint URL and method in the API trigger panel
+
+The task editor's **Trigger via API** panel now shows the complete origin-aware endpoint URL (for example, `https://your-figranium.example.com/api/tasks/task_1/api`) with a `POST` method badge next to it. The copy button copies the same full URL, so you can paste it straight into external tools without prefixing your instance origin by hand.
 
 ### Bug Fixes
 - **Fix a 500 crash in `executeTaskById` when external callers send requests without a JSON `Content-Type`** - Callers such as Clay that POST without setting `Content-Type: application/json` left `req.body` undefined, crashing the task API trigger; `server.js` now handles this case.
