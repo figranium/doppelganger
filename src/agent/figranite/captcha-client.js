@@ -1,5 +1,5 @@
 const { loadCaptchaSettings } = require('../../server/storage');
-const { solveLocalCaptcha } = require('./captcha-local-solver');
+const { solveLocalCaptcha, readToken } = require('./captcha-local-solver');
 const { parseFlag } = require('./captcha-model-manager');
 const { validateUrl } = require('../../../url-utils');
 
@@ -32,37 +32,151 @@ async function resolveSolverConfig() {
     return { baseUrl: baseUrl.replace(/\/+$/, ''), clientKey };
 }
 
-async function detectCaptcha(page, selector) {
+function parseCaptchaFrameUrl(rawUrl) {
+    let url;
+    try { url = new URL(rawUrl); } catch { return null; }
+    const queryKey = url.searchParams.get('k') || url.searchParams.get('sitekey');
+    if (url.hostname.includes('hcaptcha.com')) return queryKey ? { siteKey: queryKey, captchaType: 'hcaptcha' } : null;
+    if (url.hostname.includes('recaptcha') || url.pathname.includes('/recaptcha/')) {
+        return queryKey ? { siteKey: queryKey, captchaType: 'recaptcha_v2' } : null;
+    }
+    if (!url.hostname.includes('challenges.cloudflare.com')) return null;
+    const segments = url.pathname.split('/').filter(Boolean);
+    const pathKey = segments.find((segment) => /^(?:0x|3x)[A-Za-z0-9_-]{8,}$/.test(segment));
+    const siteKey = queryKey || pathKey;
+    return siteKey ? { siteKey, captchaType: 'turnstile', managed: url.pathname.includes('/challenge-platform/') && !/^3x0+$/.test(siteKey) } : null;
+}
+
+async function locatorIsInteractable(locator, page) {
+    if (!locator) return false;
+    const visible = await locator.isVisible?.({ timeout: 150 }).catch(() => false);
+    if (!visible) return false;
+    const enabled = await locator.isEnabled?.({ timeout: 150 }).catch(() => true);
+    if (!enabled) return false;
+    const receivesPointer = await locator.evaluate?.((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.pointerEvents !== 'none' && style.visibility !== 'hidden' && style.display !== 'none'
+            && Number(style.opacity || 1) > 0 && rect.width > 0 && rect.height > 0
+            && element.getAttribute('aria-disabled') !== 'true';
+    }).catch(() => true);
+    if (!receivesPointer) return false;
+    const firstBox = await locator.boundingBox?.().catch(() => null);
+    if (!firstBox) return true;
+    await (page.waitForTimeout?.(75) || new Promise((resolve) => setTimeout(resolve, 75)));
+    const secondBox = await locator.boundingBox?.().catch(() => null);
+    if (!secondBox) return false;
+    return Math.abs(firstBox.x - secondBox.x) < 1 && Math.abs(firstBox.y - secondBox.y) < 1
+        && Math.abs(firstBox.width - secondBox.width) < 1 && Math.abs(firstBox.height - secondBox.height) < 1;
+}
+
+async function locatorIsVisible(locator) {
+    if (!locator || typeof locator.isVisible !== 'function') return false;
+    return locator.isVisible({ timeout: 150 }).catch(() => false);
+}
+
+async function detectCaptcha(page, selector, { requireReady = false } = {}) {
     const detected = await page.evaluate((sel) => {
         const root = sel ? document.querySelector(sel) : document;
         if (!root) return null;
         const widget = root.matches?.('[data-sitekey]') ? root : root.querySelector('[data-sitekey], .g-recaptcha, .h-captcha, .cf-turnstile');
+        const captured = globalThis.__figraniumCaptcha?.turnstile;
+        const capturedInScope = !sel || root === captured?.container || (captured?.container && root.contains?.(captured.container))
+            || Boolean(root.querySelector?.('iframe[src*="challenges.cloudflare.com"], [name="cf-turnstile-response"]'));
+        if (!widget && captured?.siteKey && capturedInScope) {
+            return {
+                siteKey: captured.siteKey,
+                captchaType: 'turnstile',
+                action: captured.action || undefined,
+                cData: captured.cData || undefined,
+                chlPageData: captured.chlPageData || undefined,
+                callback: captured.callbackName || undefined,
+                managed: Boolean(captured.managed),
+                intercepted: Boolean(captured.blocked),
+                userAgent: captured.userAgent || navigator.userAgent,
+                ready: Boolean(captured.readyAt)
+            };
+        }
         if (!widget) return null;
         let captchaType = 'recaptcha_v2';
         if (widget.classList.contains('h-captcha')) captchaType = 'hcaptcha';
         else if (widget.classList.contains('cf-turnstile')) captchaType = 'turnstile';
         else if (widget.getAttribute('data-action')) captchaType = 'recaptcha_v3';
-        const invisible = widget.getAttribute('data-size') === 'invisible';
+        const invisible = captchaType === 'recaptcha_v3' || widget.getAttribute('data-size') === 'invisible';
+        const rect = widget.getBoundingClientRect();
+        const style = getComputedStyle(widget);
         return {
             siteKey: widget.getAttribute('data-sitekey'),
             captchaType,
-            action: widget.getAttribute('data-action') || undefined,
+            action: widget.getAttribute('data-action') || captured?.action || undefined,
             callback: widget.getAttribute('data-callback') || undefined,
             dataS: widget.getAttribute('data-s') || undefined,
-            invisible
+            invisible,
+            cData: captured?.cData || undefined,
+            chlPageData: captured?.chlPageData || undefined,
+            managed: Boolean(captured?.managed),
+            intercepted: Boolean(captured?.blocked),
+            userAgent: captured?.userAgent || navigator.userAgent,
+            ready: Boolean(captured?.readyAt) || invisible || (rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden')
         };
     }, selector || null);
-    if (detected?.siteKey) return detected;
+    if (detected?.siteKey && (!requireReady || detected.intercepted || detected.invisible)) return detected;
     for (const frame of page.frames?.() || []) {
-        let url;
-        try { url = new URL(frame.url()); } catch { continue; }
-        const siteKey = url.searchParams.get('k') || url.searchParams.get('sitekey');
-        if (!siteKey) continue;
-        if (url.hostname.includes('hcaptcha.com')) return { siteKey, captchaType: 'hcaptcha' };
-        if (url.hostname.includes('challenges.cloudflare.com')) return { siteKey, captchaType: 'turnstile' };
-        if (url.hostname.includes('recaptcha')) return { siteKey, captchaType: 'recaptcha_v2' };
+        const frameDetected = parseCaptchaFrameUrl(frame.url());
+        if (!frameDetected) continue;
+        if (selector && frame.frameElement) {
+            const frameElement = await frame.frameElement().catch(() => null);
+            const inScope = await frameElement?.evaluate((element, sel) => Boolean(document.querySelector(sel)?.contains(element)), selector).catch(() => false);
+            if (!inScope) continue;
+        }
+        if (detected?.captchaType && detected.captchaType !== frameDetected.captchaType) continue;
+        if (!requireReady) return { ...frameDetected, ...detected };
+
+        let ready = false;
+        if (frameDetected.captchaType === 'recaptcha_v2') {
+            ready = await locatorIsInteractable(frame.locator?.('#recaptcha-anchor, [role="checkbox"]').first?.(), page);
+            if (!ready && frame.url().includes('/bframe')) {
+                ready = await locatorIsVisible(frame.locator?.('.rc-imageselect-table-33, .rc-imageselect-table-44').first?.());
+            }
+        } else if (frameDetected.captchaType === 'hcaptcha') {
+            ready = await locatorIsInteractable(frame.locator?.('#checkbox, [role="checkbox"]').first?.(), page);
+            if (!ready) ready = await locatorIsVisible(frame.locator?.('.task-grid').first?.());
+        } else {
+            const target = frame.locator?.('input[type="checkbox"], [role="checkbox"], button, label').first?.();
+            ready = await locatorIsInteractable(target, page);
+            if (!ready) {
+                const frameElement = await frame.frameElement?.().catch(() => null);
+                ready = await frameElement?.isVisible?.().catch(() => false) || Boolean(detected?.ready);
+            }
+        }
+        if (ready) return { ...frameDetected, ...detected, ready: true };
     }
+    if (detected?.siteKey && (!requireReady || detected.ready !== false)
+        && (!requireReady || detected.ready === undefined || typeof page.frames !== 'function')) return detected;
     return null;
+}
+
+async function waitForCaptcha(page, { captchaType, selector, timeout = 120_000 } = {}) {
+    const startedAt = Date.now();
+    const deadline = startedAt + Math.max(1, timeout);
+    do {
+        const detected = await detectCaptcha(page, selector, { requireReady: true });
+        if (detected && (!captchaType || detected.captchaType === captchaType)) {
+            return {
+                ready: true,
+                challenge: captchaType || detected.captchaType,
+                duration: Date.now() - startedAt,
+                ...(detected.siteKey ? { siteKey: detected.siteKey } : {}),
+                detected
+            };
+        }
+        if (Date.now() >= deadline) break;
+        const delay = Math.min(150, Math.max(1, deadline - Date.now()));
+        if (page.waitForTimeout) await page.waitForTimeout(delay); else await new Promise((resolve) => setTimeout(resolve, delay));
+    } while (Date.now() <= deadline);
+    const error = new Error(`wait_captcha: no ready${captchaType ? ` ${captchaType}` : ''} CAPTCHA found within ${timeout}ms`);
+    error.noChallengeFound = true;
+    throw error;
 }
 
 async function requestJson(url, { method = 'GET', body, timeout, secrets = [] } = {}) {
@@ -154,9 +268,26 @@ async function buildRemoteTask(page, detected, captchaType, config, identity = {
         websiteURL: page.url(),
         websiteKey: detected.siteKey
     };
-    if (detected.action) task.pageAction = detected.action;
+    if (detected.action) {
+        if (captchaType === 'turnstile') task.action = detected.action;
+        else task.pageAction = detected.action;
+    }
     if (detected.dataS) task.recaptchaDataSValue = detected.dataS;
     if (detected.invisible) task.isInvisible = true;
+    if (captchaType === 'turnstile' && (detected.cData || detected.chlPageData)) {
+        let hostname = '';
+        try { hostname = new URL(config.baseUrl).hostname.toLowerCase(); } catch { /* validated when requests are sent */ }
+        const antiCaptchaDialect = hostname.includes('anti-captcha.com');
+        const twoCaptchaDialect = hostname.includes('2captcha.com') || hostname.includes('yescaptcha.com');
+        if (!antiCaptchaDialect) {
+            if (detected.cData) task.data = detected.cData;
+            if (detected.chlPageData) task.pagedata = detected.chlPageData;
+        }
+        if (!twoCaptchaDialect) {
+            if (detected.cData) task.cData = detected.cData;
+            if (detected.chlPageData) task.chlPageData = detected.chlPageData;
+        }
+    }
     if (forwardProxy) Object.assign(task, buildProxyTaskFields(identity.proxy, userAgent));
     else if (userAgent) task.userAgent = userAgent;
 
@@ -189,7 +320,7 @@ async function solveRemote(page, detected, captchaType, config, timeout, identit
 }
 
 async function injectSolution(page, captchaType, token, callbackName) {
-    await page.evaluate(({ type, value, configuredCallback }) => {
+    return page.evaluate(({ type, value, configuredCallback }) => {
         const selectors = type === 'hcaptcha'
             ? ['textarea[name="h-captcha-response"]', 'textarea[name="g-recaptcha-response"]']
             : type === 'turnstile'
@@ -202,36 +333,81 @@ async function injectSolution(page, captchaType, token, callbackName) {
             element.dispatchEvent(new Event('input', { bubbles: true }));
             element.dispatchEvent(new Event('change', { bubbles: true }));
         }
+        let callbackInvoked = false;
+        if (type === 'turnstile') {
+            const captured = globalThis.__figraniumCaptcha?.turnstile;
+            if (typeof captured?.callback === 'function') {
+                captured.callback(value);
+                captured.callbackInvoked = true;
+                callbackInvoked = true;
+            }
+        }
         const resolveCallback = (name) => name?.split('.').reduce((object, key) => object?.[key], window);
         for (const name of [configuredCallback, 'grecaptchaCallback', 'hcaptchaCallback', 'turnstileCallback']) {
             const callback = resolveCallback(name);
-            if (typeof callback === 'function') { callback(value); break; }
+            if (typeof callback === 'function') { callback(value); callbackInvoked = true; break; }
         }
+        return { callbackInvoked };
     }, { type: captchaType, value: token, configuredCallback: callbackName });
 }
 
-async function solveCaptcha(page, { captchaType, selector, timeout = 60_000, logs = [], identity = {} } = {}) {
-    const detected = await detectCaptcha(page, selector);
-    if (!detected) {
-        const error = new Error('solve_captcha: no CAPTCHA challenge found on the page');
-        error.noChallengeFound = true;
+async function waitForCaptchaCompletion(page, captchaType, detected, timeout) {
+    const deadline = Date.now() + Math.max(1, timeout);
+    const initialUrl = page.url();
+    do {
+        const token = await readToken(page, captchaType);
+        if (token) return { method: 'token' };
+        if (detected.managed) {
+            if (page.url() !== initialUrl) return { method: 'navigation' };
+            const stillPresent = (page.frames?.() || []).some((frame) => frame.url().includes('challenges.cloudflare.com/cdn-cgi/challenge-platform'));
+            if (!stillPresent) return { method: 'challenge-cleared' };
+        }
+        if (Date.now() >= deadline) break;
+        const delay = Math.min(150, Math.max(1, deadline - Date.now()));
+        if (page.waitForTimeout) await page.waitForTimeout(delay); else await new Promise((resolve) => setTimeout(resolve, delay));
+    } while (Date.now() <= deadline);
+    throw new Error(`${captchaType} solution was injected but the page did not confirm completion`);
+}
+
+async function applyManagedChallengeUserAgent(page, userAgent, logs) {
+    if (!userAgent) return;
+    await page.setExtraHTTPHeaders?.({ 'user-agent': userAgent });
+    await page.evaluate((value) => {
+        try { Object.defineProperty(Navigator.prototype, 'userAgent', { configurable: true, get: () => value }); } catch { /* best effort */ }
+        try { Object.defineProperty(Navigator.prototype, 'appVersion', { configurable: true, get: () => value.replace(/^Mozilla\//, '') }); } catch { /* best effort */ }
+    }, userAgent);
+    logs.push('[CAPTCHA] Applied the managed-challenge solver user agent before callback submission');
+}
+
+async function solveCaptcha(page, { captchaType, selector, timeout = 60_000, detectionTimeout, logs = [], identity = {} } = {}) {
+    const startedAt = Date.now();
+    const ready = await waitForCaptcha(page, {
+        captchaType,
+        selector,
+        timeout: Math.min(timeout, detectionTimeout ?? timeout)
+    }).catch((error) => {
+        error.message = error.message.replace(/^wait_captcha: no ready(.*?) CAPTCHA found within/, 'solve_captcha: no CAPTCHA challenge$1 became ready within');
         throw error;
-    }
+    });
+    const detected = ready.detected;
     const resolvedType = captchaType || detected.captchaType;
     if (!TASK_TYPES[resolvedType]) throw new Error(`solve_captcha: unsupported captchaType "${resolvedType}"`);
-    const startedAt = Date.now();
     const attempts = [];
     const config = await resolveSolverConfig();
     const skipLocal = parseFlag(process.env.SKIP_LOCAL_CAPTCHA_MODEL);
-    const localReserve = skipLocal ? 0 : Math.min(timeout - 1, numberEnv('CAPTCHA_LOCAL_FALLBACK_MIN_MS', 15_000, { min: 1000 }));
-    const configuredRemoteTimeout = numberEnv('CAPTCHA_REMOTE_TIMEOUT_MS', Math.max(1, timeout - localReserve));
-    const remoteTimeout = Math.max(1, Math.min(configuredRemoteTimeout, timeout - localReserve));
+    const remainingAfterDetection = Math.max(1, timeout - (Date.now() - startedAt));
+    const localReserve = skipLocal ? 0 : Math.min(remainingAfterDetection - 1, numberEnv('CAPTCHA_LOCAL_FALLBACK_MIN_MS', 15_000, { min: 1000 }));
+    const configuredRemoteTimeout = numberEnv('CAPTCHA_REMOTE_TIMEOUT_MS', Math.max(1, remainingAfterDetection - localReserve));
+    const remoteTimeout = Math.max(1, Math.min(configuredRemoteTimeout, remainingAfterDetection - localReserve));
     let result;
 
     if (config.baseUrl) {
         const attemptStarted = Date.now();
         try {
             result = await solveRemote(page, detected, resolvedType, config, remoteTimeout, identity);
+            if (detected.managed && result.solution?.userAgent && detected.userAgent && result.solution.userAgent !== detected.userAgent) {
+                await applyManagedChallengeUserAgent(page, result.solution.userAgent, logs);
+            }
             attempts.push({ provider: 'remote', status: 'success', duration: Date.now() - attemptStarted });
         } catch (error) {
             const safeMessage = redactSecrets(error.message, [config.clientKey, identity.proxy?.password]);
@@ -242,22 +418,29 @@ async function solveCaptcha(page, { captchaType, selector, timeout = 60_000, log
         attempts.push({ provider: 'remote', status: 'unavailable', duration: 0, error: 'CAPTCHA_SOLVER_URL is not configured' });
     }
 
-    if (!result && !skipLocal) {
+    if (!result && detected.managed) {
+        attempts.push({ provider: 'local', status: 'unsupported', duration: 0, error: 'managed Turnstile challenges require a configured remote solver' });
+    } else if (!result && !skipLocal) {
         const attemptStarted = Date.now();
         try {
             result = await solveLocalCaptcha(page, { captchaType: resolvedType, timeout: Math.max(1, timeout - (Date.now() - startedAt)), logs });
             attempts.push({ provider: 'local', status: 'success', duration: Date.now() - attemptStarted });
         } catch (error) {
-            attempts.push({ provider: 'local', status: 'failed', duration: Date.now() - attemptStarted, error: redactSecrets(error.message) });
+            const safeMessage = redactSecrets(error.message);
+            attempts.push({ provider: 'local', status: 'failed', duration: Date.now() - attemptStarted, error: safeMessage });
+            logs.push(`[CAPTCHA] Local ${resolvedType} solver failed: ${safeMessage}`);
         }
     } else if (!result) {
         attempts.push({ provider: 'local', status: 'disabled', duration: 0, error: 'disabled by SKIP_LOCAL_CAPTCHA_MODEL' });
     }
 
     if (!result) {
-        throw new Error(`solve_captcha: no solver route succeeded (${attempts.map((attempt) => `${attempt.provider}: ${attempt.error}`).join('; ')})`);
+        const error = new Error(`solve_captcha: no solver route succeeded (${attempts.map((attempt) => `${attempt.provider}: ${attempt.error}`).join('; ')})`);
+        error.attempts = attempts;
+        throw error;
     }
     await injectSolution(page, resolvedType, result.token, detected.callback);
+    await waitForCaptchaCompletion(page, resolvedType, detected, Math.max(1, timeout - (Date.now() - startedAt)));
     return {
         success: true,
         challenge: resolvedType,
@@ -275,6 +458,10 @@ module.exports = {
     solveRemote,
     injectSolution,
     detectCaptcha,
+    waitForCaptcha,
+    waitForCaptchaCompletion,
+    applyManagedChallengeUserAgent,
+    parseCaptchaFrameUrl,
     resolveSolverConfig,
     requestJson,
     postJson,

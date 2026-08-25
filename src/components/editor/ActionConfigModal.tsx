@@ -708,8 +708,13 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                     ))}
                 </>}
 
-                {/* Solve Captcha */}
-                {action.type === 'solve_captcha' && <>
+                {/* Solve / Wait for Captcha */}
+                {(action.type === 'solve_captcha' || action.type === 'wait_captcha') && <>
+                    {action.type === 'wait_captcha' && (
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                            Waits until the captcha control is initialized, visible, enabled, and stable. This block does not click or solve it.
+                        </p>
+                    )}
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Captcha Type (Optional)</label>
                         <select
@@ -731,6 +736,17 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             onBlur={() => onAutoSave()}
                             variables={variables}
                             placeholder="#recaptcha-container or leave empty for full page"
+                        />
+                    ))}
+                    {field('Timeout (Seconds)', inputWrap(
+                        <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={Math.max(1, Math.round((action.timeout || 120000) / 1000))}
+                            onChange={(e) => onUpdate(action.id, { timeout: Math.max(1, Number(e.target.value) || 120) * 1000 })}
+                            onBlur={() => onAutoSave()}
+                            className="w-full bg-transparent border-none px-0 py-0 text-xs text-white focus:outline-none"
                         />
                     ))}
                     {field('Store Result In Variable (Optional)', inputWrap(

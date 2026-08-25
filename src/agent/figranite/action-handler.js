@@ -2,7 +2,7 @@ const { validateUrl, fetchWithRedirectValidation } = require('../../../url-utils
 const { parseCoords, parseValue, parseCsv, sanitizeRunId } = require('../../../common-utils');
 const { moveMouseHumanlike, idleMouse, overshootScroll, humanType } = require('./human-interaction');
 const { loadApiKey } = require('../../server/storage'); // Need to access server storage for internal API key loading
-const { solveCaptcha } = require('./captcha-client');
+const { solveCaptcha, waitForCaptcha } = require('./captcha-client');
 
 const normalizeVarRef = (raw) => {
     if (!raw) return '';
@@ -612,6 +612,26 @@ const executeAction = async (act, context) => {
                 runtimeVars[String(targetName)] = captchaResult;
             }
             result = captchaResult;
+            break;
+        }
+        case 'wait_captcha': {
+            const captchaType = resolveMaybe(act.captchaType || '') || undefined;
+            const selectorValue = resolveMaybe(act.selector || '') || undefined;
+            const timeout = Number(act.timeout) > 0 ? Number(act.timeout) : 120000;
+            logs.push(`Waiting for ready captcha${captchaType ? `: ${captchaType}` : ' (auto-detect)'} (${timeout}ms)`);
+            const readyResult = await waitForCaptcha(page, { captchaType, selector: selectorValue, timeout });
+            const publicResult = {
+                ready: true,
+                challenge: readyResult.challenge,
+                duration: readyResult.duration,
+                ...(readyResult.siteKey ? { siteKey: readyResult.siteKey } : {})
+            };
+            logs.push(`Captcha ready: ${publicResult.challenge} (${publicResult.duration}ms)`);
+            if (act.varName) {
+                const targetName = normalizeVarRef(act.varName);
+                runtimeVars[String(targetName)] = publicResult;
+            }
+            result = publicResult;
             break;
         }
         case 'do_nothing':

@@ -206,6 +206,7 @@ Key capabilities of **Figranite** include:
 | `CAPTCHA_REMOTE_FORWARD_CONTEXT` | Opt in to sending origin-scoped cookies, locale, timezone, viewport, and user agent to a custom endpoint advertising `browserContext` version 1. | `false` |
 | `CAPTCHA_REMOTE_TIMEOUT_MS` | Maximum time allocated to the remote route before local fallback. | action deadline minus local reserve |
 | `CAPTCHA_LOCAL_FALLBACK_MIN_MS` | Portion of the action deadline reserved for the active-browser local route. | `15000` |
+| `CAPTCHA_AUTO_DETECT_TIMEOUT_MS` | Maximum readiness-detection wait after each auto-solve trigger when no CAPTCHA is present. | `5000` |
 | `CAPTCHA_COMPANION_URL` | Optional Apple companion URL. Docker Desktop discovers `http://host.docker.internal:11438`; native macOS uses loopback. | auto-detected |
 | `CAPTCHA_COMPANION_TOKEN` | Bearer token for the Apple companion. If omitted, `data/captcha-companion-token` is used. | generated file |
 | `CAPTCHA_OWLVIT_THRESHOLD` / `CAPTCHA_FLORENCE2_THRESHOLD` | Optional tier-specific confidence overrides in the range 0–1. | calibrated `0.12` / `0.18` |

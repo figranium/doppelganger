@@ -21,11 +21,12 @@ const AUTO_CAPTCHA_TRIGGER_TYPES = new Set(['navigate', 'goto', 'click', 'type',
 async function maybeAutoSolveCaptcha({ enabled, actionType, page, logs, identity }) {
     if (!enabled || !AUTO_CAPTCHA_TRIGGER_TYPES.has(actionType)) return;
     try {
-        const result = await solveCaptcha(page, { timeout: 120000, logs, identity });
+        const detectionTimeout = Math.max(1, Number(process.env.CAPTCHA_AUTO_DETECT_TIMEOUT_MS) || 5000);
+        const result = await solveCaptcha(page, { timeout: 120000, detectionTimeout, logs, identity });
         logs.push(`Auto-solved captcha: ${result.challenge} (${result.duration}ms)`);
     } catch (err) {
         if (err && err.noChallengeFound) return;
-        logs.push(`Auto-solve captcha attempt failed: ${err.message}`);
+        logs.push(`[CAPTCHA ERROR] Auto-solve attempt failed: ${err.message}`);
     }
 }
 
@@ -125,6 +126,9 @@ async function runFigranite(data, options = {}) {
         throw new Error('Actions array is required.');
     }
 
+    const hasCaptchaSolver = autoSolveCaptcha || actions.some((action) => action?.type === 'solve_captcha');
+    const hasCaptchaWait = actions.some((action) => action?.type === 'wait_captcha');
+
     const basePort = options.localPort || process.env.PORT || process.env.VITE_BACKEND_PORT || '11345';
     const protocol = options.protocol || 'http';
     const baseUrl = `${protocol}://127.0.0.1:${basePort}`;
@@ -155,7 +159,8 @@ async function runFigranite(data, options = {}) {
             disableRecording,
             recordingsDir,
             includeShadowDom,
-            sessionId
+            sessionId,
+            captchaInterceptionMode: hasCaptchaSolver ? 'solve' : (hasCaptchaWait ? 'observe' : null)
         });
         browser = context.browser();
 
@@ -321,6 +326,10 @@ async function runFigranite(data, options = {}) {
                 setTimeout(() => newDownloadListeners.delete(res), 15000);
             })
         };
+
+        if (url) {
+            await maybeAutoSolveCaptcha({ enabled: autoSolveCaptcha, actionType: 'navigate', page, logs, identity: actionContext.solverIdentity });
+        }
 
         while (index < actions.length) {
             if (isStopRequested(runId)) {
@@ -542,6 +551,12 @@ async function runFigranite(data, options = {}) {
 
                 await maybeAutoSolveCaptcha({ enabled: autoSolveCaptcha, actionType: act.type, page, logs, identity: actionContext.solverIdentity });
             } catch (err) {
+                if (act.type === 'solve_captcha' || act.type === 'wait_captcha') {
+                    logs.push(`[CAPTCHA ERROR] ${act.type}: ${err.message}`);
+                    for (const attempt of err.attempts || []) {
+                        logs.push(`[CAPTCHA] ${attempt.provider} ${attempt.status}${attempt.error ? `: ${attempt.error}` : ''}`);
+                    }
+                }
                 logs.push(`FAILED action ${act.type}: ${err.message}`);
                 reportProgress(runId, { actionId: act.id, status: 'error' });
                 if (errorHandler && !inErrorHandler) {

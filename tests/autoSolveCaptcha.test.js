@@ -11,6 +11,7 @@ function makeFakePage({ found } = { found: true }) {
         evaluate: async () => {
             calls += 1;
             if (calls === 1) return found ? { siteKey: 'sk', captchaType: 'recaptcha_v2' } : null;
+            if (calls >= 4 && found) return 'solved-token';
             return undefined;
         }
     };
@@ -64,6 +65,7 @@ async function testSolvesWhenTriggered() {
 }
 
 async function main() {
+    process.env.CAPTCHA_AUTO_DETECT_TIMEOUT_MS = '5';
     await testDisabledDoesNothing();
     await testIgnoredActionType();
     await testSilentlySkipsWhenNoChallenge();

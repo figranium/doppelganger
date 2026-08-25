@@ -50,6 +50,7 @@ Supported action `type` values:
 navigate, click, type, wait, wait_selector, wait_downloads, press, scroll, javascript, csv, hover, merge,
 screenshot, if, else, end, while, repeat, foreach, stop, set, on_error, start, http_request, get_content,
 solve_captcha
+wait_captcha
 ```
 
 Common fields:
@@ -326,7 +327,27 @@ Detect and solve a CAPTCHA challenge on the current page. A configured YesCaptch
 - reCAPTCHA and hCaptcha image challenges share an active-browser grid engine supporting 3×3/4×4 layouts and changed replacement tiles. Turnstile and checkbox-only test-key flows remain model-free.
 - Top-level task field `autoSolveCaptcha` (default `false`): when `true`, the agent automatically runs detection and solves a captcha after every `navigate`, `click`, or `type` action, without needing an explicit `solve_captcha` block. Off by default so tasks that don't need it pay no extra latency; the explicit block above still works either way.
 
-## 17) Notes for AI agents
+## 17) Wait for CAPTCHA
+
+Wait until a CAPTCHA is initialized and ready for interaction without clicking or solving it.
+```json
+{
+  "id": "act_wait_captcha",
+  "type": "wait_captcha",
+  "captchaType": "recaptcha_v2",
+  "selector": "#recaptcha-container",
+  "varName": "captchaReady",
+  "timeout": 120000
+}
+```
+- `captchaType`: Optional provider filter. Uses the same values as `solve_captcha`; omitted means auto-detect.
+- `selector`: Optional CSS selector scoping detection to a widget container.
+- `timeout`: Maximum readiness wait in milliseconds (default `120000`).
+- `varName`: Optional variable receiving `{ ready, challenge, duration, siteKey? }`. The same object is available as `{$block.output}`.
+- Checkbox challenges become ready only when their control is visible, enabled, pointer-receivable, and positionally stable. Invisible and non-interactive variants use their initialized/executable provider state.
+- The action never clicks or solves the challenge. A timeout marks the block as failed and follows the normal `on_error`/continue behavior.
+
+## 18) Notes for AI agents
 - `javascript` actions are page-context only (no `page` object).
 - Prefer structured conditions for selectors (`exists` with selector).
 - Keep waits short; use 1-2s unless the target site is slow.

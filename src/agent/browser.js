@@ -6,6 +6,7 @@ const { getProxySelection } = require('../../proxy-rotation');
 const { setupNavigationProtection } = require('../../url-utils');
 const { installMouseHelper } = require('./dom-utils');
 const { getInjectableScript } = require('idcac-playwright');
+const { installTurnstileInterceptor } = require('./figranite/captcha-interceptor');
 
 const PROFILE_DIR = path.join(__dirname, '../../data/browser-profile');
 const HEADFUL_STATE_PATH = path.join(__dirname, '../../data/headful-storage-state.json');
@@ -78,7 +79,8 @@ async function createBrowserContext(launchOptions, options = {}) {
         disableRecording,
         recordingsDir,
         includeShadowDom,
-        sessionId
+        sessionId,
+        captchaInterceptionMode
     } = options;
 
     const viewport = launchOptions.headless === false
@@ -146,6 +148,11 @@ async function createBrowserContext(launchOptions, options = {}) {
 
     await setupNavigationProtection(context);
     await context.addInitScript(installMouseHelper);
+    if (captchaInterceptionMode) {
+        await context.addInitScript(installTurnstileInterceptor, {
+            blockManaged: captchaInterceptionMode === 'solve'
+        });
+    }
 
     // idcac-playwright's injectable script relies on document.head existing
     // (it synchronously inserts a <style> element), so it must run once the

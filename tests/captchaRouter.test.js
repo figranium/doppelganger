@@ -57,7 +57,7 @@ async function testRemoteFailureFallsBackToActiveBrowser() {
             if (evaluateCalls === 1) return { siteKey: 'site-key', captchaType: 'turnstile' };
             if (evaluateCalls === 2) return 'test-agent';
             if (evaluateCalls === 3) return null;
-            if (evaluateCalls === 4) return 'turnstile-token-that-is-long-enough';
+            if (evaluateCalls >= 4) return 'turnstile-token-that-is-long-enough';
             return undefined;
         }
     };
@@ -87,7 +87,7 @@ async function testRemoteBudgetIsReservedForLocalFallback() {
             if (evaluateCalls === 1) return { siteKey: 'site-key', captchaType: 'turnstile' };
             if (evaluateCalls === 2) return 'test-agent';
             if (evaluateCalls === 3) return '';
-            if (evaluateCalls === 4) return 'local-token';
+            if (evaluateCalls >= 4) return 'local-token';
             return undefined;
         }
     };

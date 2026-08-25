@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.15.1] - 2026-08-25
+
+### CAPTCHA reliability
+- Added a **Wait for CAPTCHA** action block that pauses until a CAPTCHA checkbox or equivalent provider control is initialized, visible, enabled, pointer-receivable, and stable, without clicking or solving it. The block supports provider filtering, selector scoping, configurable timeouts, and result variables.
+- Added pre-navigation interception for Cloudflare managed Turnstile challenges, capturing the one-time site key, action, `cData`, `chlPageData`, callback, and user agent required by compatible remote solvers. Supports the field conventions used by both 2Captcha and AntiCaptcha-compatible endpoints.
+- Fixed Cloudflare Challenge pages whose site keys appear only inside challenge-frame URL paths, while preserving standalone Turnstile support.
+- Fixed reCAPTCHA iframe recognition on `www.google.com`, allowing the solver to proceed from the checkbox into 3×3/4×4 image grids instead of silently skipping the challenge.
+- Hardened local reCAPTCHA/hCaptcha solving with interactable-control checks, vision-backend readiness, delayed grid detection, replacement-tile handling, and verified token completion.
+- Auto-solve now checks the initial task navigation as well as later navigate/click/type actions, with a bounded readiness-detection window.
+- CAPTCHA failures now produce explicit sanitized provider/local diagnostics and an errored block status while retaining the existing `On Error` or log-and-continue execution behavior.
+
+### Tests
+- Added deterministic coverage for CAPTCHA readiness waits, timeouts, selector scoping, managed Turnstile interception, provider payload dialects, callback injection, and Google/Cloudflare iframe URL parsing.
+- Verified readiness against the public standalone Turnstile, Cloudflare Challenge, and reCAPTCHA v2 demos.
+
 ## [0.15.0] - 2026-08-22
 
 ### Solve CAPTCHAs from Agent mode
@@ -326,5 +341,4 @@ The task editor's **Trigger via API** panel now shows the complete origin-aware 
 - **Restyle screen headings** - page-level titles moved to minimal all-caps uppercase labels for a more refined look, now also larger.
 - **Standardize accessibility roles** - `role`, `aria-*`, and focus-visible styles audited and normalised across ActionItem, tabs, and editor CTAs.
 - **Remove unused `memo` import in ActionItem** - dead import and its wrapper removed; no behavioural change.
-
 

@@ -21,6 +21,8 @@ const getActionSummary = (action: Action) => {
         summary = action.value ? `[${m}] ${action.value}` : m;
     } else if (action.type === 'get_content') {
         summary = action.varName ? `→ ${action.varName}` : action.selector || '';
+    } else if (action.type === 'solve_captcha' || action.type === 'wait_captcha') {
+        summary = action.captchaType || 'Auto-detect';
     }
     return summary.trim();
 };
@@ -51,6 +53,7 @@ const renderBlockMarker = (type: Action['type']) => {
     if (type === 'wait_downloads') return <MaterialIcon name="download" className={`${iconClass} text-white`} />;
     if (type === 'get_content') return <MaterialIcon name="article" className={`${iconClass} text-white`} />;
     if (type === 'solve_captcha') return <MaterialIcon name="verified_user" className={`${iconClass} text-white`} />;
+    if (type === 'wait_captcha') return <MaterialIcon name="hourglass_top" className={`${iconClass} text-white`} />;
     if (type === 'do_nothing') return <MaterialIcon name="block" className={`${iconClass} text-white/50`} />;
     return <span className="text-xs text-white/20">|</span>;
 };

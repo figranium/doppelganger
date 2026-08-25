@@ -66,6 +66,7 @@ export interface Action {
     | 'http_request'
     | 'get_content'
     | 'solve_captcha'
+    | 'wait_captcha'
     | 'do_nothing';
     selector?: string;
     value?: string;

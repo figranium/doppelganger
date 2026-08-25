@@ -64,15 +64,24 @@ async function clickCheckbox(page, captchaType) {
             ? ['challenges.cloudflare.com']
             : ['/recaptcha/api2/anchor', '/recaptcha/enterprise/anchor'];
     const selector = captchaType === 'hcaptcha'
-        ? '#checkbox, [role="checkbox"]'
+        ? '#checkbox, [role="checkbox"], input[type="checkbox"], label'
         : captchaType === 'turnstile'
-            ? 'input[type="checkbox"], [role="checkbox"]'
+            ? 'input[type="checkbox"], [role="checkbox"], button, label'
             : '#recaptcha-anchor, [role="checkbox"]';
     for (const frame of page.frames?.() || []) {
         if (!patterns.some((pattern) => frame.url().includes(pattern))) continue;
         const checkbox = frame.locator(selector).first();
         if (!await checkbox.isVisible({ timeout: 1000 }).catch(() => false)) continue;
+        if (!await checkbox.isEnabled({ timeout: 250 }).catch(() => true)) continue;
+        const pointerReady = await checkbox.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return style.pointerEvents !== 'none' && element.getAttribute('aria-disabled') !== 'true';
+        }).catch(() => true);
+        if (!pointerReady) continue;
+        const firstBox = await checkbox.boundingBox().catch(() => null);
+        await page.waitForTimeout(75);
         const box = await checkbox.boundingBox().catch(() => null);
+        if (firstBox && box && (Math.abs(firstBox.x - box.x) >= 1 || Math.abs(firstBox.y - box.y) >= 1)) continue;
         if (box && page.mouse) {
             const x = box.x + box.width / 2;
             const y = box.y + box.height / 2;
@@ -107,6 +116,9 @@ async function solveLocalCaptcha(page, { captchaType, timeout = 60_000, logs = [
     }
     const deadline = Date.now() + Math.max(1, timeout);
     let usedVisionModel = false;
+    const modelReadiness = ['recaptcha_v2', 'hcaptcha'].includes(captchaType)
+        ? captchaModelManager.reconcile().then((runtime) => ({ runtime }), (error) => ({ error }))
+        : null;
     let token = await readToken(page, captchaType);
     if (!token) {
         await clickCheckbox(page, captchaType).catch((error) => logs.push(`Local ${captchaType} checkbox click failed: ${error.message}`));
@@ -134,7 +146,13 @@ async function solveLocalCaptcha(page, { captchaType, timeout = 60_000, logs = [
             if (!challengeVisible) await page.waitForTimeout(100);
         }
         if (!challengeVisible) throw new Error(`${captchaType} did not expose an image challenge or token`);
+        if (modelReadiness) {
+            const readiness = await modelReadiness;
+            if (readiness.error) throw new Error(`vision backend unavailable: ${readiness.error.message}`);
+            if (!readiness.runtime) throw new Error(captchaModelManager.status().error || 'vision backend unavailable');
+        }
         usedVisionModel = true;
+        logs.push(`Local ${captchaType} image challenge is ready; starting grid solver`);
         token = await solveImageGrid(page, { captchaType, deadline, waitForToken, logs });
     }
     if (!token) throw new Error(`${captchaType} challenge ended without producing a token`);

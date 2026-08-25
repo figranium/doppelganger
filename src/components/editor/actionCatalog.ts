@@ -27,5 +27,6 @@ export const ACTION_CATALOG: { type: Action['type']; label: string; description:
     { type: 'http_request', label: 'HTTP Request', description: 'Make an API call', icon: 'language' },
     { type: 'get_content', label: 'Get Content', description: 'Get page or element text content', icon: 'article' },
     { type: 'solve_captcha', label: 'Solve Captcha', description: 'Solve through a compatible remote endpoint or the active-browser local solver', icon: 'verified_user' },
+    { type: 'wait_captcha', label: 'Wait for Captcha', description: 'Wait until a captcha interaction is ready', icon: 'hourglass_top' },
     { type: 'do_nothing', label: 'Do Nothing', description: 'No operation block', icon: 'block' }
 ];

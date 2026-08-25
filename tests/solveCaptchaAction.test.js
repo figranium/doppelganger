@@ -17,6 +17,7 @@ function makeFakePage({ siteKey = 'test-site-key', captchaType = 'recaptcha_v2' 
             if (evaluations.length === 1) {
                 return { siteKey, captchaType };
             }
+            if (evaluations.length >= 4) return 'solved-token';
             return undefined;
         }
     };
@@ -58,7 +59,7 @@ async function testSolveCaptchaSuccess() {
     assert.strictEqual(result.success, true);
     assert.strictEqual(result.challenge, 'recaptcha_v2');
     assert.strictEqual(runtimeVars.captchaResult.challenge, 'recaptcha_v2');
-    assert.strictEqual(page.evaluations.length, 3, 'Expected detection, user-agent, and injection passes');
+    assert(page.evaluations.length >= 4, 'Expected detection, user-agent, injection, and completion verification passes');
     assert(logs.some((l) => l.includes('Solving captcha')));
     assert(logs.some((l) => l.includes('Captcha solved')));
     console.log('✓ solve_captcha success path succeeded.');
@@ -79,8 +80,8 @@ async function testSolveCaptchaNoChallengeFound() {
     };
 
     await assert.rejects(
-        () => executeAction({ id: 'act_1', type: 'solve_captcha' }, context),
-        /no CAPTCHA challenge found/
+        () => executeAction({ id: 'act_1', type: 'solve_captcha', timeout: 5 }, context),
+        /no CAPTCHA challenge.*ready/
     );
     console.log('✓ solve_captcha correctly rejects when no challenge is detected.');
 }
