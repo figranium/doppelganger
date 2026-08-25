@@ -1,0 +1,14 @@
+services:
+  figranium:
+    image: ghcr.io/figranium/figranium:latest
+    container_name: figranium
+    ports:
+      - "11345:11345"
+      - "54311:54311"
+    volumes:
+      - ./data:/app/data
+      - ./captures:/app/public/captures
+      - ./captures:/app/src/public/captures
+    environment:
+      - PORT=11345
+    restart: unless-stopped
