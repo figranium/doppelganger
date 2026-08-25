@@ -342,3 +342,178 @@ The task editor's **Trigger via API** panel now shows the complete origin-aware 
 - **Standardize accessibility roles** - `role`, `aria-*`, and focus-visible styles audited and normalised across ActionItem, tabs, and editor CTAs.
 - **Remove unused `memo` import in ActionItem** - dead import and its wrapper removed; no behavioural change.
 
+## [0.10.1] - 2026-03-17
+
+- Hardened authentication, session lifecycle, credential URL validation, and SSRF defenses; optimized storage lookups; fixed headful-to-agent login-state synchronization and inspect-toggle state; standardized schedule/tab accessibility.
+
+## [0.10.0] - 2026-03-16
+
+- Added Baserow outputs and credentials, HTML-response controls, persistent stealth browser profiles, stateless incognito execution, cookie migration, and headful browser improvements; hardened login timing, agent URL validation, and start-action paths while optimizing foreach and execution lookups.
+
+## [0.9.6] - 2026-03-14
+
+- Added cron scheduling, default selector-finder preferences, action summaries, editor modularization, and bulk database writes; fixed extraction-worker injection, capture path traversal, sandbox denial-of-service/information leaks, and protected static captures while optimizing templates, cookies, CSV generation, and agent HTML reads.
+
+## [0.9.4] - 2026-03-10
+
+- Added headful API routes and SSE proxy support, selector-finder improvements, stronger settings authentication, cached AI keys, improved session/cookie handoff, calendar-field filling fixes, storage caching, accessibility upgrades, and IPv6 URL-validation coverage.
+
+## [0.9.3] - 2026-03-08
+
+- Improved headful inspection, drag reordering, bulk context menus, task import flexibility, AI-selector error handling, canvas-grid synchronization, results cache busting, and removed the obsolete cursor overlay and shared settings rate limiter.
+
+## [0.9.2] - 2026-03-06
+
+- Added OpenAI and Claude selector-generation keys, redesigned the action picker and dashboard, fixed selection layering, and removed backend authentication telemetry.
+
+## [0.9.1] - 2026-03-06
+
+- Completed the Figranium package/CLI rename, added standalone scrape/agent/headful CLI support and npm publishing, fixed action insertion order, refined the canvas and headful viewer, reduced package artifacts, and refreshed project visuals and documentation.
+
+## [0.9.0] - 2026-03-05
+
+- Rebranded the project as Figranium and introduced the spatial canvas editor; improved cursor stealth and loop coordinate stability, optimized editor rendering and task lookup, strengthened session-secret generation, refreshed branding, and added syntax-highlighting tests.
+
+## [0.8.2] - 2026-03-02
+
+- Smoothed cursor glide across all mouse movement, simplified click fallback behavior, added randomized-versus-centered click selection, memoized capture cards, and expanded icon-button accessibility.
+
+## [0.8.1] - 2026-03-01
+
+- Added execution loading states and release notes, optimized result rendering, simplified noVNC controls, improved API-key accessibility, and expanded cursor-glide and AI selector support for scrolling.
+
+## [0.8.0] - 2026-02-28
+
+- Added multi-provider AI key management with primary/backup fallback, improved capture UX and drag rendering, hardened agent SSRF/ReDoS protections and Windows sessions, filtered headful cookie handoff by domain, and refined selector and stateless-execution controls.
+
+## [0.7.3] - 2026-02-26
+
+- Added task undo/redo, Ctrl+K action-palette access, automatic session-secret generation, editor memoization, and GPLv3 terms alignment; blocked CGNAT addresses in SSRF validation.
+
+## [0.7.2] - 2026-02-25
+
+- Added rotating proxy pools and multi-selection, refactored API-key copying, optimized captures, and hardened API-key comparison while retaining legacy-key compatibility.
+
+## [0.7.1] - 2026-02-24
+
+- Added the Figranium API skill and endpoint documentation, restored both task-trigger API paths, and introduced the `ALLOW_PRIVATE_NETWORKS` configuration switch.
+
+## [0.7] - 2026-02-23
+
+- Added PostgreSQL storage, file-download handling, selective task export, and editor/capture performance improvements; restricted extraction-worker environment variables and refreshed dependency/documentation metadata.
+
+## [0.6.7] - 2026-02-22
+
+- Switched the interface to Material Icons, updated the package release, and removed the obsolete npm publishing workflow.
+
+## [0.6.6] - 2026-02-22
+
+- Added task-storage caching and registration diagnostics, improved API-key loading accessibility, and blocked the `0.0.0.0/8` range in SSRF validation.
+
+## [0.6.5] - 2026-02-21
+
+- Added the Wait for Selector action, a shared clipboard utility/component, and improved authentication loading feedback.
+
+## [0.6.4] - 2026-02-20
+
+- Added Navigate To and reserved HTML-variable support, debounced execution logging, expanded IP-normalization tests, and hardened API-key validation, caching, proxy IDs, and secret derivation.
+
+## [0.6.3] - 2026-02-19
+
+- Added action-palette keyboard navigation, robust task imports with version preservation, authentication password visibility, loading states, capture/task/API-key caches, and supporting tests.
+
+## [0.6.2] - 2026-02-16
+
+- Added execution caching and optimized execution-list payloads; fixed version-history saving, session fixation, headful sizing/random tabs, editor accessibility, and removed the Tally integration.
+
+## [0.6.1] - 2026-02-14
+
+- Added task autosave and conditional version saving, custom scrollbars, refreshed branding/fonts, task/execution async storage, API-key caching, registration/session hardening, and broad UI accessibility/performance improvements.
+
+## [0.6] - 2026-02-12
+
+- Added native ARM support and completed major server/agent modularization; introduced SSRF validation, shared utilities, async storage and capture paths, proxy tests, dashboard/list performance work, Docker fixes, and broader agent reliability improvements.
+
+## [0.5.8] - 2026-02-10
+
+- Hardened extraction-script isolation, CSRF, rate limiting, and server-side code execution paths; converted core storage and file operations to async APIs, improved accessibility, optimized CSV parsing, and expanded security/performance test coverage.
+
+## [0.5.7] - 2026-02-02
+
+- Fixed login behavior, added disable-recording and stateless-execution settings, refined session-cookie documentation, removed recurring feedback popups, and completed licensing updates.
+
+## [0.5.6] - 2026-01-29
+
+- Added authentication rate limiting and secure production sessions, hardened Start Task base URLs, expanded CodeQL automation, updated dependencies, and refreshed usage, licensing, roadmap, sponsorship, and headful-port documentation.
+
+## [0.5.5] - 2026-01-28
+
+- Added the Settings version panel and security policy/contact information, and refreshed demo assets.
+
+## [0.5.4] - 2026-01-26
+
+- Added unsaved-task warnings and fixed propagation of the unsaved-state property.
+
+## [0.5.3] - 2026-01-26
+
+- Added repository agent instructions, npm publishing, richer key/type action controls, embedded demo media, and improved installation and usage documentation.
+
+## [0.5.2] - 2026-01-25
+
+- Added the AI agent task specification, virtualized capture/execution lists, faster natural typing, SPA capture routing, and a refreshed dashboard empty state.
+
+## [0.5.1] - 2026-01-22
+
+- Stabilized Playwright and recording behavior in Docker, including cross-volume recording moves, and polished dashboard transitions, proxy hints, browser support, and package metadata.
+
+## [0.5] - 2026-01-21
+
+- Added task listing for n8n, proxy-import deduplication, and improved captures and recording workflows.
+
+## [0.4.3] - 2026-01-20
+
+- Fixed task-list/select styling and local Start Task execution/output behavior, and refreshed project terms and documentation.
+
+## [0.4.2] - 2026-01-20
+
+- Added text-file proxy import and clarified the import control label.
+
+## [0.4.1] - 2026-01-19
+
+- Bundled noVNC in the Docker image, preferred it when available, and added fullscreen viewing.
+
+## [0.4] - 2026-01-19
+
+- Released the proxy-rotation and headful-viewer workflow, updated licensing and documentation, and expanded Docker publishing to beta/non-semver tags.
+
+## [0.3.9] - 2026-01-17
+
+- Stabilized npm/Playwright installation and Docker publishing across CI, corrected ports and tag checkout, skipped redundant Docker postinstall work, and removed legacy naming.
+
+## [0.3.8] - 2026-01-15
+
+- Added the CLI and postinstall flow, repaired headful noVNC proxying, and gated authentication debug logs in production.
+
+## [0.3.7] - 2026-01-09
+
+- Increased the accepted JSON request payload size.
+
+## [0.3.6] - 2026-01-09
+
+- Added the noVNC headful browser viewer, embedded it in execution results, stabilized its proxy/startup flow and session UX, added license notices, and documented npm installation.
+
+## [0.3] - 2025-12-31
+
+- Created and reverted the initial v3 release attempt, leaving the prior runtime behavior intact.
+
+## [0.2.2] - 2025-12-30
+
+- Published the 0.2.2 maintenance release.
+
+## [0.2.1] - 2025-12-29
+
+- Added full copying for large result previews and updated documentation links and licensing metadata.
+
+## [0.2] - 2025-12-28
+
+- Established the initial service, Docker/CI publishing, task import/export, API-key and session security, Playwright browser installation, large-result previews, expanded keyboard actions, and port `11345` defaults.
