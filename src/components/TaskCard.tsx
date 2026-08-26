@@ -29,7 +29,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEditTask, onDeleteTask }) =
                         <img
                             src={favicon}
                             alt=""
-                            className="w-6 h-6 object-contain grayscale opacity-100 group-hover:grayscale-0 transition-all duration-300"
+                            className="w-6 h-6 object-contain"
                             onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
                             }}
