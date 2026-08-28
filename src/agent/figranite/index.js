@@ -13,6 +13,8 @@ const { buildBlockMap, randomBetween, getForeachItems } = require('./helpers');
 const { evalStructuredCondition, evalCondition } = require('./logic-handler');
 const { executeAction } = require('./action-handler');
 const { solveCaptcha } = require('./captcha-client');
+const { resolveTaskOutcome, inspectPageForAntiBot } = require('../outcomes');
+const { setStopChecker, setStopCleaner, consumeStopRequest, clearStopRequest } = require('../execution-control');
 
 // Action types after which an auto-solve pass (task-level `autoSolveCaptcha`) checks for
 // a challenge — the points where navigation or a form interaction commonly triggers one.
@@ -31,8 +33,6 @@ async function maybeAutoSolveCaptcha({ enabled, actionType, page, logs, identity
 }
 
 let progressReporter = null;
-let stopChecker = null;
-
 const setProgressReporter = (reporter) => {
     progressReporter = reporter;
 };
@@ -46,18 +46,18 @@ const reportProgress = (runId, payload) => {
     }
 };
 
-const setStopChecker = (checker) => {
-    stopChecker = checker;
+const isStopRequested = (runId) => {
+    return consumeStopRequest(runId);
 };
 
-const isStopRequested = (runId) => {
-    if (!runId || typeof stopChecker !== 'function') return false;
-    try {
-        return !!stopChecker(runId);
-    } catch {
-        return false;
+class TaskInputError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'TaskInputError';
+        this.code = 'INVALID_TASK_INPUT';
+        this.isTaskInputError = true;
     }
-};
+}
 
 async function runFigranite(data, options = {}) {
     let { url, actions, wait: globalWait, rotateUserAgents, rotateProxies, humanTyping, stealth = {}, sessionId } = data;
@@ -89,8 +89,13 @@ async function runFigranite(data, options = {}) {
         });
     };
 
-    if (url) {
+    if (!url || typeof url !== 'string') {
+        throw new TaskInputError('URL is required.');
+    }
+    try {
         await validateUrl(resolveTemplate(url));
+    } catch (error) {
+        throw new TaskInputError(error.message || 'Invalid or restricted URL.');
     }
 
     const runId = data.runId ? String(data.runId) : null;
@@ -118,13 +123,15 @@ async function runFigranite(data, options = {}) {
         try {
             actions = JSON.parse(actions);
         } catch (e) {
-            throw new Error('Invalid actions JSON format.');
+            throw new TaskInputError('Invalid actions JSON format.');
         }
     }
 
     if (!actions || !Array.isArray(actions)) {
-        throw new Error('Actions array is required.');
+        throw new TaskInputError('Actions array is required.');
     }
+
+    reportProgress(data.runId, { status: 'started' });
 
     const hasCaptchaSolver = autoSolveCaptcha || actions.some((action) => action?.type === 'solve_captcha');
     const hasCaptchaWait = actions.some((action) => action?.type === 'wait_captcha');
@@ -141,6 +148,8 @@ async function runFigranite(data, options = {}) {
     let browser;
     let context;
     let page;
+    const logs = [];
+    let lastMainDocumentStatus = null;
     try {
         const useRotateProxies = String(rotateProxies).toLowerCase() === 'true' || rotateProxies === true;
         const headless = options.headless !== undefined ? options.headless : true;
@@ -164,7 +173,6 @@ async function runFigranite(data, options = {}) {
         });
         browser = context.browser();
 
-        const logs = [];
         const downloads = [];
         const pendingDownloads = new Set();
         const newDownloadListeners = new Set();
@@ -207,10 +215,19 @@ async function runFigranite(data, options = {}) {
         // Persistent context auto-creates a blank page; reuse it or open a new one
         const existingPages = context.pages();
         page = existingPages.length > 0 ? existingPages[0] : await context.newPage();
+        page.on?.('response', (response) => {
+            try {
+                const request = response.request?.();
+                const isDocument = request?.resourceType?.() === 'document';
+                const isMainFrame = !response.frame || response.frame() === page.mainFrame?.();
+                if (isDocument && isMainFrame) lastMainDocumentStatus = response.status?.() ?? lastMainDocumentStatus;
+            } catch {
+                // Response metadata is best-effort.
+            }
+        });
 
-        if (url) {
-            await page.goto(resolveTemplate(url), { waitUntil: 'domcontentloaded', timeout: 60000 });
-        }
+        const initialResponse = await page.goto(resolveTemplate(url), { waitUntil: 'domcontentloaded', timeout: 60000 });
+        lastMainDocumentStatus = initialResponse?.status?.() ?? lastMainDocumentStatus;
 
         let actionIdx = 0;
         const baseDelay = (ms) => {
@@ -226,6 +243,7 @@ async function runFigranite(data, options = {}) {
         let inErrorHandler = false;
         let stopRequested = false;
         let stopOutcome = 'success';
+        let userStopped = false;
 
         const setLoopVars = (item, index, count) => {
             runtimeVars['loop.index'] = index;
@@ -334,6 +352,7 @@ async function runFigranite(data, options = {}) {
         while (index < actions.length) {
             if (isStopRequested(runId)) {
                 logs.push('Execution stopped by user.');
+                userStopped = true;
                 break;
             }
             if (steps++ > maxSteps) {
@@ -572,10 +591,10 @@ async function runFigranite(data, options = {}) {
             if (inErrorHandler && errorHandler && index > errorHandler.end) break;
         }
 
-        if (globalWait) await page.waitForTimeout(parseFloat(globalWait) * 1000);
-        await page.waitForTimeout(baseDelay(500));
+        if (!userStopped && globalWait) await page.waitForTimeout(parseFloat(globalWait) * 1000);
+        if (!userStopped) await page.waitForTimeout(baseDelay(500));
 
-        if (pendingDownloads.size > 0) {
+        if (!userStopped && pendingDownloads.size > 0) {
             logs.push(`Waiting for ${pendingDownloads.size} pending download(s)...`);
             try {
                 await Promise.race([
@@ -668,7 +687,20 @@ async function runFigranite(data, options = {}) {
             }
         }
 
+        if (!userStopped && isStopRequested(runId)) {
+            logs.push('Execution stopped by user.');
+            userStopped = true;
+        }
+        const antiBot = await inspectPageForAntiBot(page, { status: lastMainDocumentStatus });
+        const outcome = resolveTaskOutcome({
+            antiBot: antiBot.detected,
+            stopped: userStopped,
+            explicitOutcome: stopRequested ? stopOutcome : 'success'
+        });
+        if (antiBot.reason) logs.push(`[OUTCOME] Anti-bot detected: ${antiBot.reason}.`);
+
         const outputData = {
+            outcome,
             final_url: page.url() || url || '',
             downloads: downloads.length > 0 ? downloads : undefined,
             logs: logs || [],
@@ -719,6 +751,12 @@ async function runFigranite(data, options = {}) {
         return outputData;
     } catch (error) {
         console.error('Engine Error:', error);
+        const antiBot = await inspectPageForAntiBot(page, { status: lastMainDocumentStatus });
+        if (antiBot.reason) {
+            error.antiBotReason = antiBot.reason;
+            logs.push(`[OUTCOME] Anti-bot detected: ${antiBot.reason}.`);
+        }
+        error.executionLogs = logs;
         try {
             if (context) await context.close();
         } catch { }
@@ -736,10 +774,20 @@ async function handleAgent(req, res) {
 
     try {
         const result = await runFigranite(data, options);
+        reportProgress(data.runId, { status: 'finished', outcome: result.outcome });
         res.json(result);
     } catch (error) {
-        res.status(500).json({ error: 'Figranite Engine failed', details: error.message });
+        if (error.isTaskInputError) {
+            return res.status(400).json({ error: error.code, details: error.message });
+        }
+        const outcome = resolveTaskOutcome({ antiBot: Boolean(error.antiBotReason), crashed: true });
+        const logs = Array.isArray(error.executionLogs) ? error.executionLogs : [];
+        if (outcome === 'crashed') logs.push(`[OUTCOME] Execution crashed: ${error.message}.`);
+        reportProgress(data.runId, { status: 'finished', outcome });
+        res.json({ outcome, error: 'Figranite Engine failed', details: error.message, logs });
+    } finally {
+        clearStopRequest(data.runId);
     }
 }
 
-module.exports = { runFigranite, handleAgent, setProgressReporter, setStopChecker, maybeAutoSolveCaptcha };
+module.exports = { runFigranite, handleAgent, setProgressReporter, setStopChecker, setStopCleaner, maybeAutoSolveCaptcha, TaskInputError };

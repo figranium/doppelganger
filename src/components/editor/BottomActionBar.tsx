@@ -3,6 +3,7 @@ import MaterialIcon from '../MaterialIcon';
 
 interface BottomActionBarProps {
     isExecuting: boolean;
+    isStopping: boolean;
     isHeadfulOpen: boolean;
     onRun: () => void;
     onStop?: () => void;
@@ -12,6 +13,7 @@ interface BottomActionBarProps {
 
 const BottomActionBar: React.FC<BottomActionBarProps> = ({
     isExecuting,
+    isStopping,
     isHeadfulOpen,
     onRun,
     onStop,
@@ -31,17 +33,18 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
                     <div className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                 ) : <MaterialIcon name="play_arrow" className="text-sm text-black" />}
                 <span>
-                    {isExecuting ? 'Running...' : 'Run Task'}
+                    {isStopping ? 'Stopping...' : (isExecuting ? 'Running...' : 'Run Task')}
                 </span>
             </button>
             {isExecuting && (
                 <button
                     onClick={() => onStop?.()}
+                    disabled={isStopping}
                     className="w-12 h-12 rounded-2xl border border-white/10 text-white/80 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center"
-                    title="Stop task"
-                    aria-label="Stop task"
+                    title={isStopping ? 'Stopping task' : 'Stop task'}
+                    aria-label={isStopping ? 'Stopping task' : 'Stop task'}
                 >
-                    <MaterialIcon name="stop" className="text-base" />
+                    <MaterialIcon name={isStopping ? 'progress_activity' : 'stop'} className={`text-base ${isStopping ? 'animate-spin' : ''}`} />
                 </button>
             )}
             <button

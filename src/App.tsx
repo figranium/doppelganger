@@ -56,6 +56,7 @@ export default function App() {
     // Execution Hook
     const {
         isExecuting,
+        isStopping,
         isHeadfulOpen,
         results,
         setResults,
@@ -286,6 +287,7 @@ export default function App() {
                                 triggerExpanded={triggerExpanded}
                                 setTriggerExpanded={setTriggerExpanded}
                                 isExecuting={isExecuting}
+                                isStopping={isStopping}
                                 onSave={handleSaveTask}
                                 onRun={() => runTaskWithSnapshot(currentTask, currentTask, setCurrentTask)}
                                 onRunSnapshot={(t) => runTaskWithSnapshot(t || currentTask, currentTask, setCurrentTask)}
@@ -318,6 +320,7 @@ export default function App() {
                                 triggerExpanded={triggerExpanded}
                                 setTriggerExpanded={setTriggerExpanded}
                                 isExecuting={isExecuting}
+                                isStopping={isStopping}
                                 onSave={handleSaveTask}
                                 onRun={() => runTaskWithSnapshot(currentTask, currentTask, setCurrentTask)}
                                 onRunSnapshot={(t) => runTaskWithSnapshot(t || currentTask, currentTask, setCurrentTask)}

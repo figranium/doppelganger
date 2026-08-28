@@ -30,6 +30,7 @@ interface EditorScreenProps {
     triggerExpanded: boolean;
     setTriggerExpanded: Dispatch<SetStateAction<boolean>>;
     isExecuting: boolean;
+    isStopping: boolean;
     onSave: (task?: Task, createVersion?: boolean) => Promise<void>;
     onRun: () => void;
     results: Results | null;
@@ -54,6 +55,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     triggerExpanded,
     setTriggerExpanded,
     isExecuting,
+    isStopping,
     onSave,
     onRun,
     results,
@@ -648,6 +650,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
 
             <BottomActionBar
                 isExecuting={isExecuting}
+                isStopping={isStopping}
                 isHeadfulOpen={isHeadfulOpen || false}
                 onRun={() => { setIsResultsOpen(true); onRun(); }}
                 onStop={onStop}

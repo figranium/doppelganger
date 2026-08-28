@@ -7,6 +7,7 @@ import CodeEditor from '../CodeEditor';
 import JSZip from 'jszip';
 import { SyntaxLanguage } from '../../utils/syntaxHighlight';
 import GithubStarPrompt from '../GithubStarPrompt';
+import { normalizeTaskOutcome, taskOutcomeBadgeClass, taskOutcomeLabel } from '../../utils/taskOutcome';
 
 const getFileIcon = (filename: string) => {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
@@ -529,7 +530,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
 
     return (
         <div className={containerClassName}>
-            {!isExecuting && activeResults && (activeResults.data !== undefined || activeResults.screenshotUrl || activeResults.downloads) && (
+            {!isExecuting && activeResults && normalizeTaskOutcome(activeResults.outcome) === 'success' && (activeResults.data !== undefined || activeResults.screenshotUrl || activeResults.downloads) && (
                 <GithubStarPrompt runId={runId} />
             )}
             <div className="flex items-end justify-between border-b border-white/5 pb-4">
@@ -539,13 +540,13 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                         {activeResults?.finalUrl || activeResults?.url || ''}
                     </h2>
                 </div>
-                <div className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-[0.2em] ${resultView === 'pinned'
+                <div className={`px-4 py-2 rounded-xl border text-xs font-bold uppercase tracking-[0.2em] ${resultView === 'pinned'
                     ? 'bg-amber-500/10 text-amber-300'
                     : isExecuting
-                        ? 'bg-blue-500/10 text-blue-400 animate-pulse'
-                        : 'bg-green-500/10 text-green-400'
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse'
+                        : taskOutcomeBadgeClass(normalizeTaskOutcome(activeResults?.outcome))
                     }`}>
-                    {resultView === 'pinned' ? 'Pinned' : (isExecuting ? 'Running' : 'Finished')}
+                    {resultView === 'pinned' ? 'Pinned' : (isExecuting ? 'Running' : taskOutcomeLabel(normalizeTaskOutcome(activeResults?.outcome)))}
                 </div>
             </div>
 

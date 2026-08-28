@@ -7,9 +7,21 @@ const { selectUserAgent } = require('./user-agent-settings');
 const { formatHTML } = require('./html-utils');
 const { validateUrl } = require('./url-utils');
 const { toCsvString } = require('./common-utils');
+const { resolveTaskOutcome, findAntiBotReason } = require('./src/agent/outcomes');
+const { consumeStopRequest, clearStopRequest } = require('./src/agent/execution-control');
+const { sendExecutionUpdate } = require('./src/server/state');
 
 const HEADFUL_STATE_PATH = path.join(__dirname, 'data', 'headful-storage-state.json');
 const USELESS_SELECTOR = 'script, style, svg, link, noscript';
+
+class ScrapeInputError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ScrapeInputError';
+        this.code = 'INVALID_SCRAPE_INPUT';
+        this.isTaskInputError = true;
+    }
+}
 
 function buildProxyUrl(proxy) {
     if (!proxy || !proxy.server) return undefined;
@@ -120,11 +132,21 @@ async function runScrape(data) {
     const extractionScript = data.extractionScript;
     const extractionFormat = data.extractionFormat === 'csv' ? 'csv' : 'json';
 
-    if (!url) {
-        throw new Error('URL is required.');
+    if (!url || typeof url !== 'string') {
+        throw new ScrapeInputError('URL is required.');
     }
 
-    await validateUrl(url);
+    try {
+        await validateUrl(url);
+    } catch (error) {
+        throw new ScrapeInputError(error.message || 'Invalid or restricted URL.');
+    }
+
+    const runId = data.runId ? String(data.runId) : null;
+    sendExecutionUpdate(runId, { status: 'started' });
+    if (consumeStopRequest(runId)) {
+        return { outcome: 'stopped', url, html: '', data: null, links: [], screenshot_url: null, logs: ['Execution stopped by user.'] };
+    }
 
     const selectedUA = await selectUserAgent(rotateUserAgents);
     const selection = getProxySelection(rotateProxies);
@@ -132,66 +154,96 @@ async function runScrape(data) {
     const cookieHeader = await buildCookieHeader(url);
 
     const { gotScraping } = await import('got-scraping');
-    const response = await gotScraping({
-        url,
-        headers: {
-            'user-agent': selectedUA,
-            ...(cookieHeader ? { cookie: cookieHeader } : {}),
-            ...customHeaders
-        },
-        ...(proxyUrl ? { proxyUrl } : {}),
-        timeout: { request: 60000 },
-        throwHttpErrors: false
-    });
+    let response;
+    try {
+        response = await gotScraping({
+            url,
+            headers: {
+                'user-agent': selectedUA,
+                ...(cookieHeader ? { cookie: cookieHeader } : {}),
+                ...customHeaders
+            },
+            ...(proxyUrl ? { proxyUrl } : {}),
+            timeout: { request: 60000 },
+            throwHttpErrors: false
+        });
+    } catch (error) {
+        error.executionLogs = [`[OUTCOME] Execution crashed: ${error.message}.`];
+        throw error;
+    }
 
-    const html = response.body;
-    const $ = cheerio.load(html);
+    try {
+        const html = response.body;
+        const $ = cheerio.load(html);
 
-    let productHtml = '';
-    let usedFallback = false;
+        let productHtml = '';
+        let usedFallback = false;
 
-    if (userSelector) {
-        const found = $(userSelector);
-        if (found.length > 0) {
-            productHtml = outerHtmlOf($, found);
+        if (userSelector) {
+            const found = $(userSelector);
+            if (found.length > 0) {
+                productHtml = outerHtmlOf($, found);
+            } else {
+                usedFallback = true;
+            }
         } else {
             usedFallback = true;
         }
-    } else {
-        usedFallback = true;
+
+        if (usedFallback) {
+            const body = $('body');
+            body.find(USELESS_SELECTOR).remove();
+            productHtml = body.html() || '';
+        }
+
+        const extraction = await runExtractionScript(extractionScript, productHtml, url);
+
+        const rawExtraction = extraction.result !== undefined ? extraction.result : (extraction.logs.length ? extraction.logs.join('\n') : undefined);
+        const formattedExtraction = extractionFormat === 'csv' ? toCsvString(rawExtraction) : rawExtraction;
+
+        const links = $('a[href]').map((i, el) => $(el).attr('href')).get()
+            .map(href => {
+                try {
+                    return new URL(href, url).href;
+                } catch {
+                    return null;
+                }
+            })
+            .filter(href => href && href.startsWith('http'));
+
+        const antiBotReason = findAntiBotReason({
+            status: response.statusCode,
+            url: response.url || url,
+            title: $('title').first().text().trim(),
+            html
+        });
+        const stopped = consumeStopRequest(runId);
+        const outcome = resolveTaskOutcome({ antiBot: Boolean(antiBotReason), stopped });
+        const logs = [];
+        if (stopped) logs.push('Execution stopped by user.');
+        if (antiBotReason) logs.push(`[OUTCOME] Anti-bot detected: ${antiBotReason}.`);
+
+        return {
+            outcome,
+            title: $('title').first().text().trim(),
+            url: response.url || url,
+            html: formatHTML(productHtml),
+            data: formattedExtraction,
+            is_partial: !usedFallback,
+            selector_used: usedFallback ? (userSelector ? `${userSelector} (not found, using body)` : 'body (default)') : userSelector,
+            links,
+            screenshot_url: null,
+            logs
+        };
+    } catch (error) {
+        const antiBotReason = findAntiBotReason({
+            status: response?.statusCode,
+            url: response?.url || url,
+            html: response?.body
+        });
+        if (antiBotReason) error.antiBotReason = antiBotReason;
+        throw error;
     }
-
-    if (usedFallback) {
-        const body = $('body');
-        body.find(USELESS_SELECTOR).remove();
-        productHtml = body.html() || '';
-    }
-
-    const extraction = await runExtractionScript(extractionScript, productHtml, url);
-
-    const rawExtraction = extraction.result !== undefined ? extraction.result : (extraction.logs.length ? extraction.logs.join('\n') : undefined);
-    const formattedExtraction = extractionFormat === 'csv' ? toCsvString(rawExtraction) : rawExtraction;
-
-    const links = $('a[href]').map((i, el) => $(el).attr('href')).get()
-        .map(href => {
-            try {
-                return new URL(href, url).href;
-            } catch {
-                return null;
-            }
-        })
-        .filter(href => href && href.startsWith('http'));
-
-    return {
-        title: $('title').first().text().trim(),
-        url: response.url || url,
-        html: formatHTML(productHtml),
-        data: formattedExtraction,
-        is_partial: !usedFallback,
-        selector_used: usedFallback ? (userSelector ? `${userSelector} (not found, using body)` : 'body (default)') : userSelector,
-        links,
-        screenshot_url: null
-    };
 }
 
 async function handleScrape(req, res) {
@@ -202,10 +254,21 @@ async function handleScrape(req, res) {
 
     try {
         const result = await runScrape(data);
+        sendExecutionUpdate(data.runId, { status: 'finished', outcome: result.outcome });
         res.json(result);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to scrape', details: error.message });
+        if (error.isTaskInputError) {
+            return res.status(400).json({ error: error.code, details: error.message });
+        }
+        const outcome = resolveTaskOutcome({ antiBot: Boolean(error.antiBotReason), crashed: true });
+        const logs = Array.isArray(error.executionLogs) ? error.executionLogs : [];
+        if (error.antiBotReason) logs.push(`[OUTCOME] Anti-bot detected: ${error.antiBotReason}.`);
+        else if (!logs.length) logs.push(`[OUTCOME] Execution crashed: ${error.message}.`);
+        sendExecutionUpdate(data.runId, { status: 'finished', outcome });
+        res.json({ outcome, error: 'Failed to scrape', details: error.message, logs });
+    } finally {
+        clearStopRequest(data.runId);
     }
 }
 
-module.exports = { runScrape, handleScrape };
+module.exports = { runScrape, handleScrape, ScrapeInputError };

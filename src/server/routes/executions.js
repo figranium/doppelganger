@@ -2,6 +2,7 @@ const express = require('express');
 const { requireAuth, requireApiKey } = require('../middleware');
 const { loadExecutions, saveExecutions, getExecutionById } = require('../storage');
 const { executionStreams, stopRequests, sendExecutionUpdate } = require('../state');
+const { normalizeTaskOutcome } = require('../../agent/outcomes');
 
 const router = express.Router();
 
@@ -10,12 +11,18 @@ const normalizeExecutionSource = (source) => {
     return !normalized || normalized.toLowerCase() === 'unknown' ? 'api' : normalized;
 };
 
+const getExecutionOutcome = (exec) => normalizeTaskOutcome(
+    exec?.outcome || exec?.result?.outcome,
+    Number(exec?.status) >= 200 && Number(exec?.status) < 300 ? 'success' : 'error'
+);
+
 const summarizeExecution = (exec) => ({
     id: exec.id,
     timestamp: exec.timestamp,
     method: exec.method,
     path: exec.path,
     status: exec.status,
+    outcome: getExecutionOutcome(exec),
     durationMs: exec.durationMs,
     source: normalizeExecutionSource(exec.source),
     mode: exec.mode,
@@ -69,7 +76,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     await loadExecutions();
     const exec = getExecutionById(req.params.id);
     if (!exec) return res.status(404).json({ error: 'EXECUTION_NOT_FOUND' });
-    res.json({ execution: { ...exec, source: normalizeExecutionSource(exec.source) } });
+    res.json({ execution: { ...exec, source: normalizeExecutionSource(exec.source), outcome: getExecutionOutcome(exec) } });
 });
 
 router.post('/clear', requireAuth, async (req, res) => {
@@ -98,3 +105,5 @@ router.delete('/:id', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.getExecutionOutcome = getExecutionOutcome;
+module.exports.summarizeExecution = summarizeExecution;

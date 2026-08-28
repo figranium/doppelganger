@@ -3,6 +3,7 @@ import { useNavigate, type NavigateFunction } from 'react-router-dom';
 import MaterialIcon from './MaterialIcon';
 import { Execution, ConfirmRequest } from '../types';
 import { FixedSizeList, ListChildComponentProps } from 'react-window';
+import { normalizeTaskOutcome, taskOutcomeBadgeClass, taskOutcomeLabel } from '../utils/taskOutcome';
 
 const EXECUTION_CARD_HEIGHT = 140;
 const EXECUTION_CARD_SPACING = 12;
@@ -19,11 +20,8 @@ interface ExecutionListItemData {
 const renderExecutionRow = ({ index, style, data }: ListChildComponentProps<ExecutionListItemData>) => {
     const exec = data.items[index];
     if (!exec) return null;
-    const statusClass = exec.status >= 200 && exec.status < 300
-        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-        : exec.status >= 400
-            ? 'bg-red-500/10 text-red-400 border-red-500/20'
-            : 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    const outcome = normalizeTaskOutcome(exec.outcome, exec.status);
+    const outcomeClass = taskOutcomeBadgeClass(outcome);
 
     return (
         <div style={{ ...style, paddingBottom: EXECUTION_CARD_SPACING }} className="overflow-hidden">
@@ -53,9 +51,11 @@ const renderExecutionRow = ({ index, style, data }: ListChildComponentProps<Exec
                         <span className="opacity-20">|</span>
                         <span>{exec.mode}</span>
                         <span className="opacity-20">|</span>
-                        <span className={`px-1.5 py-0.5 rounded border ${statusClass}`}>
-                            {exec.status}
+                        <span className={`px-1.5 py-0.5 rounded border ${outcomeClass}`}>
+                            {taskOutcomeLabel(outcome)}
                         </span>
+                        <span className="opacity-20">|</span>
+                        <span>HTTP {exec.status}</span>
                         <span className="opacity-20">|</span>
                         <span>{exec.durationMs}ms</span>
                     </div>

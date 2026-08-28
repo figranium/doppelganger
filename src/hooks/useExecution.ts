@@ -6,6 +6,7 @@ import { useHeadfulStatus } from './useHeadfulStatus';
 
 export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error') => void) {
     const [isExecuting, setIsExecuting] = useState(false);
+    const [isStopping, setIsStopping] = useState(false);
     const [isHeadfulOpen, setIsHeadfulOpen] = useState(false);
     const [results, setResults] = useState<Results | null>(null);
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
@@ -47,6 +48,8 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
     };
 
     const stopTask = async () => {
+        if (!activeRunId || isStopping) return;
+        setIsStopping(true);
         if (activeRunId) {
             try {
                 await fetch('/api/executions/stop', {
@@ -56,12 +59,10 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
                 });
             } catch (e) {
                 console.error('Failed to request stop', e);
+                setIsStopping(false);
+                showAlert('Failed to request execution stop.', 'error');
             }
         }
-        if (executeAbortRef.current) {
-            executeAbortRef.current.abort();
-        }
-        setIsExecuting(false);
     };
 
     const runTaskWithSnapshot = async (taskToRunRaw: Task | null, currentTask: Task | null, setCurrentTask: (t: Task) => void) => {
@@ -77,6 +78,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
         if (isExecuting) return;
 
         setIsExecuting(true);
+        setIsStopping(false);
         setResults({
             url: taskToRun.url,
             logs: [],
@@ -168,7 +170,9 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
                 downloads: data.downloads,
                 logs: data.logs || [],
                 timestamp: new Date().toLocaleTimeString(),
+                outcome: data.outcome,
             });
+            if (data.outcome === 'stopped') showAlert('Execution stopped.', 'success');
         } catch (e: any) {
             if (e?.name === 'AbortError') {
                 showAlert('Execution stopped.', 'success');
@@ -206,6 +210,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
                         downloads: data.downloads,
                         logs: data.logs || [],
                         timestamp: new Date().toLocaleTimeString(),
+                        outcome: data.outcome,
                     });
                     setIsExecuting(false);
                     return;
@@ -224,11 +229,13 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
         } finally {
             executeAbortRef.current = null;
             setIsExecuting(false);
+            setIsStopping(false);
         }
     };
 
     return {
         isExecuting,
+        isStopping,
         isHeadfulOpen,
         results,
         setResults,

@@ -1,6 +1,7 @@
 import React from 'react';
 import MaterialIcon from '../MaterialIcon';
 import { Task, TaskSchedule } from '../../types';
+import { normalizeTaskOutcome, taskOutcomeDotClass, taskOutcomeLabel } from '../../utils/taskOutcome';
 
 interface ScheduleTabProps {
     currentTask: Task;
@@ -368,10 +369,11 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ currentTask, onUpdateTask }) 
             {schedule.lastRun && (
                 <div className="flex items-center justify-between bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-4">
                     <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${schedule.lastRunStatus === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                        <div className={`w-2 h-2 rounded-full ${taskOutcomeDotClass(normalizeTaskOutcome(schedule.lastRunStatus))}`} />
                         <div>
                             <span className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Last Run</span>
                             <p className="text-xs text-[var(--app-text)] mt-0.5">{new Date(schedule.lastRun).toLocaleString()}</p>
+                            <p className="text-[10px] text-[var(--app-text-muted)] mt-0.5 uppercase tracking-widest">{taskOutcomeLabel(normalizeTaskOutcome(schedule.lastRunStatus))}</p>
                         </div>
                     </div>
                     {schedule.lastRunDurationMs != null && (

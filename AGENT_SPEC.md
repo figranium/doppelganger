@@ -61,6 +61,21 @@ Common fields:
 - `varName` (string): target variable for `set`, `merge`, `foreach`.
 - `conditionVar`, `conditionVarType`, `conditionOp`, `conditionValue`: structured conditions for `if` and `while`.
 
+### Execution outcomes
+Completed `agent` and `scrape` executions return an `outcome` field with one of:
+
+```text
+success, error, stopped, crashed, anti_bot
+```
+
+- `success`: The task completed normally, including a Stop action whose value is `success`.
+- `error`: A Stop action explicitly ended the task with `error`.
+- `stopped`: An operator requested cancellation through the execution stop API.
+- `crashed`: Execution started but an unhandled browser, network, extraction, or engine error prevented completion.
+- `anti_bot`: The final response/page contained an unresolved CAPTCHA, verification challenge, or recognized block response.
+
+`anti_bot` takes precedence over `crashed`, which takes precedence over `stopped`. Classified task outcomes are returned as completed HTTP 200 responses. Request validation, authentication, authorization, and rate-limit errors remain non-2xx responses. Headful session responses do not use this outcome contract.
+
 ## 3) Variable templating
 Any string can include `{$varName}` tokens.
 Example:
@@ -266,6 +281,8 @@ exists('.load-more') && text('.count') !== ''
 ```json
 { "id": "act_stop", "type": "stop", "value": "success" }
 ```
+
+The Stop action accepts only `success` or `error`. The `stopped`, `crashed`, and `anti_bot` outcomes are assigned automatically by the runtime.
 
 ## 13) Start another task
 ```json

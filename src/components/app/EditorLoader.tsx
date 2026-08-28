@@ -16,6 +16,7 @@ interface EditorLoaderProps {
     triggerExpanded: boolean;
     setTriggerExpanded: Dispatch<SetStateAction<boolean>>;
     isExecuting: boolean;
+    isStopping: boolean;
     onSave: (task?: Task, createVersion?: boolean) => Promise<void>;
     onRun: () => void;
     onRunSnapshot?: (task: Task) => void;

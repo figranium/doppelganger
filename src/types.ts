@@ -1,4 +1,5 @@
 export type TaskMode = 'scrape' | 'agent' | 'headful';
+export type TaskOutcome = 'success' | 'error' | 'stopped' | 'crashed' | 'anti_bot';
 
 export interface Credential {
     id: string;
@@ -95,7 +96,7 @@ export interface TaskSchedule {
     dayOfMonth?: number;
     cron?: string;
     lastRun?: number;
-    lastRunStatus?: 'success' | 'error';
+    lastRunStatus?: TaskOutcome;
     lastRunDurationMs?: number;
     nextRun?: number;
 }
@@ -178,6 +179,7 @@ export interface Results {
     downloads?: { name: string; url: string; path: string }[];
     logs: string[];
     timestamp: string;
+    outcome?: TaskOutcome;
 }
 
 export interface Execution {
@@ -186,6 +188,7 @@ export interface Execution {
     method: string;
     path: string;
     status: number;
+    outcome?: TaskOutcome;
     durationMs: number;
     source: string;
     mode: string;
