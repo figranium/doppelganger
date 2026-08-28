@@ -115,6 +115,7 @@ export default function App() {
 
     useEffect(() => {
         if (location.pathname === '/tasks/new' && !currentTask) {
+            setTriggerExpanded(true);
             createNewTask(setResults, setHasUnsavedChanges);
         }
     }, [location.pathname]);
@@ -185,7 +186,7 @@ export default function App() {
     }, [navigate]);
 
     const handleNewTask = useCallback(() => {
-        setTriggerExpanded(false);
+        setTriggerExpanded(true);
         createNewTask(setResults, setHasUnsavedChanges);
     }, [createNewTask, setResults, setHasUnsavedChanges]);
 

@@ -384,6 +384,7 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 - [ ] **Click-and-drag block** — add an action that does drag gestures (selecting text, moving items) so tasks can simulate click-and-drag flows.
 - [x] **Recording controls** — Task editor now exposes a “Disable automated recording” switch in the general settings panel so workflows can skip video capture on a per-task basis.
 - [x] **File downloads** — add explicit support for agent tasks to download files (PDFs, CSVs, etc.) directly from target pages, then surface those downloads in the UI so users can preview or export them without sifting through captures.
+- [ ] **Per-automation file workspace** — give every automation its own downloads folder and add an upload block that can select a file from that folder and upload it through a page's file input.
 - [x] **Stateless mode** — Tasks now have a “Stateless execution” toggle alongside the recording controls so each run starts with no cookies or local storage, ensuring nothing persists between executions for that workflow.
 - [ ] **Adblocking filters** — add controls so execution contexts can enable built-in ad/malware filtering (e.g., via hosts file overrides or request blocking) to reduce noise on sensitive sites.
 - [x] **Extraction response mode** — add a Settings switch so users can choose whether the API returns HTML+data (for debugging) or data-only payloads when extraction scripts run.
