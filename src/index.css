@@ -192,19 +192,8 @@ select option {
 }
 
 .action-type-select {
-    min-width: 96px !important;
-    box-sizing: border-box !important;
-    border-radius: 10px !important;
-    border-color: var(--app-border-strong) !important;
-    background-color: var(--app-input) !important;
-    padding: 0.3rem 2.2rem 0.3rem 0.65rem !important;
     position: relative !important;
     z-index: 9999 !important;
-    background-clip: padding-box !important;
-}
-
-.action-type-select:focus {
-    border-color: var(--app-border-strong) !important;
 }
 
 .action-card-item.dragging { opacity: 0.5; }
