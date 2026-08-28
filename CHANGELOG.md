@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.15.2] - 2026-08-28
+
+### Bug fixes
+- Preserved hand-written extraction JavaScript when switching between the Visual and JavaScript editors. Mode changes now update only the selected editor mode, while actual visual field edits continue to regenerate the visual script.
+- Changed missing or `unknown` execution sources to `api`, so API-triggered runs display and filter correctly in both the execution list and detail view, including historical records.
+
+### UI
+- Automatically expanded the **On Execution** block whenever a new task is created, including tasks initialized by navigating directly to `/tasks/new`; existing tasks still open with the block collapsed.
+- Displayed dashboard task favicons in their original full color instead of applying a grayscale filter.
+- Replaced the animated README demo GIF with a static product screenshot while retaining links to the video walkthroughs.
+
+### Deployment
+- Added `docker-compose.deploy.yml` as a production-oriented Compose configuration using the published GHCR image, persistent data and capture mounts, exposed application and noVNC ports, and an automatic restart policy.
+
+### Cleanup and documentation
+- Removed the deprecated `OHMYCAPTCHA_URL` and `OHMYCAPTCHA_CLIENT_KEY` aliases and their documentation; remote CAPTCHA solving now uses `CAPTCHA_SOLVER_URL` and `CAPTCHA_SOLVER_KEY`. The obsolete ignored OhMyCAPTCHA checkout and ignore rule were also removed.
+- Added a roadmap item for per-automation downloads folders and an upload block that selects files from an automation's file workspace.
+
 ## [0.15.1] - 2026-08-25
 
 ### CAPTCHA reliability

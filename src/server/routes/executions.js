@@ -5,6 +5,11 @@ const { executionStreams, stopRequests, sendExecutionUpdate } = require('../stat
 
 const router = express.Router();
 
+const normalizeExecutionSource = (source) => {
+    const normalized = typeof source === 'string' ? source.trim() : '';
+    return !normalized || normalized.toLowerCase() === 'unknown' ? 'api' : normalized;
+};
+
 const summarizeExecution = (exec) => ({
     id: exec.id,
     timestamp: exec.timestamp,
@@ -12,7 +17,7 @@ const summarizeExecution = (exec) => ({
     path: exec.path,
     status: exec.status,
     durationMs: exec.durationMs,
-    source: exec.source,
+    source: normalizeExecutionSource(exec.source),
     mode: exec.mode,
     taskId: exec.taskId,
     taskName: exec.taskName,
@@ -64,7 +69,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     await loadExecutions();
     const exec = getExecutionById(req.params.id);
     if (!exec) return res.status(404).json({ error: 'EXECUTION_NOT_FOUND' });
-    res.json({ execution: exec });
+    res.json({ execution: { ...exec, source: normalizeExecutionSource(exec.source) } });
 });
 
 router.post('/clear', requireAuth, async (req, res) => {

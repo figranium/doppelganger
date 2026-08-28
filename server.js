@@ -243,7 +243,7 @@ const registerExecution = (req, res, baseMeta = {}) => {
             path: req.path,
             status: res.statusCode,
             durationMs,
-            source: body.runSource || req.query.runSource || baseMeta.source || 'unknown',
+            source: body.runSource || req.query.runSource || baseMeta.source || 'api',
             mode: body.mode || baseMeta.mode || 'unknown',
             taskId: body.taskId || baseMeta.taskId || null,
             taskName: body.name || baseMeta.taskName || null,
