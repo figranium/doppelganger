@@ -27,8 +27,8 @@ function redactSecrets(message, secrets = []) {
 
 async function resolveSolverConfig() {
     const stored = await loadCaptchaSettings();
-    const baseUrl = process.env.CAPTCHA_SOLVER_URL || process.env.OHMYCAPTCHA_URL || stored?.baseUrl || '';
-    const clientKey = process.env.CAPTCHA_SOLVER_KEY || process.env.OHMYCAPTCHA_CLIENT_KEY || stored?.clientKey || '';
+    const baseUrl = process.env.CAPTCHA_SOLVER_URL || stored?.baseUrl || '';
+    const clientKey = process.env.CAPTCHA_SOLVER_KEY || stored?.clientKey || '';
     return { baseUrl: baseUrl.replace(/\/+$/, ''), clientKey };
 }
 

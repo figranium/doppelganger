@@ -211,7 +211,6 @@ Key capabilities of **Figranite** include:
 | `CAPTCHA_COMPANION_TOKEN` | Bearer token for the Apple companion. If omitted, `data/captcha-companion-token` is used. | generated file |
 | `CAPTCHA_OWLVIT_THRESHOLD` / `CAPTCHA_FLORENCE2_THRESHOLD` | Optional tier-specific confidence overrides in the range 0–1. | calibrated `0.12` / `0.18` |
 | `RUN_CAPTCHA_LIVE_TESTS` | Set to `1` to enable network/model/browser acceptance tests. Ordinary tests never download weights. | disabled |
-| `OHMYCAPTCHA_URL` / `OHMYCAPTCHA_CLIENT_KEY` | Deprecated aliases for the new remote endpoint variables. | — |
 
 Local weights are fetched on first use/startup into persistent `data/captcha-model/`; no model weights or secondary browser are included in the Docker image. Every fetched file is pinned to an exact upstream commit, size, and SHA-256 digest, and inference loads with remote access disabled. OWL-ViT uses about 159 MB of artifacts on 2–7.99 GiB hosts; Florence-2 uses about 361 MB at 8 GiB+. Hosts below 2 GiB can still use a configured remote endpoint. At steady state only the active tier is retained.
 

@@ -440,7 +440,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                 setFields(fields.filter(f => f.id !== id));
                             };
                             const switchMode = (mode: 'visual' | 'javascript') => {
-                                onUpdateTask({ extractionMode: mode, extractionScript: generateExtractionScript(fields, groups) });
+                                onUpdateTask({ extractionMode: mode });
                             };
 
                             const setGroups = (next: ExtractionGroup[]) => {

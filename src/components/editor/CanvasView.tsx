@@ -49,7 +49,7 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
         setFields(fields.filter(f => f.id !== id));
     };
     const switchExtractionMode = (mode: 'visual' | 'javascript') => {
-        onUpdate({ extractionMode: mode, extractionScript: generateExtractionScript(fields, groups) });
+        onUpdate({ extractionMode: mode });
     };
 
     const setGroups = (next: ExtractionGroup[]) => {
