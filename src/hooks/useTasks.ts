@@ -19,7 +19,8 @@ export function useTasks(
         try {
             const res = await fetch('/api/tasks', { credentials: 'include' });
             const data = await res.json();
-            const sorted = [...data].sort((a: Task, b: Task) => (b.last_opened || 0) - (a.last_opened || 0));
+            const list = Array.isArray(data) ? data : [];
+            const sorted = [...list].sort((a: Task, b: Task) => (b.last_opened || 0) - (a.last_opened || 0));
             setTasks(sorted);
             return sorted;
         } catch (e) {

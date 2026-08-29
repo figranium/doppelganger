@@ -6,12 +6,12 @@ interface StoragePanelProps {
 
 const StoragePanel: React.FC<StoragePanelProps> = ({ onClearStorage }) => {
     return (
-        <div className="glass-card p-8 rounded-[40px] space-y-6">
+        <div className="app-panel p-7 space-y-6">
             <div className="flex items-center gap-4 mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400"><MaterialIcon name="delete" className="text-xl" /></div>
+                <div className="w-10 h-10 rounded-xl theme-input border theme-border flex items-center justify-center theme-text-faint"><MaterialIcon name="delete" className="text-xl" /></div>
                 <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Storage</h3>
-                    <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Manage stored data</p>
+                    <h3 className="text-sm font-bold theme-text">Storage</h3>
+                    <p className="text-xs theme-text-faint mt-1">Manage stored data</p>
                 </div>
             </div>
             <div className="flex gap-4">

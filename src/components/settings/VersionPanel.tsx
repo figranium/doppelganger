@@ -33,21 +33,21 @@ const VersionPanel = ({ version }: VersionPanelProps) => {
     };
 
     return (
-        <div className="glass-card p-8 rounded-[40px] space-y-6">
+        <div className="app-panel p-7 space-y-6">
             <div className="flex items-center gap-4 mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
+                <div className="w-10 h-10 rounded-xl theme-input border theme-border flex items-center justify-center theme-text-faint">
                     <MaterialIcon name="content_copy" className="text-xl" />
                 </div>
                 <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest">Version</h3>
-                    <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Package metadata</p>
+                    <h3 className="text-sm font-bold theme-text">Version</h3>
+                    <p className="text-xs theme-text-faint mt-1">Package metadata</p>
                 </div>
             </div>
             <div className="flex items-center justify-between gap-4">
-                <div className="text-xs font-bold uppercase tracking-[0.3em] text-white">{displayVersion}</div>
+                <div className="text-xs font-bold uppercase tracking-[0.3em] theme-text">{displayVersion}</div>
                 <button
                     onClick={handleCopy}
-                    className="px-4 py-2 rounded-xl border border-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all"
+                    className="app-button-secondary"
                     type="button"
                 >
                     {copied ? 'Copied' : 'Copy version'}

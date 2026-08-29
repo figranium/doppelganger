@@ -23,7 +23,7 @@ import { useTasks } from './hooks/useTasks';
 import { useExecution } from './hooks/useExecution';
 import { useUI } from './hooks/useUI';
 import { useTheme } from './hooks/useTheme';
-import { serializeTaskSnapshot, formatLabel } from './utils/taskUtils';
+import { serializeTaskSnapshot } from './utils/taskUtils';
 
 export default function App() {
     const navigate = useNavigate();
@@ -158,13 +158,6 @@ export default function App() {
             delete next[currentTaskKey];
             return next;
         });
-    };
-
-    const clearStorage = async (type: 'screenshots' | 'cookies') => {
-        if (!await requestConfirm(`Delete all ${type}?`)) return;
-        const endpoint = type === 'screenshots' ? '/api/clear-screenshots' : '/api/clear-cookies';
-        await fetch(endpoint, { method: 'POST' });
-        showAlert(`${formatLabel(type)} cleared.`, 'success');
     };
 
     const getCurrentScreen = () => {
@@ -342,7 +335,6 @@ export default function App() {
                     />
                     <Route path="/settings" element={
                         <SettingsScreen
-                            onClearStorage={clearStorage}
                             onConfirm={requestConfirm}
                             onNotify={showAlert}
                         />

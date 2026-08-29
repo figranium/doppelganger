@@ -12,28 +12,21 @@ const UserAgentPanel: React.FC<UserAgentPanelProps> = ({
     onChange
 }) => {
     return (
-        <div className="glass-card p-8 rounded-[40px] space-y-4">
+        <div className="app-panel p-7 space-y-4">
             <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-widest">User Agent</h3>
-                <p className="text-xs text-gray-500 uppercase tracking-widest mt-1">Default browser identity</p>
+                <h3 className="text-sm font-bold theme-text">User Agent</h3>
+                <p className="text-xs theme-text-faint mt-1">Default browser identity</p>
             </div>
             <div className="space-y-2">
                 <label htmlFor="user-agent-select" className="sr-only">Select Default User Agent</label>
-                <select
-                    id="user-agent-select"
+                <CustomSelect
                     value={selection}
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={onChange}
                     disabled={loading}
-                    className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-xs text-white uppercase tracking-widest disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                >
-                    <option value="system">System user agent (default)</option>
-                    {options.map((agent) => (
-                        <option key={agent} value={agent}>
-                            {agent}
-                        </option>
-                    ))}
-                </select>
-                <div className="text-xs text-gray-500 uppercase tracking-widest">
+                    options={[{ value: 'system', label: 'System user agent (default)' }, ...options.map((agent) => ({ value: agent, label: agent }))]}
+                    ariaLabel="Select Default User Agent"
+                />
+                <div className="text-xs theme-text-faint">
                     Applies when rotate UA is disabled in tasks.
                 </div>
             </div>
@@ -42,3 +35,4 @@ const UserAgentPanel: React.FC<UserAgentPanelProps> = ({
 };
 
 export default UserAgentPanel;
+import CustomSelect from '../common/CustomSelect';

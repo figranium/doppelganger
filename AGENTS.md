@@ -122,7 +122,14 @@ Do not add yourself (the agent) as a co-author on commits, and do not mention th
 
 ## Release & Changelog Convention
 
-After pushing to `main`, check `git tag` for release tags that do not yet have a corresponding entry in `CHANGELOG.md`. For each such tag, add an entry summarizing only the commits between the *previous* release tag and *that* tag (`git log <previous-tag>..<tag>`) — not everything up to `main`/`HEAD`. Only tags are treated as releases — a `package.json` version bump alone does not warrant a changelog entry.
+When the user asks to **create a new release**, complete all of the following before tagging or publishing it:
+
+1. **Choose and bump the version.** Use the exact version requested by the user. If no version is specified, inspect all changes since the previous release and choose the appropriate next version according to SemVer (major for breaking changes, minor for backward-compatible features, patch for backward-compatible fixes). Update the version in `package.json` and any lockfile that mirrors it.
+2. **Update the complete changelog.** Add a `CHANGELOG.md` entry covering **all** changes since the previous release, not only changes made during the current coding session. Review the full commit range (`git log <previous-tag>..HEAD`) as well as any relevant uncommitted release changes so nothing is omitted.
+3. **Reconcile the roadmap.** Review the Roadmap section in `README.md`. If the new release completes any listed roadmap item, mark that item as checked and update its wording when needed to accurately describe what shipped. Do not check off an item unless the released implementation actually fulfills it.
+4. **Reconcile the agent specification.** Review the release for new or changed automation capabilities, task fields, action types, or behavior that users and implementers need to know about. Update `AGENT_SPEC.md` whenever the release adds anything substantively worth documenting there, keeping it aligned with the implementation.
+
+After pushing to `main`, check `git tag` for older release tags that do not yet have a corresponding entry in `CHANGELOG.md`. For each missing historical release, summarize only the commits between the previous release tag and that tag (`git log <previous-tag>..<tag>`). Only tags are treated as completed releases; a `package.json` version bump alone does not constitute one.
 
 ## Key Environment Variables
 

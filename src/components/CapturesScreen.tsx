@@ -56,40 +56,34 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
     }, [loadCaptures]);
 
     return (
-        <main className="flex-1 p-12 overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
-            <div className="max-w-[1600px] mx-auto space-y-8">
-                <div className="flex items-end justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="space-y-2">
-                            <h2 className="text-4xl font-bold text-white">All Captures</h2>
-                            <div className="text-xs text-gray-500 uppercase tracking-[0.2em]">
-                                Recordings and screenshots from every run
-                            </div>
-                        </div>
+        <main className="app-page custom-scrollbar animate-in fade-in duration-500">
+            <div className="app-page-inner">
+                <header className="app-page-header">
+                    <div>
+                        <h1 className="app-page-title">Captures</h1>
+                        <p className="app-page-subtitle">Recordings and screenshots from every run</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="app-toolbar">
                         <button
                             onClick={loadCaptures}
                             disabled={loading}
                             aria-busy={loading}
-                            className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-50 inline-flex items-center gap-2"
+                            className="app-button-secondary disabled:opacity-50"
                             title="Refresh captures"
                             aria-label="Refresh captures"
                         >
                             <MaterialIcon name="sync" className={`text-base ${loading ? 'animate-spin' : ''}`} />
                             Refresh
                         </button>
-                        <button
-                            onClick={clearCaptures}
-                            className="w-10 h-10 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        <button onClick={clearCaptures} className="app-button-danger"
                             title="Clear all"
                             aria-label="Clear all captures"
                         >
-                            <MaterialIcon name="delete" className="text-xl" />
+                            <MaterialIcon name="delete" className="text-base" /> Clear all
                         </button>
                         <button
                             onClick={() => navigate('/executions')}
-                            className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all inline-flex items-center gap-2"
+                            className="app-button-secondary"
                             title="Go to Executions (Alt + 3)"
                             aria-label="Go to Executions (Alt + 3)"
                         >
@@ -97,42 +91,41 @@ const CapturesScreen: React.FC<CapturesScreenProps> = ({ onConfirm, onNotify }) 
                             Executions
                         </button>
                     </div>
-                </div>
+                </header>
 
-                <div className="glass-card rounded-[32px] p-8">
+                <section className="app-panel overflow-hidden">
+                    <div className="app-panel-header"><div><h2 className="text-sm font-bold theme-text">Media library</h2><p className="mt-1 text-[10px] uppercase tracking-[0.14em] theme-text-faint">{captures.length} captures</p></div></div>
                     {loading && (
-                        <div className="text-xs text-gray-500 uppercase tracking-widest flex items-center gap-3">
+                        <div className="app-empty-state min-h-[220px]">
                             <MaterialIcon name="sync" className="text-base animate-spin" />
-                            Loading captures...
+                            <p className="text-xs theme-text-faint">Loading captures…</p>
                         </div>
                     )}
                     {!loading && captures.length === 0 && (
-                        <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
-                            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
-                                <MaterialIcon name="image" className="text-4xl text-white/10" />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-lg font-bold text-white/80 uppercase tracking-widest">No captures found</h3>
-                                <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-relaxed uppercase tracking-wider">
-                                    Recordings and screenshots will appear here once you run your automation tasks.
+                        <div className="app-empty-state">
+                            <div className="app-empty-icon"><MaterialIcon name="image" className="text-2xl" /></div>
+                            <div>
+                                <h3 className="text-sm font-bold theme-text">No captures found</h3>
+                                <p className="text-xs theme-text-faint max-w-[320px] mx-auto leading-relaxed mt-2">
+                                    Recordings and screenshots will appear here once you run your Tasks.
                                 </p>
                             </div>
                             <button
                                 onClick={() => navigate('/dashboard')}
-                                className="px-8 py-3 bg-white text-black rounded-2xl text-xs font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
+                                className="app-button-primary"
                             >
                                 Go to Dashboard
                             </button>
                         </div>
                     )}
                     {!loading && captures.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-px bg-[var(--app-border)]">
                             {captures.map((capture) => (
                                 <CaptureCard key={capture.name} capture={capture} onDelete={deleteCapture} />
                             ))}
                         </div>
                     )}
-                </div>
+                </section>
             </div>
         </main>
     );

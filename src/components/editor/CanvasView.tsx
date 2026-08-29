@@ -8,6 +8,8 @@ import StickyNote from './StickyNote';
 import { Task, Action, ExtractionField, ExtractionGroup, StickyNote as StickyNoteType } from '../../types';
 import { generateExtractionScript } from '../../utils/extractionScriptGen';
 import { taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../../utils/extractionFieldIds';
+import CustomSelect from '../common/CustomSelect';
+import { EXTRACTION_ATTRIBUTE_OPTIONS } from './extractionOptions';
 
 // ── Extraction Script Block (scrape mode) ────────────────────────────────────
 
@@ -198,19 +200,13 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                                             </div>
                                         )}
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <select
+                                            <CustomSelect
                                                 value={extractionField.attribute}
-                                                onChange={(e) => updateField(extractionField.id, { attribute: e.target.value as ExtractionField['attribute'] })}
-                                                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/60"
-                                            >
-                                                <option value="text">Text</option>
-                                                <option value="html">HTML</option>
-                                                <option value="value">Input Value</option>
-                                                <option value="attr">Attribute</option>
-                                                <option value="image">Image URL</option>
-                                                <option value="link">Link URL</option>
-                                                <option value="exists">Exists (true/false)</option>
-                                            </select>
+                                                onChange={(attribute) => updateField(extractionField.id, { attribute })}
+                                                options={EXTRACTION_ATTRIBUTE_OPTIONS}
+                                                className="w-[170px] !min-h-8"
+                                                ariaLabel={`${extractionField.name || 'Field'} attribute`}
+                                            />
                                             {extractionField.attribute === 'attr' && (
                                                 <input
                                                     value={extractionField.attrName || ''}
@@ -356,19 +352,13 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                                                             </div>
                                                         )}
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            <select
+                                                            <CustomSelect
                                                                 value={field.attribute}
-                                                                onChange={(e) => updateGroupField(group.id, field.id, { attribute: e.target.value as ExtractionField['attribute'] })}
-                                                                className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/60"
-                                                            >
-                                                                <option value="text">Text</option>
-                                                                <option value="html">HTML</option>
-                                                                <option value="value">Input Value</option>
-                                                                <option value="attr">Attribute</option>
-                                                                <option value="image">Image URL</option>
-                                                                <option value="link">Link URL</option>
-                                                                <option value="exists">Exists (true/false)</option>
-                                                            </select>
+                                                                onChange={(attribute) => updateGroupField(group.id, field.id, { attribute })}
+                                                                options={EXTRACTION_ATTRIBUTE_OPTIONS}
+                                                                className="w-[170px] !min-h-8"
+                                                                ariaLabel={`${field.name || 'Group field'} attribute`}
+                                                            />
                                                             {field.attribute === 'attr' && (
                                                                 <input
                                                                     value={field.attrName || ''}
@@ -454,14 +444,16 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Output Format</label>
                         <div className="bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 focus-within:border-white/20 transition-all">
-                            <select
+                            <CustomSelect
                                 value={task.extractionFormat || 'json'}
-                                onChange={e => { onUpdate({ extractionFormat: e.target.value as 'json' | 'csv' }); }}
-                                className="custom-select w-full bg-transparent border-none px-0 py-0 text-xs text-white"
-                            >
-                                <option value="json">JSON</option>
-                                <option value="csv">CSV</option>
-                            </select>
+                                onChange={(extractionFormat) => onUpdate({ extractionFormat })}
+                                options={[
+                                    { value: 'json', label: 'JSON', icon: 'data_object' },
+                                    { value: 'csv', label: 'CSV', icon: 'table_rows' },
+                                ]}
+                                className="!min-h-0 !border-0 !bg-transparent !p-0"
+                                ariaLabel="Extraction format"
+                            />
                         </div>
                     </div>
                 </div>

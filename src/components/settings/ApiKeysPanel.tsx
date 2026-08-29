@@ -360,11 +360,11 @@ const ApiKeysPanel: React.FC<ApiKeysPanelProps> = ({ keys, availableProviders, o
     }, [showAddMenu]);
 
     return (
-        <div className="glass-card p-8 rounded-[40px]">
+        <div className="app-panel p-7">
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h3 className="text-lg font-bold text-white uppercase tracking-widest">API Keys</h3>
-                    <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Manage external integrations and API access</p>
+                    <h3 className="text-sm font-bold theme-text">API Keys</h3>
+                    <p className="text-xs theme-text-faint mt-1">Manage external integrations and API access</p>
                 </div>
 
                 {hasAnything && (

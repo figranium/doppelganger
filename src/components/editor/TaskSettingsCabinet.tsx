@@ -7,6 +7,8 @@ import ScheduleTab from './ScheduleTab';
 import RichInput from '../RichInput';
 import { generateExtractionScript } from '../../utils/extractionScriptGen';
 import { taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../../utils/extractionFieldIds';
+import CustomSelect from '../common/CustomSelect';
+import { EXTRACTION_ATTRIBUTE_OPTIONS } from './extractionOptions';
 
 interface TaskSettingsCabinetProps {
     isOpen: boolean;
@@ -303,15 +305,17 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                     placeholder="Name"
                                                     className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-xl px-3 py-2 text-xs text-[var(--app-text)] placeholder:text-[var(--app-text-faint)]"
                                                 />
-                                                <select
+                                                <CustomSelect
                                                     value={def.type}
-                                                    onChange={(e) => updateVariable(name, name, e.target.value as VarType, def.value)}
-                                                    className="bg-[var(--app-input)] border border-[var(--app-border)] rounded-xl px-2 py-2 text-xs font-bold uppercase text-[var(--app-text-muted)]"
-                                                >
-                                                    <option value="string">String</option>
-                                                    <option value="number">Number</option>
-                                                    <option value="boolean">Bool</option>
-                                                </select>
+                                                    onChange={(type) => updateVariable(name, name, type, def.value)}
+                                                    options={[
+                                                        { value: 'string' as VarType, label: 'String', icon: 'text_fields' },
+                                                        { value: 'number' as VarType, label: 'Number', icon: 'numbers' },
+                                                        { value: 'boolean' as VarType, label: 'Bool', icon: 'toggle_on' },
+                                                    ]}
+                                                    className="w-[112px] !min-h-9"
+                                                    ariaLabel={`${name} variable type`}
+                                                />
                                                 <button
                                                     onClick={() => removeVariable(name)}
                                                     className="text-red-500/70 hover:text-red-500 p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-lg"
@@ -323,14 +327,15 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                             </div>
                                             <div className="pl-1">
                                                 {def.type === 'boolean' ? (
-                                                    <select
+                                                    <CustomSelect
                                                         value={String(def.value)}
-                                                        onChange={(e) => updateVariable(name, name, def.type, e.target.value === 'true')}
-                                                        className="w-full bg-[var(--app-input)] border border-[var(--app-border)] rounded-xl px-3 py-2 text-xs text-[var(--app-text)]"
-                                                    >
-                                                        <option value="true">True</option>
-                                                        <option value="false">False</option>
-                                                    </select>
+                                                        onChange={(value) => updateVariable(name, name, def.type, value === 'true')}
+                                                        options={[
+                                                            { value: 'true', label: 'True', icon: 'check_circle', iconClassName: 'text-green-400' },
+                                                            { value: 'false', label: 'False', icon: 'cancel', iconClassName: 'theme-text-faint' },
+                                                        ]}
+                                                        ariaLabel={`${name} boolean value`}
+                                                    />
                                                 ) : (
                                                     <input
                                                         type={def.type === 'number' ? 'number' : 'text'}
@@ -489,14 +494,16 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                     </button>
                                                 ))}
                                             </div>
-                                            <select
+                                            <CustomSelect
                                                 value={currentTask.extractionFormat || 'json'}
-                                                onChange={(e) => onUpdateTask({ extractionFormat: e.target.value as any })}
-                                                className="bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs font-bold uppercase text-[var(--app-text-muted)]"
-                                            >
-                                                <option value="json">JSON</option>
-                                                <option value="csv">CSV</option>
-                                            </select>
+                                                onChange={(extractionFormat) => onUpdateTask({ extractionFormat })}
+                                                options={[
+                                                    { value: 'json', label: 'JSON', icon: 'data_object' },
+                                                    { value: 'csv', label: 'CSV', icon: 'table_rows' },
+                                                ]}
+                                                className="w-[110px] !min-h-8"
+                                                ariaLabel="Extraction format"
+                                            />
                                         </div>
 
                                         {extractionMode === 'visual' ? (
@@ -559,19 +566,13 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                             </div>
                                                         )}
                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                            <select
+                                                            <CustomSelect
                                                                 value={field.attribute}
-                                                                onChange={(e) => updateField(field.id, { attribute: e.target.value as ExtractionField['attribute'] })}
-                                                                className="bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs text-[var(--app-text-muted)]"
-                                                            >
-                                                                <option value="text">Text</option>
-                                                                <option value="html">HTML</option>
-                                                                <option value="value">Input Value</option>
-                                                                <option value="attr">Attribute</option>
-                                                                <option value="image">Image URL</option>
-                                                                <option value="link">Link URL</option>
-                                                                <option value="exists">Exists (true/false)</option>
-                                                            </select>
+                                                                onChange={(attribute) => updateField(field.id, { attribute })}
+                                                                options={EXTRACTION_ATTRIBUTE_OPTIONS}
+                                                                className="w-[170px] !min-h-8"
+                                                                ariaLabel={`${field.name || 'Field'} attribute`}
+                                                            />
                                                             {field.attribute === 'attr' && (
                                                                 <input
                                                                     value={field.attrName || ''}
@@ -717,19 +718,13 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                                             </div>
                                                                         )}
                                                                         <div className="flex items-center gap-2 flex-wrap">
-                                                                            <select
+                                                                            <CustomSelect
                                                                                 value={field.attribute}
-                                                                                onChange={(e) => updateGroupField(group.id, field.id, { attribute: e.target.value as ExtractionField['attribute'] })}
-                                                                                className="bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-2 py-1 text-xs text-[var(--app-text-muted)]"
-                                                                            >
-                                                                                <option value="text">Text</option>
-                                                                                <option value="html">HTML</option>
-                                                                                <option value="value">Input Value</option>
-                                                                                <option value="attr">Attribute</option>
-                                                                                <option value="image">Image URL</option>
-                                                                                <option value="link">Link URL</option>
-                                                                                <option value="exists">Exists (true/false)</option>
-                                                                            </select>
+                                                                                onChange={(attribute) => updateGroupField(group.id, field.id, { attribute })}
+                                                                                options={EXTRACTION_ATTRIBUTE_OPTIONS}
+                                                                                className="w-[170px] !min-h-8"
+                                                                                ariaLabel={`${field.name || 'Group field'} attribute`}
+                                                                            />
                                                                             {field.attribute === 'attr' && (
                                                                                 <input
                                                                                     value={field.attrName || ''}
@@ -867,13 +862,12 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                     {/* Provider dropdown */}
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Provider</label>
-                                        <select
+                                        <CustomSelect
                                             value={currentTask.output.provider}
-                                            onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, provider: e.target.value as 'baserow', credentialId: '', tableId: '' } })}
-                                            className="w-full bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-3 py-2 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
-                                        >
-                                            <option value="baserow">Baserow</option>
-                                        </select>
+                                            onChange={(provider) => onUpdateTask({ output: { ...currentTask.output as TaskOutput, provider, credentialId: '', tableId: '' } })}
+                                            options={[{ value: 'baserow' as const, label: 'Baserow' }]}
+                                            ariaLabel="Output provider"
+                                        />
                                     </div>
 
                                     {/* Credential picker */}
@@ -933,14 +927,12 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                             return filtered.length === 0 && !showNewCredForm ? (
                                                 <p className="text-xs text-[var(--app-text-faint)]">No credentials yet. Click <span className="text-[var(--app-text-muted)]">+ New</span> to add one.</p>
                                             ) : (
-                                                <select
+                                                <CustomSelect
                                                     value={currentTask.output.credentialId}
-                                                    onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, credentialId: e.target.value } })}
-                                                    className="w-full bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-3 py-2 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
-                                                >
-                                                    <option value="">Select credential…</option>
-                                                    {filtered.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                                </select>
+                                                    onChange={(credentialId) => onUpdateTask({ output: { ...currentTask.output as TaskOutput, credentialId } })}
+                                                    options={[{ value: '', label: 'Select credential…' }, ...filtered.map((credential) => ({ value: credential.id, label: credential.name }))]}
+                                                    ariaLabel="Output credential"
+                                                />
                                             );
                                         })()}
 
@@ -970,17 +962,13 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                     <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Database</label>
                                                     {dbLoading && <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
                                                 </div>
-                                                <select
+                                                <CustomSelect
                                                     value={currentTask.output.databaseId || ''}
-                                                    onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, databaseId: e.target.value, tableId: '' } })}
-                                                    className="w-full bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-3 py-2 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
+                                                    onChange={(databaseId) => onUpdateTask({ output: { ...currentTask.output as TaskOutput, databaseId, tableId: '' } })}
+                                                    options={[{ value: '', label: 'Select database…' }, ...databases.map((database) => ({ value: database.id, label: database.name }))]}
                                                     disabled={dbLoading}
-                                                >
-                                                    <option value="">Select database…</option>
-                                                    {databases.map(db => (
-                                                        <option key={db.id} value={db.id}>{db.name}</option>
-                                                    ))}
-                                                </select>
+                                                    ariaLabel="Output database"
+                                                />
                                             </div>
 
                                             {/* Table picker */}
@@ -990,17 +978,13 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                                         <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Table</label>
                                                         {tableLoading && <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
                                                     </div>
-                                                    <select
+                                                    <CustomSelect
                                                         value={currentTask.output.tableId}
-                                                        onChange={e => onUpdateTask({ output: { ...currentTask.output as TaskOutput, tableId: e.target.value } })}
-                                                        className="w-full bg-[var(--app-input)] border border-[var(--app-border)] rounded-lg px-3 py-2 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)]"
+                                                        onChange={(tableId) => onUpdateTask({ output: { ...currentTask.output as TaskOutput, tableId } })}
+                                                        options={[{ value: '', label: 'Select table…' }, ...tables.map((table) => ({ value: table.id, label: table.name }))]}
                                                         disabled={tableLoading}
-                                                    >
-                                                        <option value="">Select table…</option>
-                                                        {tables.map(t => (
-                                                            <option key={t.id} value={t.id}>{t.name}</option>
-                                                        ))}
-                                                    </select>
+                                                        ariaLabel="Output table"
+                                                    />
                                                 </div>
                                             )}
                                         </>

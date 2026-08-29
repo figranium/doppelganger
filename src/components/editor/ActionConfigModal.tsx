@@ -5,6 +5,7 @@ import MaterialIcon from '../MaterialIcon';
 import RichInput from '../RichInput';
 import CodeEditor from '../CodeEditor';
 import { ACTION_CATALOG } from './actionCatalog';
+import CustomSelect, { CustomCombobox } from '../common/CustomSelect';
 
 const PRESS_MODIFIERS = [
     { value: 'Control', label: 'Ctrl' },
@@ -25,7 +26,7 @@ const PRESS_BASE_KEYS = [
 const TYPE_MODE_OPTIONS = [
     { value: 'replace', label: 'Replace Text' },
     { value: 'append', label: 'Append Text' }
-];
+] as const;
 
 const parsePressKey = (key?: string) => {
     if (!key) return { modifiers: [] as string[], baseKey: '' };
@@ -350,15 +351,13 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                 {/* Type mode */}
                 {action.type === 'type' && field('Mode',
                     inputWrap(
-                        <select
+                        <CustomSelect
                             value={action.typeMode || 'replace'}
-                            onChange={(e) => onUpdate(action.id, { typeMode: e.target.value as 'append' | 'replace' }, true)}
-                            className="custom-select w-full bg-transparent border-none px-0 py-0 text-xs text-white"
-                        >
-                            {TYPE_MODE_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
+                            onChange={(value) => onUpdate(action.id, { typeMode: value }, true)}
+                            options={TYPE_MODE_OPTIONS}
+                            className="!min-h-0 !border-0 !bg-transparent !p-0"
+                            ariaLabel="Typing mode"
+                        />
                     )
                 )}
 
@@ -398,14 +397,13 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             ))}
                         </div>
                         {inputWrap(
-                            <select
+                            <CustomSelect
                                 value={baseKey}
-                                onChange={(e) => onUpdate(action.id, { key: buildPressKey(modifiers, e.target.value) }, true)}
-                                className="custom-select w-full bg-transparent border-none px-0 py-0 text-xs text-white"
-                            >
-                                <option value="">Select key</option>
-                                {PRESS_BASE_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
-                            </select>
+                                onChange={(value) => onUpdate(action.id, { key: buildPressKey(modifiers, value) }, true)}
+                                options={[{ value: '', label: 'Select key' }, ...PRESS_BASE_KEYS.map((key) => ({ value: key, label: key }))]}
+                                className="!min-h-0 !border-0 !bg-transparent !p-0"
+                                ariaLabel="Press key"
+                            />
                         )}
                     </div>
                 )}
@@ -440,30 +438,22 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                                         )}
                                     </div>
                                 ) : (
-                                    <>
-                                        <input
-                                            type="text"
-                                            list={`cond-var-${action.id}`}
+                                    <div className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 focus-within:border-white/30">
+                                        <CustomCombobox
                                             value={action.conditionVar || ''}
-                                            onChange={(e) => onUpdate(action.id, { conditionVar: e.target.value })}
-                                            onBlur={() => onAutoSave()}
+                                            onChange={(value) => onUpdate(action.id, { conditionVar: value })}
+                                            options={varKeys}
                                             placeholder="variable name"
-                                            className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/30"
+                                            ariaLabel="Condition variable"
                                         />
-                                        {varKeys.length > 0 && (
-                                            <datalist id={`cond-var-${action.id}`}>
-                                                {varKeys.map((k) => <option key={k} value={k} />)}
-                                            </datalist>
-                                        )}
-                                    </>
+                                    </div>
                                 )}
                             </div>
                             <div className="space-y-1">
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Type</span>
-                                <select
+                                <CustomSelect
                                     value={condVarType}
-                                    onChange={(e) => {
-                                        const nextType = e.target.value as VarType;
+                                    onChange={(nextType) => {
                                         const nextOps = conditionOps[nextType] || conditionOps.string;
                                         onUpdate(action.id, {
                                             conditionVarType: nextType,
@@ -471,23 +461,23 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                                             conditionValue: (nextType === 'boolean' || nextType === 'selector') ? '' : action.conditionValue || ''
                                         }, true);
                                     }}
-                                    className="custom-select w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold uppercase text-white/60 focus:outline-none"
-                                >
-                                    <option value="string">String</option>
-                                    <option value="number">Number</option>
-                                    <option value="boolean">Boolean</option>
-                                    <option value="selector">Selector</option>
-                                </select>
+                                    options={[
+                                        { value: 'string' as VarType, label: 'String', icon: 'text_fields' },
+                                        { value: 'number' as VarType, label: 'Number', icon: 'numbers' },
+                                        { value: 'boolean' as VarType, label: 'Boolean', icon: 'toggle_on' },
+                                        { value: 'selector' as VarType, label: 'Selector', icon: 'ads_click' },
+                                    ]}
+                                    ariaLabel="Condition variable type"
+                                />
                             </div>
                             <div className="space-y-1">
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Relation</span>
-                                <select
+                                <CustomSelect
                                     value={opValue}
-                                    onChange={(e) => onUpdate(action.id, { conditionOp: e.target.value }, true)}
-                                    className="custom-select w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold uppercase text-white/60 focus:outline-none"
-                                >
-                                    {ops.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                </select>
+                                    onChange={(value) => onUpdate(action.id, { conditionOp: value }, true)}
+                                    options={ops}
+                                    ariaLabel="Condition relation"
+                                />
                             </div>
                         </div>
                         {condVarType !== 'boolean' && condVarType !== 'selector' && (
@@ -587,29 +577,28 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
 
                 {/* Stop */}
                 {action.type === 'stop' && field('Outcome',
-                    <select
+                    <CustomSelect
                         value={action.value || 'success'}
-                        onChange={(e) => onUpdate(action.id, { value: e.target.value }, true)}
-                        className="custom-select w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-[0.2em] text-white/70 focus:outline-none"
-                    >
-                        <option value="success">Success</option>
-                        <option value="error">Error</option>
-                    </select>
+                        onChange={(value) => onUpdate(action.id, { value }, true)}
+                        options={[
+                            { value: 'success', label: 'Success', icon: 'check_circle', iconClassName: 'text-green-400' },
+                            { value: 'error', label: 'Error', icon: 'error', iconClassName: 'text-red-400' },
+                        ]}
+                        ariaLabel="Stop outcome"
+                    />
                 )}
 
                 {/* Start Task */}
                 {action.type === 'start' && field('Task',
-                    <select
+                    <CustomSelect
                         value={action.value || ''}
-                        onChange={(e) => onUpdate(action.id, { value: e.target.value }, true)}
-                        className="custom-select w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-[0.2em] text-white/70 focus:outline-none"
-                    >
-                        <option value="" disabled>Select task</option>
-                        {availableTasks.length === 0 && <option value="" disabled>No other tasks</option>}
-                        {availableTasks.map((t) => (
-                            <option key={t.id} value={t.id}>{t.name || t.id}</option>
-                        ))}
-                    </select>
+                        onChange={(value) => onUpdate(action.id, { value }, true)}
+                        options={availableTasks.length
+                            ? [{ value: '', label: 'Select task', disabled: true }, ...availableTasks.map((task) => ({ value: task.id || '', label: task.name || task.id || 'Untitled' }))]
+                            : [{ value: '', label: 'No other tasks', disabled: true }]}
+                        placeholder="Select task"
+                        ariaLabel="Task to start"
+                    />
                 )}
 
                 {/* Wait Downloads */}
@@ -630,15 +619,18 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                     <div className="grid grid-cols-3 gap-3">
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Method</label>
-                            <select
+                            <CustomSelect
                                 value={httpMethod}
-                                onChange={(e) => onUpdate(action.id, { method: e.target.value }, true)}
-                                className="custom-select w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white/70 focus:outline-none focus:border-white/20"
-                            >
-                                {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => (
-                                    <option key={m} value={m}>{m}</option>
-                                ))}
-                            </select>
+                                onChange={(value) => onUpdate(action.id, { method: value }, true)}
+                                options={[
+                                    { value: 'GET', label: 'GET', icon: 'download' },
+                                    { value: 'POST', label: 'POST', icon: 'upload' },
+                                    { value: 'PUT', label: 'PUT', icon: 'published_with_changes' },
+                                    { value: 'PATCH', label: 'PATCH', icon: 'edit' },
+                                    { value: 'DELETE', label: 'DELETE', icon: 'delete', iconClassName: 'text-red-400' },
+                                ]}
+                                ariaLabel="HTTP method"
+                            />
                         </div>
                         <div className="col-span-2 space-y-1.5">
                             <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">URL</label>
@@ -717,17 +709,18 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                     )}
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-600 uppercase tracking-widest pl-1">Captcha Type (Optional)</label>
-                        <select
+                        <CustomSelect
                             value={action.captchaType || ''}
-                            onChange={(e) => onUpdate(action.id, { captchaType: (e.target.value || undefined) as any }, true)}
-                            className="custom-select w-full bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs font-bold uppercase tracking-[0.1em] text-white/70 focus:outline-none focus:border-white/20"
-                        >
-                            <option value="">Auto-detect</option>
-                            <option value="recaptcha_v2">reCAPTCHA v2</option>
-                            <option value="recaptcha_v3">reCAPTCHA v3</option>
-                            <option value="hcaptcha">hCaptcha</option>
-                            <option value="turnstile">Cloudflare Turnstile</option>
-                        </select>
+                            onChange={(value) => onUpdate(action.id, { captchaType: (value || undefined) as Action['captchaType'] }, true)}
+                            options={[
+                                { value: '', label: 'Auto-detect', icon: 'search' },
+                                { value: 'recaptcha_v2', label: 'reCAPTCHA v2', iconUrl: 'https://www.google.com/s2/favicons?domain=google.com&sz=64', iconImageClassName: 'grayscale opacity-70' },
+                                { value: 'recaptcha_v3', label: 'reCAPTCHA v3', iconUrl: 'https://www.google.com/s2/favicons?domain=google.com&sz=64', iconImageClassName: 'grayscale opacity-70' },
+                                { value: 'hcaptcha', label: 'hCaptcha', iconUrl: 'https://www.google.com/s2/favicons?domain=hcaptcha.com&sz=64', iconImageClassName: 'grayscale opacity-70' },
+                                { value: 'turnstile', label: 'Cloudflare Turnstile', iconUrl: 'https://www.google.com/s2/favicons?domain=cloudflare.com&sz=64', iconImageClassName: 'grayscale opacity-70' },
+                            ]}
+                            ariaLabel="Captcha type"
+                        />
                     </div>
                     {field('Container Selector (Optional)', inputWrap(
                         <RichInput

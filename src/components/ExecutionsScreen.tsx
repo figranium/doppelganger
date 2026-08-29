@@ -5,10 +5,8 @@ import { Execution, ConfirmRequest } from '../types';
 import { FixedSizeList, ListChildComponentProps } from 'react-window';
 import { normalizeTaskOutcome, taskOutcomeBadgeClass, taskOutcomeLabel } from '../utils/taskOutcome';
 
-const EXECUTION_CARD_HEIGHT = 140;
-const EXECUTION_CARD_SPACING = 12;
-const EXECUTION_ITEM_SIZE = EXECUTION_CARD_HEIGHT + EXECUTION_CARD_SPACING;
-const EXECUTION_LIST_MAX_VISIBLE = 6;
+const EXECUTION_ITEM_SIZE = 94;
+const EXECUTION_LIST_MAX_VISIBLE = 7;
 const EXECUTION_OVERSCAN = 4;
 
 interface ExecutionListItemData {
@@ -18,62 +16,46 @@ interface ExecutionListItemData {
 }
 
 const renderExecutionRow = ({ index, style, data }: ListChildComponentProps<ExecutionListItemData>) => {
-    const exec = data.items[index];
-    if (!exec) return null;
-    const outcome = normalizeTaskOutcome(exec.outcome, exec.status);
-    const outcomeClass = taskOutcomeBadgeClass(outcome);
+    const execution = data.items[index];
+    if (!execution) return null;
+    const outcome = normalizeTaskOutcome(execution.outcome, execution.status);
 
     return (
-        <div style={{ ...style, paddingBottom: EXECUTION_CARD_SPACING }} className="overflow-hidden">
+        <div style={style}>
             <div
-                onClick={() => data.navigate(`/executions/${exec.id}`)}
+                onClick={() => data.navigate(`/executions/${execution.id}`)}
                 onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        data.navigate(`/executions/${exec.id}`);
+                        data.navigate(`/executions/${execution.id}`);
                     }
                 }}
                 role="button"
                 tabIndex={0}
-                className="glass-card w-full h-full rounded-2xl p-5 flex items-center gap-4 text-left hover:bg-white/[0.06] transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                className="app-list-row h-full grid grid-cols-[minmax(240px,1.5fr)_110px_120px_120px_44px] items-center gap-4 px-5 max-lg:grid-cols-[minmax(220px,1fr)_110px_44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/30"
             >
-                <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400">
-                    {exec.source === 'api' ? <MaterialIcon name="cloud" className="text-xl" /> : <MaterialIcon name="monitor" className="text-xl" />}
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl border theme-border theme-input flex items-center justify-center shrink-0">
+                        <MaterialIcon name={execution.source === 'api' ? 'cloud' : 'monitor'} className="text-lg theme-text-faint" />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="text-xs font-bold theme-text truncate">{execution.taskName || execution.mode}</div>
+                        <div className="mt-1 text-[10px] theme-text-faint font-mono truncate">{execution.url || new Date(execution.timestamp).toLocaleString()}</div>
+                    </div>
                 </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                    <div className="text-xs font-bold text-white uppercase tracking-widest truncate">
-                        {exec.taskName || exec.mode}
-                    </div>
-                    <div className="text-xs text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                        <span>{new Date(exec.timestamp).toLocaleString()}</span>
-                        <span className="opacity-20">|</span>
-                        <span>{exec.source}</span>
-                        <span className="opacity-20">|</span>
-                        <span>{exec.mode}</span>
-                        <span className="opacity-20">|</span>
-                        <span className={`px-1.5 py-0.5 rounded border ${outcomeClass}`}>
-                            {taskOutcomeLabel(outcome)}
-                        </span>
-                        <span className="opacity-20">|</span>
-                        <span>HTTP {exec.status}</span>
-                        <span className="opacity-20">|</span>
-                        <span>{exec.durationMs}ms</span>
-                    </div>
-                    {exec.url && (
-                        <div className="text-xs text-white/50 truncate font-mono">
-                            {exec.url}
-                        </div>
-                    )}
+                <div><span className={`app-badge ${taskOutcomeBadgeClass(outcome)}`}>{taskOutcomeLabel(outcome)}</span></div>
+                <div className="text-[11px] theme-text-muted max-lg:hidden"><span className="uppercase">{execution.source}</span> · {execution.mode}</div>
+                <div className="max-lg:hidden">
+                    <div className="text-[11px] theme-text-muted">{execution.durationMs}ms</div>
+                    <div className="mt-1 text-[10px] theme-text-faint">{new Date(execution.timestamp).toLocaleString()}</div>
                 </div>
                 <button
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        data.deleteExecution(exec.id);
-                    }}
-                    className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-red-500/5 border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                    aria-label={`Delete execution ${exec.id}`}
+                    onClick={(event) => { event.stopPropagation(); data.deleteExecution(execution.id); }}
+                    className="app-button-icon hover:!text-red-400 hover:!border-red-500/30 hover:!bg-red-500/10"
+                    aria-label={`Delete execution ${execution.id}`}
+                    title="Delete execution"
                 >
-                    Delete
+                    <MaterialIcon name="delete" className="text-base" />
                 </button>
             </div>
         </div>
@@ -94,9 +76,9 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
     const loadExecutions = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/executions');
-            if (!res.ok) throw new Error('Failed to load');
-            const data = await res.json();
+            const response = await fetch('/api/executions');
+            if (!response.ok) throw new Error('Failed to load');
+            const data = await response.json();
             setExecutions(Array.isArray(data.executions) ? data.executions : []);
         } catch {
             setExecutions([]);
@@ -106,133 +88,88 @@ const ExecutionsScreen: React.FC<ExecutionsScreenProps> = ({ onConfirm, onNotify
     }, []);
 
     const clearExecutions = useCallback(async () => {
-        const confirmed = await onConfirm('Clear all executions?');
-        if (!confirmed) return;
-        const res = await fetch('/api/executions/clear', { method: 'POST' });
-        if (res.ok) {
+        if (!await onConfirm('Clear all executions?')) return;
+        const response = await fetch('/api/executions/clear', { method: 'POST' });
+        if (response.ok) {
             onNotify('Executions cleared.', 'success');
             loadExecutions();
-        } else {
-            onNotify('Clear failed.', 'error');
-        }
+        } else onNotify('Clear failed.', 'error');
     }, [loadExecutions, onConfirm, onNotify]);
 
     const deleteExecution = useCallback(async (id: string) => {
-        const confirmed = await onConfirm('Delete this execution?');
-        if (!confirmed) return;
-        const res = await fetch(`/api/executions/${id}`, { method: 'DELETE' });
-        if (res.ok) {
+        if (!await onConfirm('Delete this execution?')) return;
+        const response = await fetch(`/api/executions/${id}`, { method: 'DELETE' });
+        if (response.ok) {
             onNotify('Execution deleted.', 'success');
-            setExecutions((prev) => prev.filter((e) => e.id !== id));
-        } else {
-            onNotify('Delete failed.', 'error');
-        }
+            setExecutions((previous) => previous.filter((execution) => execution.id !== id));
+        } else onNotify('Delete failed.', 'error');
     }, [onConfirm, onNotify]);
 
-    useEffect(() => {
-        loadExecutions();
-    }, [loadExecutions]);
+    useEffect(() => { loadExecutions(); }, [loadExecutions]);
 
-    const filtered = useMemo(() => {
-        return executions.filter((exec) => {
-            if (filter === 'all') return true;
-            return exec.source === filter;
-        });
-    }, [executions, filter]);
-
-    // Memoize itemData to prevent FixedSizeList from re-rendering all rows on every render
-    const itemData = useMemo(() => ({
-        items: filtered,
-        deleteExecution,
-        navigate
-    }), [filtered, deleteExecution, navigate]);
+    const filtered = useMemo(() => executions.filter((execution) => filter === 'all' || execution.source === filter), [executions, filter]);
+    const metrics = useMemo(() => {
+        let successful = 0;
+        let failed = 0;
+        let duration = 0;
+        let api = 0;
+        for (const execution of executions) {
+            const outcome = normalizeTaskOutcome(execution.outcome, execution.status);
+            if (outcome === 'success') successful += 1;
+            if (outcome === 'error' || outcome === 'crashed' || outcome === 'anti_bot') failed += 1;
+            if (execution.source === 'api') api += 1;
+            duration += Number(execution.durationMs) || 0;
+        }
+        return [
+            { label: 'Total runs', value: executions.length },
+            { label: 'Successful', value: successful },
+            { label: 'Failed', value: failed },
+            { label: 'Average runtime', value: executions.length ? `${Math.round(duration / executions.length)}ms` : '0ms' },
+            { label: 'API runs', value: api },
+        ];
+    }, [executions]);
+    const itemData = useMemo(() => ({ items: filtered, deleteExecution, navigate }), [filtered, deleteExecution, navigate]);
 
     return (
-        <main className="flex-1 p-12 overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
-            <div className="max-w-6xl mx-auto space-y-8">
-                <div className="flex items-end justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="space-y-2">
-                            <h2 className="text-4xl font-bold text-white">Run History</h2>
-                            <div className="text-xs text-gray-500 uppercase tracking-[0.2em]">
-                                Past task executions and their results
-                            </div>
-                        </div>
+        <main className="app-page custom-scrollbar animate-in fade-in duration-500">
+            <div className="app-page-inner">
+                <header className="app-page-header">
+                    <div><h1 className="app-page-title">Executions</h1><p className="app-page-subtitle">Run history and Task outcomes</p></div>
+                    <div className="app-toolbar">
+                        <button onClick={loadExecutions} disabled={loading} className="app-button-secondary" aria-busy={loading}>
+                            <MaterialIcon name="sync" className={`text-base ${loading ? 'animate-spin' : ''}`} /> Refresh
+                        </button>
+                        <button onClick={clearExecutions} className="app-button-danger"><MaterialIcon name="delete" className="text-base" /> Clear all</button>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div role="tablist" className="flex bg-white/5 rounded-xl p-1 border border-white/5">
+                </header>
+
+                <section className="app-panel app-metrics" aria-label="Execution summary">
+                    {metrics.map((metric) => <div className="app-metric" key={metric.label}><div className="app-metric-label">{metric.label}</div><div className="app-metric-value">{metric.value}</div></div>)}
+                </section>
+
+                <section className="app-panel overflow-hidden">
+                    <div className="app-panel-header">
+                        <div><h2 className="text-sm font-bold theme-text">Run history</h2><p className="mt-1 text-[10px] uppercase tracking-[0.14em] theme-text-faint">{filtered.length} executions</p></div>
+                        <div role="tablist" className="app-toolbar rounded-xl border theme-border p-1 theme-input">
                             {(['all', 'editor', 'api'] as const).map((mode) => (
-                                <button
-                                    key={mode}
-                                    role="tab"
-                                    aria-selected={filter === mode}
-                                    onClick={() => setFilter(mode)}
-                                    className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all focus:outline-none focus-visible:ring-2 ${filter === mode ? 'bg-white text-black focus-visible:ring-blue-500' : 'text-gray-500 hover:text-white focus-visible:ring-white/50'}`}
-                                >
-                                    {mode}
-                                </button>
+                                <button key={mode} role="tab" aria-selected={filter === mode} onClick={() => setFilter(mode)} className={`min-h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${filter === mode ? 'theme-accent-bg' : 'theme-text-faint hover:theme-text'}`}>{mode}</button>
                             ))}
                         </div>
-                        <button
-                            onClick={loadExecutions}
-                            disabled={loading}
-                            aria-busy={loading}
-                            className="w-10 h-10 rounded-2xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Refresh"
-                            aria-label="Refresh executions"
-                        >
-                            <MaterialIcon name="sync" className={`text-xl ${loading ? 'animate-spin' : ''}`} />
-                        </button>
-                        <button
-                            onClick={clearExecutions}
-                            className="w-10 h-10 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                            title="Clear all"
-                            aria-label="Clear all executions"
-                        >
-                            <MaterialIcon name="delete" className="text-xl" />
-                        </button>
                     </div>
-                </div>
-
-                {loading && (
-                    <div className="text-xs text-gray-500 uppercase tracking-widest">Loading executions...</div>
-                )}
-                {!loading && filtered.length === 0 && (
-                    <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
-                        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
-                            <MaterialIcon name="history" className="text-4xl text-white/10" />
+                    {loading ? (
+                        <div className="app-empty-state min-h-[220px]"><MaterialIcon name="sync" className="text-2xl theme-text-faint animate-spin" /><p className="text-xs theme-text-faint">Loading executions…</p></div>
+                    ) : filtered.length ? (
+                        <FixedSizeList height={Math.min(Math.max(EXECUTION_ITEM_SIZE, filtered.length * EXECUTION_ITEM_SIZE), EXECUTION_ITEM_SIZE * EXECUTION_LIST_MAX_VISIBLE)} itemCount={filtered.length} itemSize={EXECUTION_ITEM_SIZE} width="100%" overscanCount={EXECUTION_OVERSCAN} itemData={itemData} className="custom-scrollbar">
+                            {renderExecutionRow}
+                        </FixedSizeList>
+                    ) : (
+                        <div className="app-empty-state">
+                            <div className="app-empty-icon"><MaterialIcon name="history" className="text-2xl" /></div>
+                            <div><h3 className="text-sm font-bold theme-text">No executions found</h3><p className="mt-2 text-xs theme-text-faint">Run a Task from the dashboard or editor to see it here.</p></div>
+                            <button onClick={() => navigate('/dashboard')} className="app-button-primary">Go to Tasks</button>
                         </div>
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-bold text-white/80 uppercase tracking-widest">No runs recorded</h3>
-                            <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-relaxed uppercase tracking-wider">
-                                Your execution history is empty. Try running a task from the dashboard or editor.
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => navigate('/dashboard')}
-                            className="px-8 py-3 bg-white text-black rounded-2xl text-xs font-bold uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all"
-                        >
-                            Go to Dashboard
-                        </button>
-                    </div>
-                )}
-
-                {!loading && filtered.length > 0 && (
-                    <FixedSizeList
-                        height={Math.min(
-                            Math.max(EXECUTION_ITEM_SIZE, filtered.length * EXECUTION_ITEM_SIZE),
-                            EXECUTION_ITEM_SIZE * EXECUTION_LIST_MAX_VISIBLE
-                        )}
-                        itemCount={filtered.length}
-                        itemSize={EXECUTION_ITEM_SIZE}
-                        width="100%"
-                        overscanCount={EXECUTION_OVERSCAN}
-                        itemData={itemData}
-                        className="custom-scrollbar"
-                    >
-                        {renderExecutionRow}
-                    </FixedSizeList>
-                )}
+                    )}
+                </section>
             </div>
         </main>
     );

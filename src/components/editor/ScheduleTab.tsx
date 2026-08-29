@@ -2,6 +2,7 @@ import React from 'react';
 import MaterialIcon from '../MaterialIcon';
 import { Task, TaskSchedule } from '../../types';
 import { normalizeTaskOutcome, taskOutcomeDotClass, taskOutcomeLabel } from '../../utils/taskOutcome';
+import CustomSelect from '../common/CustomSelect';
 
 interface ScheduleTabProps {
     currentTask: Task;
@@ -256,28 +257,20 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ currentTask, onUpdateTask }) 
                         <div className="space-y-3">
                             <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Time</label>
                             <div className="flex gap-2">
-                                <select
-                                    aria-label="Hour"
+                                <CustomSelect
                                     value={schedule.hour ?? 9}
-                                    onChange={e => updateSchedule({ hour: parseInt(e.target.value) })}
-                                    className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-xl px-3 py-2.5 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)] transition-all focus-visible:ring-2 focus-visible:ring-white/50"
-                                >
-                                    {Array.from({ length: 24 }, (_, i) => (
-                                        <option key={i} value={i}>
-                                            {i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`}
-                                        </option>
-                                    ))}
-                                </select>
-                                <select
-                                    aria-label="Minute"
+                                    onChange={(hour) => updateSchedule({ hour })}
+                                    options={Array.from({ length: 24 }, (_, hour) => ({ value: hour, label: hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM` }))}
+                                    className="flex-1"
+                                    ariaLabel="Hour"
+                                />
+                                <CustomSelect
                                     value={schedule.minute ?? 0}
-                                    onChange={e => updateSchedule({ minute: parseInt(e.target.value) })}
-                                    className="flex-1 bg-[var(--app-input)] border border-[var(--app-border)] rounded-xl px-3 py-2.5 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)] transition-all focus-visible:ring-2 focus-visible:ring-white/50"
-                                >
-                                    {Array.from({ length: 60 }, (_, i) => (
-                                        <option key={i} value={i}>:{String(i).padStart(2, '0')}</option>
-                                    ))}
-                                </select>
+                                    onChange={(minute) => updateSchedule({ minute })}
+                                    options={Array.from({ length: 60 }, (_, minute) => ({ value: minute, label: `:${String(minute).padStart(2, '0')}` }))}
+                                    className="flex-1"
+                                    ariaLabel="Minute"
+                                />
                             </div>
                         </div>
                     )}
@@ -314,16 +307,12 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ currentTask, onUpdateTask }) 
                     {freq === 'monthly' && (
                         <div className="space-y-3">
                             <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Day of Month</label>
-                            <select
-                                aria-label="Day of Month"
+                            <CustomSelect
                                 value={schedule.dayOfMonth ?? 1}
-                                onChange={e => updateSchedule({ dayOfMonth: parseInt(e.target.value) })}
-                                className="w-full bg-[var(--app-input)] border border-[var(--app-border)] rounded-xl px-3 py-2.5 text-xs text-[var(--app-text)] focus:outline-none focus:border-[var(--app-border-strong)] transition-all focus-visible:ring-2 focus-visible:ring-white/50"
-                            >
-                                {Array.from({ length: 31 }, (_, i) => (
-                                    <option key={i + 1} value={i + 1}>{i + 1}</option>
-                                ))}
-                            </select>
+                                onChange={(dayOfMonth) => updateSchedule({ dayOfMonth })}
+                                options={Array.from({ length: 31 }, (_, index) => ({ value: index + 1, label: String(index + 1) }))}
+                                ariaLabel="Day of Month"
+                            />
                         </div>
                     )}
                 </div>

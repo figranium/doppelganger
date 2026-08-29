@@ -21,12 +21,12 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
     const fullUrl = new URL(capture.url, window.location.origin).toString();
 
     return (
-        <div className="h-full flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
-            <div className="p-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
-                <div className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
+        <article className="h-full min-h-[300px] flex flex-col theme-surface-3 overflow-hidden group">
+            <div className="px-4 py-3 border-b theme-border flex items-center justify-between flex-shrink-0">
+                <div className="text-[10px] font-bold theme-text-muted uppercase tracking-widest flex items-center gap-1.5">
                     <MaterialIcon
                         name={capture.type === 'recording' ? 'play_circle' : 'photo_camera'}
-                        className="text-xs text-white/50"
+                        className="text-xs theme-text-faint"
                     />
                     {capture.type === 'recording' ? 'Recording' : 'Screenshot'}
                 </div>
@@ -34,13 +34,13 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
                     <CopyButton
                         text={fullUrl}
                         title="Copy URL"
-                        className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all"
+                        className="p-1.5 rounded-lg theme-text-faint theme-hover transition-all"
                         iconClassName="text-sm"
                     />
                     <a
                         href={capture.url}
                         download={capture.name}
-                        className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        className="p-1.5 rounded-lg theme-text-faint theme-hover transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         title="Download"
                         aria-label="Download capture"
                     >
@@ -50,7 +50,7 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
                         href={capture.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        className="p-1.5 rounded-lg theme-text-faint theme-hover transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         title="Open in new tab"
                         aria-label="Open capture in new tab"
                     >
@@ -68,23 +68,23 @@ const CaptureCard: React.FC<CaptureCardProps> = ({ capture, onDelete }) => {
                     )}
                 </div>
             </div>
-            <div className="bg-black relative group flex-1 min-h-0">
+            <div className="bg-black relative flex-1 min-h-[210px]">
                 {capture.type === 'recording' ? (
                     <video src={capture.url} controls className="w-full h-full object-contain bg-black" />
                 ) : (
                     <img src={capture.url} className="w-full h-full object-contain bg-black" alt={`Screenshot of ${capture.name}`} />
                 )}
             </div>
-            <div className="p-3 border-t border-white/5 bg-white/[0.01] flex-shrink-0">
-                <div className="text-xs text-white font-bold uppercase tracking-widest truncate" title={capture.name}>
+            <div className="p-4 border-t theme-border flex-shrink-0">
+                <div className="text-xs theme-text font-bold truncate" title={capture.name}>
                     {capture.name}
                 </div>
-                <div className="flex items-center justify-between mt-1 text-xs text-gray-500 uppercase tracking-widest">
+                <div className="flex items-center justify-between mt-1.5 text-[10px] theme-text-faint uppercase tracking-widest">
                     <span>{formatBytes(capture.size)}</span>
                     <span>{new Date(capture.modified).toLocaleDateString()}</span>
                 </div>
             </div>
-        </div>
+        </article>
     );
 };
 

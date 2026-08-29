@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import GithubStarPill from './GithubStarPill';
 import { ConfirmRequest, Credential } from '../types';
 import ApiKeysPanel, { ApiKeyConfig, ProviderConfig, DbProviderConfig } from './settings/ApiKeysPanel';
-import StoragePanel from './settings/StoragePanel';
-import SettingsHeader from './settings/SettingsHeader';
 import ProxiesPanel from './settings/ProxiesPanel';
 import UserAgentPanel from './settings/UserAgentPanel';
 import VersionPanel from './settings/VersionPanel';
@@ -11,6 +8,7 @@ import ThemePanel from './settings/ThemePanel';
 import { APP_VERSION } from '@/utils/appInfo';
 import MaterialIcon from './MaterialIcon';
 import { useTheme } from '../hooks/useTheme';
+import { CustomCombobox } from './common/CustomSelect';
 
 // ── AI Models Panel ──────────────────────────────────────────────────────────
 
@@ -26,6 +24,17 @@ const MODEL_PROVIDERS = [
     { key: 'openai' as const, label: 'OpenAI', iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/openai.svg' },
     { key: 'claude' as const, label: 'Anthropic', iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/claude.svg' },
     { key: 'ollama' as const, label: 'Ollama', iconUrl: 'https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/ollama.svg' },
+];
+
+type SettingsSection = 'api-keys' | 'ai-models' | 'user-agent' | 'proxies' | 'appearance' | 'about';
+
+const SETTINGS_SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
+    { id: 'api-keys', label: 'API Keys', icon: 'key' },
+    { id: 'ai-models', label: 'AI Models', icon: 'auto_awesome' },
+    { id: 'user-agent', label: 'User Agent', icon: 'language' },
+    { id: 'proxies', label: 'Proxies', icon: 'security' },
+    { id: 'appearance', label: 'Appearance', icon: 'palette' },
+    { id: 'about', label: 'About', icon: 'info' },
 ];
 
 type AiModelKey = 'gemini' | 'openai' | 'claude' | 'ollama';
@@ -76,17 +85,15 @@ const ModelRow: React.FC<{
             ) : (
                 <div className="flex items-center gap-3">
                     <div className="flex-1 rounded-2xl theme-input border theme-border focus-within:border-white px-4 py-3 transition-all">
-                        <input
-                            list={`model-list-${providerKey}`}
+                        <CustomCombobox
                             value={draft}
-                            onChange={e => setDraft(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }}
-                            className="w-full bg-transparent text-xs theme-text font-mono focus:outline-none"
+                            onChange={setDraft}
+                            options={AI_MODEL_OPTIONS[providerKey]}
+                            ariaLabel={`${label} model`}
                             autoFocus
+                            onEnter={handleSave}
+                            onEscape={handleCancel}
                         />
-                        <datalist id={`model-list-${providerKey}`}>
-                            {AI_MODEL_OPTIONS[providerKey].map(m => <option key={m} value={m} />)}
-                        </datalist>
                     </div>
                     <button onClick={handleCancel} disabled={saving} className="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest theme-border text-white hover:bg-white/10 transition-all disabled:opacity-50">Cancel</button>
                     <button onClick={handleSave} disabled={saving || !draft.trim()} className="px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest theme-accent-bg hover:bg-blue-400 transition-all disabled:opacity-50 flex items-center gap-2">
@@ -100,7 +107,7 @@ const ModelRow: React.FC<{
 };
 
 const AiModelsPanel: React.FC<AiModelsPanelProps> = ({ models, loading, saving, onSave }) => (
-    <div className="glass-card p-8 rounded-[40px]">
+    <div className="app-panel p-7">
         <div className="mb-6">
             <h3 className="text-lg font-bold text-white uppercase tracking-widest">AI Models</h3>
             <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Preferred model for each AI provider</p>
@@ -123,17 +130,15 @@ const AiModelsPanel: React.FC<AiModelsPanelProps> = ({ models, loading, saving, 
 );
 
 interface SettingsScreenProps {
-    onClearStorage: (type: 'screenshots' | 'cookies') => void;
     onConfirm: (request: string | ConfirmRequest) => Promise<boolean>;
     onNotify: (message: string, tone?: 'success' | 'error') => void;
 }
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({
-    onClearStorage,
     onConfirm,
     onNotify
 }) => {
-    const [tab, setTab] = useState<'system' | 'proxies'>('system');
+    const [section, setSection] = useState<SettingsSection>('api-keys');
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [credentialsLoading, setCredentialsLoading] = useState(false);
     const [addedProviders, setAddedProviders] = useState<string[]>([]);
@@ -766,33 +771,22 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
         }
     }, [aiModels, onNotify]);
 
-    // Load system data on mount and when tab changes to system
+    // Load each settings area on demand while keeping API contracts unchanged.
     useEffect(() => {
-        if (tab === 'system') {
-            loadApiKey();
-            loadGeminiApiKeys();
-            loadOpenAiApiKeys();
-            loadClaudeApiKeys();
-            loadOllamaApiKeys();
-            loadUserAgent();
-            loadCredentials();
-            loadAiModelsFromServer();
-        }
-        if (tab === 'proxies') loadProxies();
-    }, [tab]);
-
-    // Also load system keys on initial mount in case tab is already 'system'
-    useEffect(() => {
-        if (tab === 'system') {
+        if (section === 'api-keys') {
             loadApiKey();
             loadGeminiApiKeys();
             loadOpenAiApiKeys();
             loadClaudeApiKeys();
             loadOllamaApiKeys();
             loadCredentials();
+        }
+        if (section === 'ai-models') {
             loadAiModelsFromServer();
         }
-    }, []);
+        if (section === 'user-agent') loadUserAgent();
+        if (section === 'proxies') loadProxies();
+    }, [section]);
 
     const availableProviders: ProviderConfig[] = [
         {
@@ -1137,12 +1131,30 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     });
 
     return (
-        <main className="flex-1 p-12 overflow-y-auto custom-scrollbar animate-in fade-in duration-500 theme-bg">
-            <div className="max-w-6xl mx-auto space-y-8">
-                <SettingsHeader tab={tab} onTabChange={setTab} />
+        <div className="settings-shell animate-in fade-in duration-500">
+            <nav className="settings-nav" aria-label="Settings sections">
+                <div className="settings-nav-title">Settings</div>
+                <div className="settings-nav-list">
+                    {SETTINGS_SECTIONS.map((item) => (
+                        <button key={item.id} onClick={() => setSection(item.id)} className={`settings-nav-item ${section === item.id ? 'settings-nav-item-active' : ''}`} aria-current={section === item.id ? 'page' : undefined}>
+                            <MaterialIcon name={item.icon} className="text-lg" />
+                            <span>{item.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </nav>
 
-                {tab === 'system' && (
-                    <>
+            <main className="app-page custom-scrollbar">
+                <div className="app-page-inner !max-w-[1120px] settings-content">
+                    <header className="app-page-header">
+                        <div>
+                            <div className="app-page-kicker">Settings</div>
+                            <h1 className="app-page-title">{SETTINGS_SECTIONS.find((item) => item.id === section)?.label}</h1>
+                            <p className="app-page-subtitle">Configure Figranium for your workspace</p>
+                        </div>
+                    </header>
+
+                    {section === 'api-keys' && (
                         <ApiKeysPanel
                             keys={apiKeysConfig}
                             availableProviders={availableProviders}
@@ -1151,29 +1163,33 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
                             onAddDbCredential={handleAddDbCredential}
                             onConfirm={onConfirm}
                         />
+                    )}
+                    {section === 'ai-models' && (
                         <AiModelsPanel
                             models={aiModels}
                             loading={aiModelsLoading}
                             saving={aiModelsSaving}
                             onSave={saveAiModel}
                         />
+                    )}
+                    {section === 'user-agent' && (
                         <UserAgentPanel
                             selection={userAgentSelection}
                             options={userAgentOptions}
                             loading={userAgentLoading}
                             onChange={saveUserAgent}
                         />
+                    )}
+                    {section === 'appearance' && (
                         <ThemePanel
                             currentThemeId={theme.id}
                             onSelect={(t) => setTheme(t.id)}
                         />
+                    )}
+                    {section === 'about' && (
                         <VersionPanel version={APP_VERSION} />
-                        <StoragePanel onClearStorage={onClearStorage} />
-                    </>
-                )}
-
-
-                {tab === 'proxies' && (
+                    )}
+                    {section === 'proxies' && (
                     <ProxiesPanel
                         proxies={proxies}
                         defaultProxyId={defaultProxyId}
@@ -1190,13 +1206,10 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
                         onToggleIncludeDefault={toggleIncludeDefaultInRotation}
                         onRotationModeChange={updateRotationMode}
                     />
-                )}
-
-                <div className="pt-8 flex justify-center border-t border-white/5 mt-8">
-                    <GithubStarPill />
+                    )}
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
     );
 };
 

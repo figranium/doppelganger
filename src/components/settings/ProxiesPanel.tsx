@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import MaterialIcon from '../MaterialIcon';
 import { PanelShell, LoadingState, EmptyState } from '../common/ListState';
+import CustomSelect from '../common/CustomSelect';
 
 interface ProxyEntry {
     id: string;
@@ -375,15 +376,16 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
             )}
             <label className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Rotation mode</span>
-                <select
+                <CustomSelect
                     value={rotationMode}
-                    onChange={(e) => onRotationModeChange(e.target.value === 'random' ? 'random' : 'round-robin')}
-                    className="bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2 text-xs text-white uppercase tracking-widest"
-                    aria-label="Rotation mode"
-                >
-                    <option value="round-robin">Round robin</option>
-                    <option value="random">Random</option>
-                </select>
+                    onChange={onRotationModeChange}
+                    options={[
+                        { value: 'round-robin', label: 'Round robin', icon: 'repeat' },
+                        { value: 'random', label: 'Random', icon: 'shuffle' },
+                    ]}
+                    className="w-[170px]"
+                    ariaLabel="Rotation mode"
+                />
             </label>
             <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all cursor-pointer group">
                 <input
