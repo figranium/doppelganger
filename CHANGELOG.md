@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.16.0] - 2026-08-29
+
+### Execution outcomes
+- Added automatic `stopped`, `crashed`, and `anti_bot` outcomes alongside `success` and `error` for Agent and Scrape executions. Cancellation requests, unhandled runtime failures, and unresolved bot challenges now retain distinct final states across the runtime, scheduler, API summaries, run history, execution details, and editor results.
+- Added shared outcome classification and normalization, including deterministic precedence for overlapping terminal conditions and backwards-compatible handling of historical execution records.
+- Documented the execution-outcome contract in `AGENT_SPEC.md` and added focused coverage for classification, normalization, cancellation, runtime failures, and anti-bot detection.
+
+### Dashboard and application redesign
+- Redesigned the Dashboard, Executions, Execution Detail, Captures, Settings, loading, and not-found pages around the editor canvas's compact controls, layered surfaces, thin borders, and node-like panels while preserving the existing global icon sidebar and theme system.
+- Added an n8n-inspired Dashboard overview with real Task and execution metrics, searchable compact Task rows, sorting by recent activity, name, mode, or action count, and schedule, target, mode, and last-opened metadata.
+- Replaced inline Task edit/delete controls with single-click opening and a canvas-styled overflow menu offering Open, Copy Link, Copy API URL, and Delete actions.
+- Reworked Run History into a denser, filterable execution list with summary metrics, clearer outcome hierarchy, and a structured execution-detail header and metadata strip without changing virtualization or output rendering.
+- Reworked Captures into a compact media library with direct open, download, copy, and delete actions plus redesigned loading and empty states.
+- Added a responsive secondary Settings navigator for API Keys, AI Models, User Agent, Proxies, Appearance, and About. Removed the standalone Storage section while retaining the existing capture-management APIs and standalone Captures page.
+
+### Controls and accessibility
+- Replaced native browser selects and datalists throughout the application with reusable, theme-aware custom select and combobox controls supporting keyboard navigation, portals, viewport-aware positioning, optional icons, and mixed option content.
+- Kept dropdown labels in normal casing and added monochrome provider icons for reCAPTCHA, hCaptcha, and Cloudflare CAPTCHA choices while retaining the generic Auto icon.
+- Shared extraction-field option definitions between the canvas and Task Settings editors so both extraction surfaces remain synchronized.
+
+### Fixes and polish
+- Prevented unauthenticated application startup from attempting to fetch Tasks before a session is available.
+- Removed the dark background highlight behind block names in the editor canvas.
+
 ## [0.15.2] - 2026-08-28
 
 ### Bug fixes

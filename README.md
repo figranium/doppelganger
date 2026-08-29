@@ -374,8 +374,8 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 
 # Roadmap
 
-- [x] **Settings shortcuts** — the System tab already exposes API key regeneration, user agent selection, and layout preferences so operators can tune them without leaving the UI.
-- [x] **Storage cleanup** — the Settings data tab lets you clear captures and cookies, and the backend exposes `/api/clear-screenshots` and `/api/clear-cookies`.
+- [x] **Settings shortcuts** — dedicated API Keys, User Agent, Proxies, and Appearance sections let operators tune core settings without leaving the UI.
+- [x] **Storage cleanup** — the standalone Captures page lets you review and clear captured media, while the backend exposes `/api/clear-screenshots` and `/api/clear-cookies` for storage maintenance.
 - [x] **IP rotation tooling** — build a settings workflow for importing proxies and automatically rotating them.
 - [x] **API key workflow** — the API key panel already supports regenerating and copying keys via `/api/settings/api-key`, so secure API access is ready without extra setup.
 - [x] **Task proxy rotation toggle** — the “Rotate Proxies” option in each task ties into the Settings rotation controls, enabling rotation per execution.
