@@ -10,7 +10,14 @@ import { generateExtractionScript } from '../../utils/extractionScriptGen';
 import { taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../../utils/extractionFieldIds';
 import CustomSelect from '../common/CustomSelect';
 import { EXTRACTION_ATTRIBUTE_OPTIONS } from './extractionOptions';
-import { findMatchingEndIndex, isBlockStartAction, isLoopAction } from '../../utils/actionBlocks';
+import {
+    findMatchingEndIndex,
+    getIfFalseScopeId,
+    getIfTrueScopeId,
+    getLoopBodyScopeId,
+    isBlockStartAction,
+    isLoopAction,
+} from '../../utils/actionBlocks';
 
 // ── Extraction Script Block (scrape mode) ────────────────────────────────────
 
@@ -576,16 +583,10 @@ const LoopConnector: React.FC = () => {
     }, []);
 
     const bottomY = Math.max(LOOP_BODY_TOP + 48, height - 22);
-    const outboundPath = [
-        `M ${LOOP_MAIN_X} 0`,
-        'V 42',
-        `Q ${LOOP_MAIN_X} 58 ${LOOP_MAIN_X + 16} 58`,
+    const closedLoopPath = [
+        `M ${LOOP_MAIN_X} 58`,
         `H ${LOOP_BODY_X - 16}`,
         `Q ${LOOP_BODY_X} 58 ${LOOP_BODY_X} 74`,
-        `V ${LOOP_BODY_TOP}`,
-    ].join(' ');
-    const returnPath = [
-        `M ${LOOP_BODY_X} ${LOOP_BODY_TOP}`,
         `V ${bottomY - 18}`,
         `Q ${LOOP_BODY_X} ${bottomY} ${LOOP_BODY_X - 18} ${bottomY}`,
         `H ${LOOP_RAIL_X + 18}`,
@@ -593,6 +594,7 @@ const LoopConnector: React.FC = () => {
         'V 76',
         `Q ${LOOP_RAIL_X} 58 ${LOOP_RAIL_X + 18} 58`,
         `H ${LOOP_MAIN_X}`,
+        'Z',
     ].join(' ');
 
     return (
@@ -610,8 +612,8 @@ const LoopConnector: React.FC = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                 >
-                    <path d={outboundPath} vectorEffect="non-scaling-stroke" />
-                    <path d={returnPath} vectorEffect="non-scaling-stroke" />
+                    <path d={`M ${LOOP_MAIN_X} 0 V 58`} vectorEffect="non-scaling-stroke" />
+                    <path d={closedLoopPath} vectorEffect="non-scaling-stroke" />
                     <path d={`M ${LOOP_MAIN_X} ${bottomY} V ${height}`} vectorEffect="non-scaling-stroke" />
                 </svg>
             )}
@@ -770,6 +772,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <div className="mt-2 flex flex-col items-center">
                                     <div className="w-px h-4 bg-white/20" />
                                     <button
+                                        data-action-drop-scope={getIfTrueScopeId(action.id)}
                                         onClick={() => openActionPalette(undefined, trueEnd)}
                                         className="w-12 h-12 border border-dashed border-white/15 rounded-xl hover:border-white/30 hover:bg-white/5 transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                         aria-label="Add action (Ctrl + K)"
@@ -788,6 +791,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     <div className="mt-2 flex flex-col items-center">
                                         <div className="w-px h-4 bg-white/20" />
                                         <button
+                                            data-action-drop-scope={getIfFalseScopeId(action.id)}
                                             onClick={() => {
                                                 if (falseStart !== -1) {
                                                     openActionPalette(undefined, falseEnd);
@@ -828,6 +832,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                 const blockEnd = matchingEnd;
                 const bodyStart = currentIndex + 1;
                 const bodyEnd = blockEnd;
+                const loopBodyScopeId = getLoopBodyScopeId(action.id);
+                const isEmptyLoop = bodyStart === bodyEnd;
 
                 nodes.push(
                     <div key={action.id} className="flex flex-col items-center w-full">
@@ -857,9 +863,20 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                             />
                         </div>
 
-                        <div className="relative w-[760px] shrink-0 pt-[132px] pb-11">
+                        <div className="relative w-[760px] min-h-[260px] shrink-0 pt-[132px] pb-11">
                             <LoopConnector />
 
+                            {isEmptyLoop ? (
+                                <button
+                                    data-action-drop-scope={loopBodyScopeId}
+                                    onClick={() => openActionPalette(undefined, bodyEnd)}
+                                    className="absolute left-[576px] top-[123px] z-20 w-12 h-12 border border-dashed border-white/15 rounded-xl bg-[var(--app-bg)] hover:border-white/30 hover:bg-[var(--app-surface)] transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                    aria-label="Add action inside loop (Ctrl + K)"
+                                    title="Add action inside loop (Ctrl + K)"
+                                >
+                                    <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
+                                </button>
+                            ) : (
                             <div className="relative z-10 ml-[420px] w-[360px] flex flex-col items-center">
                                 <div className="flex flex-col items-center gap-3 w-full">
                                     {buildAst(bodyStart, bodyEnd, _depth + 1)}
@@ -867,6 +884,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <div className="mt-2 flex flex-col items-center">
                                     <div className="h-4 border-l border-white/20" />
                                     <button
+                                        data-action-drop-scope={loopBodyScopeId}
                                         onClick={() => openActionPalette(undefined, bodyEnd)}
                                         className="relative z-20 w-12 h-12 border border-dashed border-white/15 rounded-xl bg-[var(--app-bg)] hover:border-white/30 hover:bg-[var(--app-surface)] transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                         aria-label="Add action inside loop (Ctrl + K)"
@@ -876,6 +894,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     </button>
                                 </div>
                             </div>
+                            )}
                         </div>
 
                         <div className="relative z-10 flex flex-col items-center">
@@ -1072,6 +1091,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <div className="pt-2 flex flex-col items-center">
                                     <div className="w-px h-6 bg-white/10" />
                                     <button
+                                        data-action-drop-scope="root"
                                         onClick={() => openActionPalette()}
                                         className="w-[360px] bg-[#0a0a0a] border border-dashed border-white/15 rounded-2xl p-6 hover:border-white/30 hover:bg-white/[0.03] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                         aria-label="Add action (Ctrl + K)"

@@ -1,6 +1,17 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Task, Action } from '../types';
-import { moveActionBlock } from '../utils/actionBlocks';
+import {
+    buildActionScopeMap,
+    getActionBlockRange,
+    getAllowedDropScopeIds,
+    moveActionBlockToScope,
+} from '../utils/actionBlocks';
+
+interface ActionDropTarget {
+    scopeId: string;
+    beforeActionId: string | null;
+    highlightActionId: string | null;
+}
 
 export const useEditorActions = (
     currentTask: Task,
@@ -10,6 +21,7 @@ export const useEditorActions = (
     const [selectedActionIds, setSelectedActionIds] = useState<Set<string>>(new Set());
     const [dragState, setDragState] = useState<{
         id: string;
+        startX: number;
         startY: number;
         currentY: number;
         height: number;
@@ -17,7 +29,7 @@ export const useEditorActions = (
         originTop: number;
         pointerOffset: number;
     } | null>(null);
-    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+    const [dragTarget, setDragTarget] = useState<ActionDropTarget | null>(null);
     const dragPointerIdRef = useRef<number | null>(null);
 
     const updateAction = useCallback((id: string, updates: Partial<Action>, saveImmediately: boolean = false) => {
@@ -39,11 +51,16 @@ export const useEditorActions = (
         }
     }, [setCurrentTask, onSave]);
 
-    const moveAction = useCallback((fromId: string, toId: string) => {
-        if (fromId === toId) return;
+    const moveAction = useCallback((fromId: string, target: ActionDropTarget) => {
         setCurrentTask((prev) => {
             if (!prev) return null;
-            const nextActions = moveActionBlock(prev.actions, fromId, toId);
+            const nextActions = moveActionBlockToScope(
+                prev.actions,
+                fromId,
+                target.scopeId,
+                target.beforeActionId,
+                () => `act_${Date.now()}_${Math.floor(Math.random() * 1000)}_else`,
+            );
             if (nextActions === prev.actions) return prev;
             const next = { ...prev, actions: nextActions };
             onSave(next, false);
@@ -60,38 +77,74 @@ export const useEditorActions = (
         });
     }, [setCurrentTask, onSave]);
 
-    const getDragIndexFromY = useCallback((pointerY: number, activeId: string, snapIndex?: number, snapCenter?: number) => {
-        if (snapIndex !== undefined && snapCenter !== undefined) {
-            if (Math.abs(pointerY - snapCenter) < 14) {
-                return snapIndex;
-            }
-        }
+    const getDropTargetFromPoint = useCallback((pointerX: number, pointerY: number, activeId: string) => {
         const actions = currentTask.actions;
-        let nextIndex = actions.length - 1;
-        for (let i = 0; i < actions.length; i++) {
-            if (actions[i].id === activeId) continue;
-            const el = document.getElementById(`action-${actions[i].id}`);
-            if (!el) continue;
-            const rect = el.getBoundingClientRect();
-            const midpoint = rect.top + rect.height * 0.4;
-            if (pointerY < midpoint) {
-                nextIndex = i;
-                break;
+        const structure = buildActionScopeMap(actions);
+        const allowedScopes = getAllowedDropScopeIds(actions, activeId);
+        const fromIndex = actions.findIndex((action) => action.id === activeId);
+        if (fromIndex === -1) return null;
+        const sourceRange = getActionBlockRange(actions, fromIndex);
+        const sourceIds = new Set(actions.slice(sourceRange.start, sourceRange.end + 1).map((action) => action.id));
+        const candidates: Array<ActionDropTarget & { x: number; y: number }> = [];
+
+        allowedScopes.forEach((scopeId) => {
+            const scope = structure.scopes[scopeId];
+            if (!scope) return;
+            const siblingIds = scope.actionIds.filter((id) => !sourceIds.has(id));
+            siblingIds.forEach((id, index) => {
+                const element = document.getElementById(`action-${id}`);
+                if (!element) return;
+                const rect = element.getBoundingClientRect();
+                candidates.push({
+                    scopeId,
+                    beforeActionId: id,
+                    highlightActionId: id,
+                    x: rect.left + rect.width / 2,
+                    y: rect.top,
+                });
+                candidates.push({
+                    scopeId,
+                    beforeActionId: siblingIds[index + 1] ?? null,
+                    highlightActionId: id,
+                    x: rect.left + rect.width / 2,
+                    y: rect.bottom,
+                });
+            });
+
+            document.querySelectorAll<HTMLElement>('[data-action-drop-scope]').forEach((element) => {
+                if (element.dataset.actionDropScope !== scopeId) return;
+                const rect = element.getBoundingClientRect();
+                candidates.push({
+                    scopeId,
+                    beforeActionId: null,
+                    highlightActionId: siblingIds[siblingIds.length - 1] ?? null,
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2,
+                });
+            });
+        });
+
+        let nearest: (ActionDropTarget & { x: number; y: number }) | null = null;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        candidates.forEach((candidate) => {
+            const distance = Math.hypot(pointerX - candidate.x, pointerY - candidate.y);
+            if (distance < nearestDistance) {
+                nearest = candidate;
+                nearestDistance = distance;
             }
-        }
-        return nextIndex;
+        });
+        if (!nearest) return null;
+        const { scopeId, beforeActionId, highlightActionId } = nearest;
+        return { scopeId, beforeActionId, highlightActionId };
     }, [currentTask.actions]);
 
     const finalizeDrag = useCallback(() => {
         if (!dragState) return;
-        if (dragOverIndex !== null && dragOverIndex !== dragState.index) {
-            const targetId = currentTask.actions[dragOverIndex]?.id;
-            if (targetId) moveAction(dragState.id, targetId);
-        }
+        if (dragTarget) moveAction(dragState.id, dragTarget);
         setDragState(null);
-        setDragOverIndex(null);
+        setDragTarget(null);
         dragPointerIdRef.current = null;
-    }, [dragState, dragOverIndex, currentTask.actions, moveAction]);
+    }, [dragState, dragTarget, moveAction]);
 
     const handleActionPointerDown = useCallback((e: React.PointerEvent, id: string, index: number) => {
         if (e.shiftKey || e.ctrlKey || e.metaKey) {
@@ -109,6 +162,7 @@ export const useEditorActions = (
         dragPointerIdRef.current = e.pointerId;
         setDragState({
             id,
+            startX: e.clientX,
             startY: e.clientY,
             currentY: e.clientY,
             height: rect.height,
@@ -116,17 +170,19 @@ export const useEditorActions = (
             originTop: rect.top,
             pointerOffset: e.clientY - rect.top
         });
-        setDragOverIndex(index);
+        setDragTarget(null);
     }, []);
 
     useEffect(() => {
         if (!dragState) return;
         const handlePointerMove = (e: PointerEvent) => {
             if (dragPointerIdRef.current !== null && e.pointerId !== dragPointerIdRef.current) return;
-            const originCenter = dragState.originTop + dragState.height / 2;
-            const nextIndex = getDragIndexFromY(e.clientY, dragState.id, dragState.index, originCenter);
             setDragState((prev) => prev ? { ...prev, currentY: e.clientY } : prev);
-            setDragOverIndex(nextIndex);
+            if (Math.hypot(e.clientX - dragState.startX, e.clientY - dragState.startY) < 14) {
+                setDragTarget(null);
+            } else {
+                setDragTarget(getDropTargetFromPoint(e.clientX, e.clientY, dragState.id));
+            }
         };
         const handlePointerUp = (e: PointerEvent) => {
             if (dragPointerIdRef.current !== null && e.pointerId !== dragPointerIdRef.current) return;
@@ -140,7 +196,11 @@ export const useEditorActions = (
             window.removeEventListener('pointerup', handlePointerUp);
             window.removeEventListener('pointercancel', handlePointerUp);
         };
-    }, [dragState, getDragIndexFromY, finalizeDrag]);
+    }, [dragState, getDropTargetFromPoint, finalizeDrag]);
+
+    const dragOverIndex = dragTarget?.highlightActionId
+        ? currentTask.actions.findIndex((action) => action.id === dragTarget.highlightActionId)
+        : null;
 
     return {
         selectedActionIds,

@@ -3,10 +3,16 @@ import { Action } from '../src/types';
 import {
     cloneActionsWithFreshIds,
     createActionSequence,
+    buildActionScopeMap,
     expandActionIdsToBlocks,
     findMatchingEndIndex,
+    getAllowedDropScopeIds,
+    getIfFalseScopeId,
+    getIfTrueScopeId,
+    getLoopBodyScopeId,
     getActionBlockRange,
     moveActionBlock,
+    moveActionBlockToScope,
 } from '../src/utils/actionBlocks';
 
 const action = (id: string, type: Action['type']): Action => ({ id, type });
@@ -49,5 +55,57 @@ for (const type of ['while', 'repeat', 'foreach'] as Action['type'][]) {
     );
 }
 assert.deepEqual(createActionSequence(action('new-click', 'click'), 'unused').map(({ type }) => type), ['click']);
+
+const scoped = [
+    action('root-before', 'click'),
+    action('if', 'if'),
+    action('true-a', 'click'),
+    action('true-b', 'wait'),
+    action('else', 'else'),
+    action('false-a', 'screenshot'),
+    action('if-end', 'end'),
+    action('loop', 'while'),
+    action('loop-a', 'click'),
+    action('loop-b', 'wait'),
+    action('loop-end', 'end'),
+    action('root-after', 'navigate'),
+];
+
+const scopeMap = buildActionScopeMap(scoped);
+assert.deepEqual(scopeMap.scopes.root.actionIds, ['root-before', 'if', 'loop', 'root-after']);
+assert.deepEqual(scopeMap.scopes[getIfTrueScopeId('if')].actionIds, ['true-a', 'true-b']);
+assert.deepEqual(scopeMap.scopes[getIfFalseScopeId('if')].actionIds, ['false-a']);
+assert.deepEqual(scopeMap.scopes[getLoopBodyScopeId('loop')].actionIds, ['loop-a', 'loop-b']);
+
+const movedDown = moveActionBlockToScope(scoped, 'true-a', getIfTrueScopeId('if'), null, () => 'unused');
+assert.deepEqual(buildActionScopeMap(movedDown).scopes[getIfTrueScopeId('if')].actionIds, ['true-b', 'true-a']);
+
+const swappedBranch = moveActionBlockToScope(scoped, 'true-a', getIfFalseScopeId('if'), null, () => 'unused');
+assert.deepEqual(buildActionScopeMap(swappedBranch).scopes[getIfFalseScopeId('if')].actionIds, ['false-a', 'true-a']);
+
+const movedToParent = moveActionBlockToScope(scoped, 'loop-a', 'root', 'root-after', () => 'unused');
+assert.deepEqual(buildActionScopeMap(movedToParent).scopes.root.actionIds, ['root-before', 'if', 'loop', 'loop-a', 'root-after']);
+
+const movedIntoLoop = moveActionBlockToScope(scoped, 'root-before', getLoopBodyScopeId('loop'), null, () => 'unused');
+assert.deepEqual(buildActionScopeMap(movedIntoLoop).scopes[getLoopBodyScopeId('loop')].actionIds, ['loop-a', 'loop-b', 'root-before']);
+
+const noElse = [
+    action('if-empty-false', 'if'),
+    action('true-only', 'click'),
+    action('if-empty-false-end', 'end'),
+    action('move-me', 'wait'),
+];
+const createdElse = moveActionBlockToScope(noElse, 'move-me', getIfFalseScopeId('if-empty-false'), null, () => 'created-else');
+assert.deepEqual(createdElse.map(({ id }) => id), ['if-empty-false', 'true-only', 'created-else', 'move-me', 'if-empty-false-end']);
+
+const loopAllowed = getAllowedDropScopeIds(scoped, 'loop-a');
+assert(loopAllowed.has(getLoopBodyScopeId('loop')));
+assert(loopAllowed.has('root'));
+assert(!loopAllowed.has(getIfTrueScopeId('if')), 'Unrelated branches must remain unavailable');
+assert.strictEqual(
+    moveActionBlockToScope(scoped, 'loop', getLoopBodyScopeId('loop'), null, () => 'unused'),
+    scoped,
+    'A block cannot move into its own body',
+);
 
 console.log('Action block tests passed');
