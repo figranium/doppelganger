@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import MaterialIcon from '../MaterialIcon';
 import RichInput from '../RichInput';
@@ -10,6 +10,7 @@ import { generateExtractionScript } from '../../utils/extractionScriptGen';
 import { taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../../utils/extractionFieldIds';
 import CustomSelect from '../common/CustomSelect';
 import { EXTRACTION_ATTRIBUTE_OPTIONS } from './extractionOptions';
+import { findMatchingEndIndex, isBlockStartAction, isLoopAction } from '../../utils/actionBlocks';
 
 // ── Extraction Script Block (scrape mode) ────────────────────────────────────
 
@@ -554,6 +555,70 @@ interface CanvasViewProps {
     onClearAutoOpenActionId?: () => void;
 }
 
+const LOOP_CONNECTOR_WIDTH = 760;
+const LOOP_MAIN_X = 380;
+const LOOP_BODY_X = 600;
+const LOOP_RAIL_X = 160;
+const LOOP_BODY_TOP = 132;
+
+const LoopConnector: React.FC = () => {
+    const hostRef = useRef<HTMLDivElement>(null);
+    const [height, setHeight] = useState(0);
+
+    useEffect(() => {
+        const host = hostRef.current;
+        if (!host) return;
+        const updateHeight = () => setHeight(Math.round(host.getBoundingClientRect().height));
+        updateHeight();
+        const observer = new ResizeObserver(updateHeight);
+        observer.observe(host);
+        return () => observer.disconnect();
+    }, []);
+
+    const bottomY = Math.max(LOOP_BODY_TOP + 48, height - 22);
+    const outboundPath = [
+        `M ${LOOP_MAIN_X} 0`,
+        'V 42',
+        `Q ${LOOP_MAIN_X} 58 ${LOOP_MAIN_X + 16} 58`,
+        `H ${LOOP_BODY_X - 16}`,
+        `Q ${LOOP_BODY_X} 58 ${LOOP_BODY_X} 74`,
+        `V ${LOOP_BODY_TOP}`,
+    ].join(' ');
+    const returnPath = [
+        `M ${LOOP_BODY_X} ${LOOP_BODY_TOP}`,
+        `V ${bottomY - 18}`,
+        `Q ${LOOP_BODY_X} ${bottomY} ${LOOP_BODY_X - 18} ${bottomY}`,
+        `H ${LOOP_RAIL_X + 18}`,
+        `Q ${LOOP_RAIL_X} ${bottomY} ${LOOP_RAIL_X} ${bottomY - 18}`,
+        'V 76',
+        `Q ${LOOP_RAIL_X} 58 ${LOOP_RAIL_X + 18} 58`,
+        `H ${LOOP_MAIN_X}`,
+    ].join(' ');
+
+    return (
+        <div ref={hostRef} className="absolute inset-0 z-0 pointer-events-none" aria-hidden="true">
+            {height > 0 && (
+                <svg
+                    className="absolute inset-0 overflow-visible text-white/25"
+                    width="100%"
+                    height="100%"
+                    viewBox={`0 0 ${LOOP_CONNECTOR_WIDTH} ${height}`}
+                    preserveAspectRatio="none"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d={outboundPath} vectorEffect="non-scaling-stroke" />
+                    <path d={returnPath} vectorEffect="non-scaling-stroke" />
+                    <path d={`M ${LOOP_MAIN_X} ${bottomY} V ${height}`} vectorEffect="non-scaling-stroke" />
+                </svg>
+            )}
+        </div>
+    );
+};
+
 const CanvasView: React.FC<CanvasViewProps> = ({
     currentTask,
     setCurrentTask,
@@ -641,24 +706,25 @@ const CanvasView: React.FC<CanvasViewProps> = ({
             const action = currentTask.actions[currentIndex];
             if (!action) { i++; continue; }
 
-            if (action.type === 'if' || action.type === 'while') {
+            const matchingEnd = findMatchingEndIndex(currentTask.actions, currentIndex);
+
+            if (action.type === 'if' && matchingEnd !== null && matchingEnd < endIndex) {
                 const blockStart = i;
+                const blockEnd = matchingEnd;
                 let nestLevel = 1;
                 let j = i + 1;
                 let elseIndex = -1;
-                while (j < endIndex && nestLevel > 0) {
+                while (j < blockEnd && nestLevel > 0) {
                     const a = currentTask.actions[j];
-                    if (a.type === 'if' || a.type === 'while') nestLevel++;
+                    if (isBlockStartAction(a.type)) nestLevel++;
                     if (a.type === 'end') {
                         nestLevel--;
-                        if (nestLevel === 0) break;
                     }
-                    if (a.type === 'else' && nestLevel === 1 && action.type === 'if') {
+                    if (a.type === 'else' && nestLevel === 1) {
                         elseIndex = j;
                     }
                     j++;
                 }
-                const blockEnd = j;
 
                 const trueStart = blockStart + 1;
                 const trueEnd = elseIndex !== -1 ? elseIndex : blockEnd;
@@ -695,7 +761,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                         <div className="flex gap-16 mt-4 relative">
                             <div className="flex flex-col items-center min-w-[200px]">
                                 <div className="text-xs font-bold text-white/60 uppercase tracking-widest mb-2">
-                                    {action.type === 'while' ? 'Loop' : 'True'}
+                                    True
                                 </div>
                                 <div className="w-px h-6 bg-white/25" />
                                 <div className="flex flex-col items-center gap-3">
@@ -713,8 +779,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     </button>
                                 </div>
                             </div>
-                            {action.type === 'if' && (
-                                <div className="flex flex-col items-center min-w-[200px]">
+                            <div className="flex flex-col items-center min-w-[200px]">
                                     <div className="text-xs font-bold text-white/60 uppercase tracking-widest mb-2">Otherwise</div>
                                     <div className="w-px h-6 bg-white/25" />
                                     <div className="flex flex-col items-center gap-3">
@@ -742,8 +807,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                             <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
                                         </button>
                                     </div>
-                                </div>
-                            )}
+                            </div>
                         </div>
                         <div className="flex flex-col items-center mt-3">
                             <div className="w-px h-2 bg-white/25" />
@@ -756,6 +820,74 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <MaterialIcon name="add" className="text-sm text-gray-600 group-hover:text-white transition-colors" />
                             </button>
                             <div className="w-px h-2 bg-white/25" />
+                        </div>
+                    </div>
+                );
+                i = blockEnd + 1;
+            } else if (isLoopAction(action.type) && matchingEnd !== null && matchingEnd < endIndex) {
+                const blockEnd = matchingEnd;
+                const bodyStart = currentIndex + 1;
+                const bodyEnd = blockEnd;
+
+                nodes.push(
+                    <div key={action.id} className="flex flex-col items-center w-full">
+                        <div className="w-[360px]">
+                            <ActionItem
+                                action={action}
+                                index={currentIndex}
+                                isDragOver={dragOverIndex === currentIndex && dragState?.id !== action.id}
+                                isDragging={dragState?.id === action.id}
+                                dragTransformY={dragState?.id === action.id ? dragState.currentY - dragState.startY : undefined}
+                                isSelected={selectedActionIds.has(action.id)}
+                                status={actionStatusById[action.id] as any}
+                                translateY={0}
+                                variables={currentTask.variables}
+                                availableTasks={availableTasks}
+                                selectorOptions={selectorOptionsById[action.id]}
+                                onUpdate={updateAction}
+                                onAutoSave={handleAutoSave}
+                                onOpenPalette={openActionPalette}
+                                onOpenContextMenu={openContextMenu}
+                                onPointerDown={handleActionPointerDown}
+                                onStartInspect={onStartInspect}
+                                onCreateVariable={handleCreateVariable}
+                                onDeleteVariable={handleDeleteVariable}
+                                autoOpenConfig={autoOpenActionId === action.id}
+                                onCloseConfigModal={onClearAutoOpenActionId}
+                            />
+                        </div>
+
+                        <div className="relative w-[760px] shrink-0 pt-[132px] pb-11">
+                            <LoopConnector />
+
+                            <div className="relative z-10 ml-[420px] w-[360px] flex flex-col items-center">
+                                <div className="flex flex-col items-center gap-3 w-full">
+                                    {buildAst(bodyStart, bodyEnd, _depth + 1)}
+                                </div>
+                                <div className="mt-2 flex flex-col items-center">
+                                    <div className="h-4 border-l border-white/20" />
+                                    <button
+                                        onClick={() => openActionPalette(undefined, bodyEnd)}
+                                        className="relative z-20 w-12 h-12 border border-dashed border-white/15 rounded-xl bg-[var(--app-bg)] hover:border-white/30 hover:bg-[var(--app-surface)] transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                        aria-label="Add action inside loop (Ctrl + K)"
+                                        title="Add action inside loop (Ctrl + K)"
+                                    >
+                                        <MaterialIcon name="add" className="text-lg text-gray-500 group-hover:text-white transition-colors" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="relative z-10 flex flex-col items-center">
+                            <button
+                                onClick={() => openActionPalette(undefined, blockEnd + 1)}
+                                className="relative z-20 w-8 h-8 border border-dashed border-white/10 rounded-lg bg-[var(--app-bg)] hover:border-white/30 hover:bg-[var(--app-surface)] transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                aria-label="Add action after loop (Ctrl + K)"
+                                title="Add action after loop (Ctrl + K)"
+                            >
+                                <MaterialIcon name="add" className="text-sm text-gray-600 group-hover:text-white transition-colors" />
+                            </button>
+                            <div className="h-2 border-l border-white/25" />
                         </div>
                     </div>
                 );
@@ -795,7 +927,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <div className="w-px h-2 bg-white/25" />
                                 <button
                                     onClick={() => openActionPalette(undefined, currentIndex + 1)}
-                                    className="w-8 h-8 border border-dashed border-white/10 rounded-lg hover:border-white/30 hover:bg-white/5 transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                                    className="relative z-20 w-8 h-8 border border-dashed border-white/10 rounded-lg bg-[var(--app-bg)] hover:border-white/30 hover:bg-[var(--app-surface)] transition-all flex items-center justify-center group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                     aria-label="Add action (Ctrl + K)"
                                     title="Add action (Ctrl + K)"
                                 >

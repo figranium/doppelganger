@@ -3,6 +3,14 @@ import MaterialIcon from './MaterialIcon';
 import { Task, Action, StickyNote, StickyNoteColor, Results, ConfirmRequest, ViewMode } from '../types';
 import { generateExtractionScript } from '../utils/extractionScriptGen';
 import { TASK_FIELD_INSPECT_PREFIX, taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../utils/extractionFieldIds';
+import {
+    cloneActionsWithFreshIds,
+    createActionSequence,
+    expandActionIdsToBlocks,
+    findMatchingEndIndex,
+    getActionBlockRange,
+    requiresEndMarker,
+} from '../utils/actionBlocks';
 import ActionPalette from './editor/ActionPalette';
 import TaskSettingsCabinet from './editor/TaskSettingsCabinet';
 
@@ -232,25 +240,8 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
             if (e.key === 'Backspace' || e.key === 'Delete') {
                 if (actions.selectedActionIds.size > 0 || selectedNoteIds.size > 0) {
                     e.preventDefault();
-                    let nextActions = [...currentTask.actions];
-                    actions.selectedActionIds.forEach(id => {
-                        const idx = nextActions.findIndex(a => a.id === id);
-                        if (idx !== -1) {
-                            const action = nextActions[idx];
-                            if (action.type === 'if' || action.type === 'while') {
-                                let nestCount = 1;
-                                for (let i = idx + 1; i < nextActions.length; i++) {
-                                    if (nextActions[i].type === 'if' || nextActions[i].type === 'while') nestCount++;
-                                    if (nextActions[i].type === 'end') nestCount--;
-                                    if (nestCount === 0) {
-                                        nextActions.splice(i, 1);
-                                        break;
-                                    }
-                                }
-                            }
-                            nextActions.splice(idx, 1);
-                        }
-                    });
+                    const affectedActionIds = expandActionIdsToBlocks(currentTask.actions, actions.selectedActionIds);
+                    const nextActions = currentTask.actions.filter((action) => !affectedActionIds.has(action.id));
                     const next = {
                         ...currentTask,
                         actions: nextActions,
@@ -264,8 +255,10 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
             } else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
                 if (actions.selectedActionIds.size > 0 || selectedNoteIds.size > 0) {
                     e.preventDefault();
-                    if (actions.selectedActionIds.size > 0)
-                        setActionClipboard(currentTask.actions.filter(a => actions.selectedActionIds.has(a.id)));
+                    if (actions.selectedActionIds.size > 0) {
+                        const affectedActionIds = expandActionIdsToBlocks(currentTask.actions, actions.selectedActionIds);
+                        setActionClipboard(currentTask.actions.filter(a => affectedActionIds.has(a.id)));
+                    }
                     if (selectedNoteIds.size > 0)
                         setNoteClipboard((currentTask.stickyNotes || []).filter(n => selectedNoteIds.has(n.id)));
                 }
@@ -276,7 +269,11 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                     let newActionIds: string[] = [];
                     let newNoteIds: string[] = [];
                     if (actionClipboard.length > 0) {
-                        const clones = actionClipboard.map(a => ({ ...a, id: 'act_' + Date.now() + '_' + Math.floor(Math.random() * 1000) }));
+                        const cloneBatchId = Date.now();
+                        const clones = cloneActionsWithFreshIds(
+                            actionClipboard,
+                            (_action, index) => `act_${cloneBatchId}_${index}_${Math.floor(Math.random() * 1000)}`,
+                        );
                         const lastIdx = Math.max(-1, ...actionClipboard.map(a => next.actions.findIndex(ca => ca.id === a.id)));
                         const insertAt = lastIdx >= 0 ? lastIdx + 1 : next.actions.length;
                         const newActions = [...next.actions];
@@ -328,11 +325,6 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
         setContextMenu({ id, x, y });
     }, []);
 
-    const createActionClone = (action: Action) => ({
-        ...action,
-        id: "act_" + Date.now() + "_" + Math.floor(Math.random() * 1000)
-    });
-
     const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothing'];
 
     const addActionByType = (type: Action['type']) => {
@@ -345,16 +337,12 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
             base.conditionVarType = 'string';
             base.conditionOp = 'equals';
             base.conditionValue = '';
-            const endAction: Action = { id: 'act_' + Date.now() + '_end', type: 'end', selector: '', value: '' };
-            const next = { ...currentTask, actions: [...currentTask.actions, base, endAction] };
-            setCurrentTask(next);
-            handleAutoSave(next);
-        } else {
-            if (type === 'wait_downloads') base.value = '30';
-            const next = { ...currentTask, actions: [...currentTask.actions, base] };
-            setCurrentTask(next);
-            handleAutoSave(next);
         }
+        if (type === 'wait_downloads') base.value = '30';
+        const sequence = createActionSequence(base, 'act_' + Date.now() + '_end');
+        const next = { ...currentTask, actions: [...currentTask.actions, ...sequence] };
+        setCurrentTask(next);
+        handleAutoSave(next);
         if (!NO_CONFIG_TYPES.includes(type)) {
             setAutoOpenActionId(base.id);
         }
@@ -510,7 +498,9 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 const target = currentTask.actions[targetIndex];
                 if (!target) return null;
                 const isTargetSelected = actions.selectedActionIds.has(target.id) && actions.selectedActionIds.size > 1;
-                const affectedIds = isTargetSelected ? Array.from(actions.selectedActionIds) : [target.id];
+                const selectedIds = isTargetSelected ? actions.selectedActionIds : new Set([target.id]);
+                const affectedIdSet = expandActionIdsToBlocks(currentTask.actions, selectedIds);
+                const affectedIds = Array.from(affectedIdSet);
 
                 return (
                     <>
@@ -558,10 +548,15 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                             Copy {isTargetSelected ? 'All' : ''}
                         </button>
                         <button onClick={() => {
-                            const affectedActions = currentTask.actions.filter(a => affectedIds.includes(a.id));
-                            const clones = affectedActions.map(a => createActionClone(a));
+                            const affectedActions = currentTask.actions.filter(a => affectedIdSet.has(a.id));
+                            const cloneBatchId = Date.now();
+                            const clones = cloneActionsWithFreshIds(
+                                affectedActions,
+                                (_action, index) => `act_${cloneBatchId}_${index}_${Math.floor(Math.random() * 1000)}`,
+                            );
                             const next = [...currentTask.actions];
-                            next.splice(targetIndex + 1, 0, ...clones);
+                            const targetRange = getActionBlockRange(currentTask.actions, targetIndex);
+                            next.splice(targetRange.end + 1, 0, ...clones);
                             const nextTask = { ...currentTask, actions: next };
                             setCurrentTask(nextTask);
                             handleAutoSave(nextTask);
@@ -582,7 +577,28 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 onClose={() => setActionPaletteOpen(false)}
                 onSelect={(type) => {
                     if (actionPaletteTargetId) {
-                        actions.updateAction(actionPaletteTargetId, { type }, true);
+                        const targetIndex = currentTask.actions.findIndex((action) => action.id === actionPaletteTargetId);
+                        if (targetIndex !== -1) {
+                            const previous = currentTask.actions[targetIndex];
+                            const previousIsBlock = requiresEndMarker(previous.type);
+                            const nextIsBlock = requiresEndMarker(type);
+                            const nextActions = [...currentTask.actions];
+                            nextActions[targetIndex] = { ...previous, type };
+                            if (!previousIsBlock && nextIsBlock) {
+                                nextActions.splice(targetIndex + 1, 0, {
+                                    id: `act_${Date.now()}_end`,
+                                    type: 'end',
+                                    selector: '',
+                                    value: '',
+                                });
+                            } else if (previousIsBlock && !nextIsBlock) {
+                                const endIndex = findMatchingEndIndex(currentTask.actions, targetIndex);
+                                if (endIndex !== null) nextActions.splice(endIndex, 1);
+                            }
+                            const next = { ...currentTask, actions: nextActions };
+                            setCurrentTask(next);
+                            handleAutoSave(next);
+                        }
                     } else if (actionPaletteInsertIndex !== null) {
                         const base: Action = { id: 'act_' + Date.now() + '_' + Math.floor(Math.random() * 1000), type, selector: '', value: '' };
                         if (type === 'set' || type === 'merge') base.varName = '';
@@ -596,12 +612,8 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                         }
                         if (type === 'wait_downloads') base.value = '30';
                         const newActions = [...currentTask.actions];
-                        if (type === 'if' || type === 'while') {
-                            const endAction: Action = { id: 'act_' + Date.now() + '_end', type: 'end', selector: '', value: '' };
-                            newActions.splice(actionPaletteInsertIndex, 0, base, endAction);
-                        } else {
-                            newActions.splice(actionPaletteInsertIndex, 0, base);
-                        }
+                        const sequence = createActionSequence(base, 'act_' + Date.now() + '_end');
+                        newActions.splice(actionPaletteInsertIndex, 0, ...sequence);
                         const next = { ...currentTask, actions: newActions };
                         setCurrentTask(next);
                         handleAutoSave(next);

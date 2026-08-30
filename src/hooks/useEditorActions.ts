@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Task, Action } from '../types';
+import { moveActionBlock } from '../utils/actionBlocks';
 
 export const useEditorActions = (
     currentTask: Task,
@@ -42,13 +43,9 @@ export const useEditorActions = (
         if (fromId === toId) return;
         setCurrentTask((prev) => {
             if (!prev) return null;
-            const actions = [...prev.actions];
-            const fromIndex = actions.findIndex((a) => a.id === fromId);
-            const toIndex = actions.findIndex((a) => a.id === toId);
-            if (fromIndex === -1 || toIndex === -1) return prev;
-            const [moved] = actions.splice(fromIndex, 1);
-            actions.splice(toIndex, 0, moved);
-            const next = { ...prev, actions };
+            const nextActions = moveActionBlock(prev.actions, fromId, toId);
+            if (nextActions === prev.actions) return prev;
+            const next = { ...prev, actions: nextActions };
             onSave(next, false);
             return next;
         });
