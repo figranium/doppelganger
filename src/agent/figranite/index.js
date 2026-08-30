@@ -46,6 +46,25 @@ const reportProgress = (runId, payload) => {
     }
 };
 
+const TEST_INPUT_FIELDS = [
+    'selector', 'value', 'key', 'conditionVar', 'conditionVarType', 'conditionOp',
+    'conditionValue', 'typeMode', 'method', 'headers', 'body', 'timeout', 'captchaType',
+];
+
+const buildResolvedActionInputs = (action, resolveTemplate) => {
+    const inputs = {};
+    for (const key of TEST_INPUT_FIELDS) {
+        const value = action?.[key];
+        if (value === undefined || value === null || value === '') continue;
+        inputs[key] = typeof value === 'string' ? resolveTemplate(value) : value;
+    }
+    return inputs;
+};
+
+const snapshotTestVariables = (runtimeVars) => Object.fromEntries(
+    Object.entries(runtimeVars || {}).filter(([name]) => name !== 'html')
+);
+
 const isStopRequested = (runId) => {
     return consumeStopRequest(runId);
 };
@@ -108,6 +127,35 @@ async function runFigranite(data, options = {}) {
     const disableRecording = parseBooleanFlag(disableRecordingRaw);
     const statelessExecutionRaw = data.statelessExecution;
     const statelessExecution = parseBooleanFlag(statelessExecutionRaw);
+    const isTestMode = options.testMode === true;
+    const testRunStartedAt = Date.now();
+    const testTargetActionId = options.stopAfterActionId ? String(options.stopAfterActionId) : null;
+    let testTargetStatus = 'not_reached';
+    let testTargetOutput;
+    let testTargetError;
+    let testTargetInputs = {};
+    let testTargetVariables = snapshotTestVariables(runtimeVars);
+    let testTargetStartedAt = null;
+    let testTargetDurationMs = 0;
+    let stopAfterTargetReached = false;
+
+    const reportActionProgress = (action, status, output, error) => {
+        reportProgress(runId, { actionId: action.id, status });
+        if (!testTargetActionId || String(action.id) !== testTargetActionId) return;
+
+        if (!testTargetStartedAt) {
+            testTargetStartedAt = Date.now();
+            testTargetInputs = buildResolvedActionInputs(action, resolveTemplate);
+        }
+
+        if (status === 'running') return;
+        testTargetStatus = status;
+        testTargetOutput = output;
+        testTargetError = error;
+        testTargetVariables = snapshotTestVariables(runtimeVars);
+        testTargetDurationMs = Date.now() - testTargetStartedAt;
+        stopAfterTargetReached = true;
+    };
     const {
         allowTypos = false,
         idleMovements = false,
@@ -350,6 +398,7 @@ async function runFigranite(data, options = {}) {
         }
 
         while (index < actions.length) {
+            if (stopAfterTargetReached) break;
             if (isStopRequested(runId)) {
                 logs.push('Execution stopped by user.');
                 userStopped = true;
@@ -383,7 +432,7 @@ async function runFigranite(data, options = {}) {
 
             if (act.disabled) {
                 logs.push(`SKIPPED disabled action: ${act.type}`);
-                reportProgress(runId, { actionId: act.id, status: 'skipped' });
+                reportActionProgress(act, 'skipped');
                 index += 1;
                 continue;
             }
@@ -391,10 +440,10 @@ async function runFigranite(data, options = {}) {
             if (act.type === 'on_error') {
                 const endIndex = startToEnd[index];
                 if (endIndex !== undefined) {
-                    reportProgress(runId, { actionId: act.id, status: 'running' });
+                    reportActionProgress(act, 'running');
                     errorHandler = { start: index + 1, end: endIndex };
                     logs.push('On-error handler registered.');
-                    reportProgress(runId, { actionId: act.id, status: 'success' });
+                    reportActionProgress(act, 'success');
                     index = endIndex + 1;
                     continue;
                 }
@@ -402,14 +451,14 @@ async function runFigranite(data, options = {}) {
 
             if (act.type === 'if') {
                 try {
-                    reportProgress(runId, { actionId: act.id, status: 'running' });
+                    reportActionProgress(act, 'running');
                     const hasStructured = act.conditionVarType || act.conditionOp || act.conditionVar || act.conditionValue;
                     const condition = hasStructured
                         ? await evalStructuredCondition(act, page, runtimeVars, resolveTemplate)
                         : await evalCondition(act.value, page, runtimeVars, lastBlockOutput, resolveTemplate);
                     setBlockOutput(condition);
                     logs.push(`If condition: ${condition ? 'true' : 'false'}`);
-                    reportProgress(runId, { actionId: act.id, status: 'success' });
+                    reportActionProgress(act, 'success', condition);
                     if (!condition) {
                         const elseIndex = startToElse[index];
                         if (elseIndex !== undefined) {
@@ -421,7 +470,7 @@ async function runFigranite(data, options = {}) {
                     }
                 } catch (err) {
                     logs.push(`FAILED condition: ${err.message}`);
-                    reportProgress(runId, { actionId: act.id, status: 'error' });
+                    reportActionProgress(act, 'error', undefined, err.message);
                     if (errorHandler && !inErrorHandler) {
                         inErrorHandler = true;
                         index = errorHandler.start;
@@ -433,28 +482,28 @@ async function runFigranite(data, options = {}) {
             }
 
             if (act.type === 'else') {
-                reportProgress(runId, { actionId: act.id, status: 'success' });
+                reportActionProgress(act, 'success');
                 index = (elseToEnd[index] ?? index) + 1;
                 continue;
             }
 
             if (act.type === 'while') {
                 try {
-                    reportProgress(runId, { actionId: act.id, status: 'running' });
+                    reportActionProgress(act, 'running');
                     const hasStructured = act.conditionVarType || act.conditionOp || act.conditionVar || act.conditionValue;
                     const condition = hasStructured
                         ? await evalStructuredCondition(act, page, runtimeVars, resolveTemplate)
                         : await evalCondition(act.value, page, runtimeVars, lastBlockOutput, resolveTemplate);
                     setBlockOutput(condition);
                     logs.push(`While condition: ${condition ? 'true' : 'false'}`);
-                    reportProgress(runId, { actionId: act.id, status: 'success' });
+                    reportActionProgress(act, 'success', condition);
                     if (!condition) {
                         index = (startToEnd[index] ?? index) + 1;
                         continue;
                     }
                 } catch (err) {
                     logs.push(`FAILED condition: ${err.message}`);
-                    reportProgress(runId, { actionId: act.id, status: 'error' });
+                    reportActionProgress(act, 'error', undefined, err.message);
                     if (errorHandler && !inErrorHandler) {
                         inErrorHandler = true;
                         index = errorHandler.start;
@@ -466,7 +515,7 @@ async function runFigranite(data, options = {}) {
             }
 
             if (act.type === 'repeat') {
-                reportProgress(runId, { actionId: act.id, status: 'running' });
+                reportActionProgress(act, 'running');
                 const rawCount = parseInt(resolveMaybe(act.value) || '0', 10);
                 const count = Number.isFinite(rawCount) ? rawCount : 0;
                 let state = repeatState.get(index);
@@ -476,19 +525,19 @@ async function runFigranite(data, options = {}) {
                 }
                 if (state.remaining <= 0) {
                     repeatState.delete(index);
-                    reportProgress(runId, { actionId: act.id, status: 'success' });
+                    reportActionProgress(act, 'success', 0);
                     index = (startToEnd[index] ?? index) + 1;
                     continue;
                 }
                 logs.push(`Repeat block: ${state.remaining} remaining`);
                 setBlockOutput(state.remaining);
-                reportProgress(runId, { actionId: act.id, status: 'success' });
+                reportActionProgress(act, 'success', state.remaining);
                 index += 1;
                 continue;
             }
 
             if (act.type === 'foreach') {
-                reportProgress(runId, { actionId: act.id, status: 'running' });
+                reportActionProgress(act, 'running');
                 let state = foreachState.get(index);
                 if (!state) {
                     const items = await getForeachItems(act, page, runtimeVars, foreachNeedsHtml[index]);
@@ -497,7 +546,7 @@ async function runFigranite(data, options = {}) {
                 }
                 if (!state.items || state.items.length === 0) {
                     foreachState.delete(index);
-                    reportProgress(runId, { actionId: act.id, status: 'success' });
+                    reportActionProgress(act, 'success', []);
                     index = (startToEnd[index] ?? index) + 1;
                     continue;
                 }
@@ -505,13 +554,13 @@ async function runFigranite(data, options = {}) {
                 setLoopVars(item, state.index, state.items.length);
                 setBlockOutput(item);
                 logs.push(`For-each item ${state.index + 1}/${state.items.length}`);
-                reportProgress(runId, { actionId: act.id, status: 'success' });
+                reportActionProgress(act, 'success', item);
                 index += 1;
                 continue;
             }
 
             if (act.type === 'end') {
-                reportProgress(runId, { actionId: act.id, status: 'success' });
+                reportActionProgress(act, 'success');
                 const startIndex = endToStart[index];
                 if (startIndex !== undefined) {
                     const startAction = actions[startIndex];
@@ -556,17 +605,17 @@ async function runFigranite(data, options = {}) {
             if (stopRequested) break;
 
             try {
-                reportProgress(runId, { actionId: act.id, status: 'running' });
+                reportActionProgress(act, 'running');
                 const result = await executeAction(act, actionContext);
 
                 if (stopRequested) {
                     setBlockOutput(result);
-                    reportProgress(runId, { actionId: act.id, status: stopOutcome === 'error' ? 'error' : 'success' });
+                    reportActionProgress(act, stopOutcome === 'error' ? 'error' : 'success', result);
                     break;
                 }
 
                 if (result !== undefined) setBlockOutput(result);
-                reportProgress(runId, { actionId: act.id, status: 'success' });
+                reportActionProgress(act, 'success', result);
 
                 await maybeAutoSolveCaptcha({ enabled: autoSolveCaptcha, actionType: act.type, page, logs, identity: actionContext.solverIdentity });
             } catch (err) {
@@ -577,7 +626,7 @@ async function runFigranite(data, options = {}) {
                     }
                 }
                 logs.push(`FAILED action ${act.type}: ${err.message}`);
-                reportProgress(runId, { actionId: act.id, status: 'error' });
+                reportActionProgress(act, 'error', undefined, err.message);
                 if (errorHandler && !inErrorHandler) {
                     inErrorHandler = true;
                     index = errorHandler.start;
@@ -591,10 +640,16 @@ async function runFigranite(data, options = {}) {
             if (inErrorHandler && errorHandler && index > errorHandler.end) break;
         }
 
-        if (!userStopped && globalWait) await page.waitForTimeout(parseFloat(globalWait) * 1000);
-        if (!userStopped) await page.waitForTimeout(baseDelay(500));
+        if (userStopped && isTestMode) {
+            testTargetStatus = 'stopped';
+            testTargetDurationMs = Date.now() - (testTargetStartedAt || testRunStartedAt);
+            testTargetVariables = snapshotTestVariables(runtimeVars);
+        }
 
-        if (!userStopped && pendingDownloads.size > 0) {
+        if (!isTestMode && !userStopped && globalWait) await page.waitForTimeout(parseFloat(globalWait) * 1000);
+        if (!isTestMode && !userStopped) await page.waitForTimeout(baseDelay(500));
+
+        if (!isTestMode && !userStopped && pendingDownloads.size > 0) {
             logs.push(`Waiting for ${pendingDownloads.size} pending download(s)...`);
             try {
                 await Promise.race([
@@ -604,14 +659,16 @@ async function runFigranite(data, options = {}) {
             } catch (e) { }
         }
 
-        const extractionScriptRaw = typeof data.extractionScript === 'string'
+        const extractionScriptRaw = !isTestMode && typeof data.extractionScript === 'string'
             ? data.extractionScript
-            : (data.taskSnapshot && typeof data.taskSnapshot.extractionScript === 'string' ? data.taskSnapshot.extractionScript : undefined);
+            : (!isTestMode && data.taskSnapshot && typeof data.taskSnapshot.extractionScript === 'string' ? data.taskSnapshot.extractionScript : undefined);
 
-        const includeHtml = !!(data.includeHtml ?? (data.taskSnapshot && data.taskSnapshot.includeHtml));
+        const includeHtml = !isTestMode && !!(data.includeHtml ?? (data.taskSnapshot && data.taskSnapshot.includeHtml));
 
         let cleanedHtml = '';
-        if (extractionScriptRaw || includeHtml) {
+        if (isTestMode) {
+            cleanedHtml = '';
+        } else if (extractionScriptRaw || includeHtml) {
             // Full DOM cleaning needed for extraction or explicit HTML output
             for (let attempt = 0; attempt < 3; attempt++) {
                 try {
@@ -650,7 +707,9 @@ async function runFigranite(data, options = {}) {
         }
 
         const extractionScript = extractionScriptRaw ? resolveTemplate(extractionScriptRaw) : undefined;
-        const extraction = await runExtractionScript(extractionScript, cleanedHtml, page.url(), includeShadowDom);
+        const extraction = isTestMode
+            ? { result: undefined, logs: [] }
+            : await runExtractionScript(extractionScript, cleanedHtml, page.url(), includeShadowDom);
 
         const capturesDir = path.join(__dirname, '../../public', 'captures');
         // ⚡ Bolt: Use non-blocking directory creation
@@ -672,7 +731,7 @@ async function runFigranite(data, options = {}) {
         const rawExtraction = extraction.result !== undefined ? extraction.result : (extraction.logs.length ? extraction.logs.join('\n') : undefined);
         const formattedExtraction = extractionFormat === 'csv' ? toCsvString(rawExtraction) : rawExtraction;
 
-        if (sessionId) {
+        if (!isTestMode && sessionId) {
             const cleanSessionId = String(sessionId).replace(/[^a-zA-Z0-9_-]/g, '');
             if (cleanSessionId) {
                 const sessionPath = path.join(__dirname, '../../../data/sessions', `${cleanSessionId}.json`);
@@ -706,7 +765,18 @@ async function runFigranite(data, options = {}) {
             logs: logs || [],
             html: (extractionScript && !includeHtml) ? undefined : (typeof cleanedHtml === 'string' ? safeFormatHTML(cleanedHtml) : ''),
             data: formattedExtraction,
-            screenshot_url: screenshotSuccess ? `/captures/${screenshotName}` : null
+            screenshot_url: screenshotSuccess ? `/captures/${screenshotName}` : null,
+            ...(isTestMode ? {
+                testResult: {
+                    actionId: testTargetActionId,
+                    status: testTargetStatus,
+                    durationMs: testTargetDurationMs || (Date.now() - testRunStartedAt),
+                    resolvedInputs: testTargetInputs,
+                    output: testTargetOutput,
+                    error: testTargetError,
+                    variables: testTargetVariables,
+                }
+            } : {})
         };
 
         const video = page.video();
@@ -790,4 +860,14 @@ async function handleAgent(req, res) {
     }
 }
 
-module.exports = { runFigranite, handleAgent, setProgressReporter, setStopChecker, setStopCleaner, maybeAutoSolveCaptcha, TaskInputError };
+module.exports = {
+    runFigranite,
+    handleAgent,
+    setProgressReporter,
+    setStopChecker,
+    setStopCleaner,
+    maybeAutoSolveCaptcha,
+    buildResolvedActionInputs,
+    snapshotTestVariables,
+    TaskInputError,
+};

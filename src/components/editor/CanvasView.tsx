@@ -5,11 +5,15 @@ import RichInput from '../RichInput';
 import CodeEditor from '../CodeEditor';
 import ActionItem from './ActionItem';
 import StickyNote from './StickyNote';
-import { Task, Action, ExtractionField, ExtractionGroup, StickyNote as StickyNoteType } from '../../types';
+import { Task, Action, BlockTestResult, ExtractionField, ExtractionGroup, StickyNote as StickyNoteType } from '../../types';
 import { generateExtractionScript } from '../../utils/extractionScriptGen';
 import { taskFieldInspectId, taskGroupContainerInspectId, taskGroupFieldInspectId } from '../../utils/extractionFieldIds';
 import CustomSelect from '../common/CustomSelect';
 import { EXTRACTION_ATTRIBUTE_OPTIONS } from './extractionOptions';
+import ConfigModalShell from './ConfigModalShell';
+import ConfigVariableList from './ConfigVariableList';
+import useVariableInsertion from './useVariableInsertion';
+import ExecutionConfigModal from './ExecutionConfigModal';
 import {
     findMatchingEndIndex,
     getIfFalseScopeId,
@@ -39,6 +43,7 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
+    const { canInsertVariable, captureInsertionSelection, insertVariable } = useVariableInsertion();
 
     const scriptPreview = (task.extractionScript || '').split('\n').find(l => l.trim()) || '';
 
@@ -112,22 +117,23 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
         }
     };
 
-    const modal = isOpen ? createPortal(
-        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
-            <div className="glass-card w-full max-w-lg rounded-[28px] border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-8 max-h-[85vh]">
-                {/* Header */}
-                <div className="flex items-center justify-between shrink-0">
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.4em] text-gray-500">Extraction Script</p>
-                        <p className="text-xs text-gray-400 mt-1">Runs after page actions. Return data to capture it.</p>
-                    </div>
-                    <button onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); }} className="p-2 rounded-xl text-white/40 hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
-                        <MaterialIcon name="close" className="text-base" />
-                    </button>
-                </div>
+    const closeConfig = useCallback(() => {
+        setIsOpen(false);
+        setShowAiPrompt(false);
+        setAiError(null);
+        onAutoSave();
+    }, [onAutoSave]);
 
-                {/* Scrollable body */}
-                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-6">
+    const modal = isOpen ? (
+        <ConfigModalShell icon="data_object" title="Extraction Script" onClose={closeConfig}>
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(300px,2fr)] lg:gap-8">
+                <div
+                    className="min-w-0 space-y-6"
+                    onFocusCapture={(event) => captureInsertionSelection(event.target)}
+                    onSelectCapture={(event) => captureInsertionSelection(event.target)}
+                    onKeyUpCapture={(event) => captureInsertionSelection(event.target)}
+                    onPointerUpCapture={(event) => captureInsertionSelection(event.target)}
+                >
                     {/* Script */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -465,13 +471,11 @@ const ExtractionScriptBlock: React.FC<ExtractionScriptBlockProps> = ({ task, onU
                         </div>
                     </div>
                 </div>
-
-                <button onClick={() => { setIsOpen(false); setShowAiPrompt(false); setAiError(null); onAutoSave(); }} className="shrink-0 w-full py-3 rounded-2xl bg-white text-black text-xs font-bold uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none">
-                    Done
-                </button>
+                <aside className="min-w-0" aria-label="Extraction context">
+                    <ConfigVariableList variables={task.variables} canInsertVariable={canInsertVariable} onInsertVariable={insertVariable} />
+                </aside>
             </div>
-        </div>,
-        document.body
+        </ConfigModalShell>
     ) : null;
 
     const contextMenuPortal = contextMenu ? createPortal(
@@ -627,9 +631,6 @@ const CanvasView: React.FC<CanvasViewProps> = ({
     canvasOffset,
     canvasScale,
     canvasViewportRef,
-    triggerExpanded,
-    setTriggerExpanded,
-    onOpenCabinet,
     handleAutoSave,
     dragState,
     dragOverIndex,
@@ -682,6 +683,23 @@ const CanvasView: React.FC<CanvasViewProps> = ({
         handleAutoSave(updated);
     }, [currentTask, setCurrentTask, handleAutoSave]);
 
+    const [blockTestResultsById, setBlockTestResultsById] = useState<Record<string, BlockTestResult>>({});
+    const [isExecutionConfigOpen, setIsExecutionConfigOpen] = useState(false);
+
+    const updateExecutionConfig = useCallback((updates: Partial<Task>, saveImmediately = false) => {
+        const updated = { ...currentTask, ...updates };
+        setCurrentTask(updated);
+        if (saveImmediately) handleAutoSave(updated);
+    }, [currentTask, setCurrentTask, handleAutoSave]);
+
+    useEffect(() => {
+        setBlockTestResultsById({});
+    }, [currentTask.id]);
+
+    const handleBlockTestResult = useCallback((result: BlockTestResult) => {
+        setBlockTestResultsById((previous) => ({ ...previous, [result.actionId]: result }));
+    }, []);
+
     const [canvasContextMenu, setCanvasContextMenu] = useState<{ x: number; y: number; worldX: number; worldY: number } | null>(null);
 
     const handleCanvasContextMenu = useCallback((e: React.MouseEvent) => {
@@ -700,7 +718,12 @@ const CanvasView: React.FC<CanvasViewProps> = ({
         setCanvasContextMenu({ x, y, worldX, worldY });
     }, [canvasOffset, canvasScale]);
 
-    const buildAst = (startIndex: number, endIndex: number, _depth: number = 0): React.ReactNode[] => {
+    const buildAst = (
+        startIndex: number,
+        endIndex: number,
+        _depth: number = 0,
+        actionWidth: 280 | 360 = 360,
+    ): React.ReactNode[] => {
         const nodes: React.ReactNode[] = [];
         let i = startIndex;
         while (i < endIndex) {
@@ -732,12 +755,15 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                 const trueEnd = elseIndex !== -1 ? elseIndex : blockEnd;
                 const falseStart = elseIndex !== -1 ? elseIndex + 1 : -1;
                 const falseEnd = elseIndex !== -1 ? blockEnd : -1;
+                const isNestedIf = _depth > 0;
+                const branchActionWidth = isNestedIf ? 280 : actionWidth;
 
                 nodes.push(
                     <div key={action.id} className="flex flex-col items-center w-full">
                         <div className="w-[360px]">
                             <ActionItem
                                 action={action}
+                                task={currentTask}
                                 index={currentIndex}
                                 isDragOver={dragOverIndex === currentIndex && dragState?.id !== action.id}
                                 isDragging={dragState?.id === action.id}
@@ -758,16 +784,18 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 onDeleteVariable={handleDeleteVariable}
                                 autoOpenConfig={autoOpenActionId === action.id}
                                 onCloseConfigModal={onClearAutoOpenActionId}
+                                testResult={blockTestResultsById[action.id]}
+                                onTestResult={handleBlockTestResult}
                             />
                         </div>
-                        <div className="flex gap-16 mt-4 relative">
-                            <div className="flex flex-col items-center min-w-[200px]">
+                        <div className={`flex mt-4 relative ${isNestedIf ? 'gap-6 -translate-x-[132px]' : 'gap-16'}`}>
+                            <div className={`flex flex-col items-center ${isNestedIf ? 'w-[280px]' : 'min-w-[200px]'}`}>
                                 <div className="text-xs font-bold text-white/60 uppercase tracking-widest mb-2">
                                     True
                                 </div>
                                 <div className="w-px h-6 bg-white/25" />
                                 <div className="flex flex-col items-center gap-3">
-                                    {buildAst(trueStart, trueEnd, _depth + 1)}
+                                    {buildAst(trueStart, trueEnd, _depth + 1, branchActionWidth)}
                                 </div>
                                 <div className="mt-2 flex flex-col items-center">
                                     <div className="w-px h-4 bg-white/20" />
@@ -782,11 +810,11 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-center min-w-[200px]">
+                            <div className={`flex flex-col items-center ${isNestedIf ? 'w-[280px]' : 'min-w-[200px]'}`}>
                                     <div className="text-xs font-bold text-white/60 uppercase tracking-widest mb-2">Otherwise</div>
                                     <div className="w-px h-6 bg-white/25" />
                                     <div className="flex flex-col items-center gap-3">
-                                        {falseStart !== -1 ? buildAst(falseStart, falseEnd, _depth + 1) : null}
+                                        {falseStart !== -1 ? buildAst(falseStart, falseEnd, _depth + 1, branchActionWidth) : null}
                                     </div>
                                     <div className="mt-2 flex flex-col items-center">
                                         <div className="w-px h-4 bg-white/20" />
@@ -840,6 +868,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                         <div className="w-[360px]">
                             <ActionItem
                                 action={action}
+                                task={currentTask}
                                 index={currentIndex}
                                 isDragOver={dragOverIndex === currentIndex && dragState?.id !== action.id}
                                 isDragging={dragState?.id === action.id}
@@ -860,6 +889,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 onDeleteVariable={handleDeleteVariable}
                                 autoOpenConfig={autoOpenActionId === action.id}
                                 onCloseConfigModal={onClearAutoOpenActionId}
+                                testResult={blockTestResultsById[action.id]}
+                                onTestResult={handleBlockTestResult}
                             />
                         </div>
 
@@ -916,9 +947,10 @@ const CanvasView: React.FC<CanvasViewProps> = ({
             } else {
                 nodes.push(
                     <div key={action.id} className="flex flex-col items-center">
-                        <div className="w-[360px]">
+                        <div className={actionWidth === 280 ? 'w-[280px]' : 'w-[360px]'}>
                             <ActionItem
                                 action={action}
+                                task={currentTask}
                                 index={currentIndex}
                                 isDragOver={dragOverIndex === currentIndex && dragState?.id !== action.id}
                                 isDragging={dragState?.id === action.id}
@@ -939,6 +971,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 onDeleteVariable={handleDeleteVariable}
                                 autoOpenConfig={autoOpenActionId === action.id}
                                 onCloseConfigModal={onClearAutoOpenActionId}
+                                testResult={blockTestResultsById[action.id]}
+                                onTestResult={handleBlockTestResult}
                             />
                         </div>
                         {i < endIndex - 1 && currentTask.actions[i + 1]?.type !== 'end' && (
@@ -1005,57 +1039,35 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                 ))}
 
                 <div className="relative z-10 flex flex-col items-center pointer-events-none" style={{ paddingTop: '60px', minWidth: '500px' }}>
-                    <div className="w-[360px] bg-black border border-white/15 p-5 rounded-2xl shadow-2xl shadow-black/50 select-text cursor-auto relative z-10 pointer-events-auto">
+                    <div
+                        className="w-[360px] bg-black border border-white/15 p-5 rounded-2xl shadow-2xl shadow-black/50 select-text cursor-auto relative z-10 pointer-events-auto"
+                        onDoubleClick={(event) => {
+                            event.stopPropagation();
+                            setIsExecutionConfigOpen(true);
+                        }}
+                    >
                         <div className="flex items-center justify-between">
                             <button
                                 type="button"
-                                aria-expanded={triggerExpanded}
-                                aria-label={triggerExpanded ? "Collapse trigger settings" : "Expand trigger settings"}
-                                title={triggerExpanded ? "Collapse" : "Expand"}
-                                onClick={() => setTriggerExpanded(!triggerExpanded)}
+                                aria-label="Configure On Execution"
+                                title="Configure On Execution"
+                                onClick={() => setIsExecutionConfigOpen(true)}
                                 className="flex items-center gap-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-lg pr-2 transition-all"
                             >
                                 <MaterialIcon name="bolt" className="text-white/40 text-base" />
                                 <h3 className="text-white/60 font-bold tracking-widest uppercase text-xs">On Execution</h3>
-                                <MaterialIcon name={triggerExpanded ? 'expand_less' : 'expand_more'} className="text-xs text-gray-600" />
                             </button>
                             <button
-                                onClick={() => onOpenCabinet('mode')}
+                                onClick={() => setIsExecutionConfigOpen(true)}
                                 className="p-2 rounded-lg hover:bg-white/10 text-white/30 hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                title="Task Settings"
-                                aria-label="Task Settings"
+                                title="Configure On Execution"
+                                aria-label="Configure On Execution"
                             >
                                 <MaterialIcon name="settings" className="text-lg" />
                             </button>
                         </div>
                         {currentTask.description && (
                             <p className="text-xs text-gray-500 mt-2 leading-relaxed">{currentTask.description}</p>
-                        )}
-                        {triggerExpanded && (
-                            <div className="space-y-4 mt-4 pt-3 border-t border-white/10">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">URL</label>
-                                    <div className="w-full bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-sm focus-within:border-white/30 transition-all">
-                                        <RichInput
-                                            value={currentTask.url}
-                                            onChange={(val) => setCurrentTask({ ...currentTask, url: val })}
-                                            onBlur={() => handleAutoSave()}
-                                            variables={currentTask.variables}
-                                            placeholder="https://..."
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">Wait (sec)</label>
-                                    <input
-                                        type="number"
-                                        value={currentTask.wait}
-                                        onChange={(e) => setCurrentTask({ ...currentTask, wait: parseFloat(e.target.value) || 0 })}
-                                        onBlur={() => handleAutoSave()}
-                                        className="w-full bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-white/30 transition-all text-white"
-                                    />
-                                </div>
-                            </div>
                         )}
                     </div>
                     {(currentTask.mode === 'agent' || currentTask.mode === 'scrape') && <div className="w-px h-10 bg-white/25" />}
@@ -1144,6 +1156,17 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                         }}
                     />
                 </div>
+            )}
+
+            {isExecutionConfigOpen && (
+                <ExecutionConfigModal
+                    task={currentTask}
+                    onUpdate={updateExecutionConfig}
+                    onClose={() => {
+                        setIsExecutionConfigOpen(false);
+                        handleAutoSave(currentTask);
+                    }}
+                />
             )}
 
             {canvasContextMenu && (

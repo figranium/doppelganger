@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Action, Task, Variable } from '../../types';
+import { Action, BlockTestResult, Task, Variable } from '../../types';
 import MaterialIcon from '../MaterialIcon';
 import { ACTION_CATALOG } from './actionCatalog';
 import ActionConfigModal from './ActionConfigModal';
@@ -63,6 +63,7 @@ const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothin
 
 interface ActionItemProps {
     action: Action;
+    task: Task;
     index: number;
     status: 'running' | 'success' | 'error' | 'skipped' | undefined;
     isDragging: boolean;
@@ -83,10 +84,13 @@ interface ActionItemProps {
     selectorOptions?: string[];
     autoOpenConfig?: boolean;
     onCloseConfigModal?: () => void;
+    testResult?: BlockTestResult;
+    onTestResult: (result: BlockTestResult) => void;
 }
 
 const ActionItem: React.FC<ActionItemProps> = React.memo(({
     action,
+    task,
     index,
     status,
     isDragging,
@@ -106,7 +110,9 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
     isSelected,
     selectorOptions,
     autoOpenConfig,
-    onCloseConfigModal
+    onCloseConfigModal,
+    testResult,
+    onTestResult,
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -233,6 +239,7 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
             {isModalOpen && (
                 <ActionConfigModal
                     action={action}
+                    task={task}
                     variables={variables}
                     availableTasks={availableTasks}
                     selectorOptions={selectorOptions}
@@ -245,6 +252,8 @@ const ActionItem: React.FC<ActionItemProps> = React.memo(({
                     onStartInspect={onStartInspect}
                     onCreateVariable={onCreateVariable}
                     onDeleteVariable={onDeleteVariable}
+                    testResult={testResult}
+                    onTestResult={onTestResult}
                 />
             )}
         </>

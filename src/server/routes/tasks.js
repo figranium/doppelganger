@@ -6,8 +6,10 @@ const {
     loadAiModels
 } = require('../storage');
 const { taskMutex } = require('../state');
-const { appendTaskVersion, cloneTaskForVersion } = require('../utils');
-const { handleAgent } = require('../../agent/figranite/index');
+const { concurrencyGate } = require('../execution-queue');
+const { appendTaskVersion, cloneTaskForVersion, removeTaskVersion } = require('../utils');
+const { handleAgent, runFigranite } = require('../../agent/figranite/index');
+const { clearStopRequest } = require('../../agent/execution-control');
 const { fetchWithRedirectValidation } = require('../../../url-utils');
 
 const router = express.Router();
@@ -172,6 +174,22 @@ router.get('/:id/versions/:versionId', requireAuth, async (req, res) => {
     res.json({ snapshot: version.snapshot, metadata: { id: version.id, timestamp: version.timestamp } });
 });
 
+router.delete('/:id/versions/:versionId', requireAuth, async (req, res) => {
+    await taskMutex.lock();
+    try {
+        const tasks = await loadTasks();
+        const index = getTaskIndexById(req.params.id);
+        if (index === -1) return res.status(404).json({ error: 'TASK_NOT_FOUND' });
+        if (!removeTaskVersion(tasks[index], req.params.versionId)) {
+            return res.status(404).json({ error: 'VERSION_NOT_FOUND' });
+        }
+        await saveTasks(tasks);
+        res.json({ success: true, versionId: req.params.versionId });
+    } finally {
+        taskMutex.unlock();
+    }
+});
+
 router.post('/:id/versions/clear', requireAuth, async (req, res) => {
     await taskMutex.lock();
     try {
@@ -210,6 +228,65 @@ router.post('/:id/rollback', requireAuth, async (req, res) => {
         res.json(restored);
     } finally {
         taskMutex.unlock();
+    }
+});
+
+router.post('/test-action', requireAuth, dataRateLimiter, concurrencyGate, async (req, res) => {
+    const { taskSnapshot, targetActionId, variables, runId } = req.body || {};
+    if (!taskSnapshot || typeof taskSnapshot !== 'object' || !Array.isArray(taskSnapshot.actions)) {
+        return res.status(400).json({ error: 'INVALID_TASK_SNAPSHOT' });
+    }
+    if (!targetActionId || !taskSnapshot.actions.some((action) => String(action.id) === String(targetActionId))) {
+        return res.status(400).json({ error: 'INVALID_TARGET_ACTION' });
+    }
+
+    const runtimeVariables = variables && typeof variables === 'object' && !Array.isArray(variables)
+        ? variables
+        : {};
+    const testRunId = String(runId || `block_test_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
+    const testTask = {
+        ...taskSnapshot,
+        wait: 0,
+        output: undefined,
+        extractionScript: undefined,
+        extractionFields: undefined,
+        extractionGroups: undefined,
+        taskVariables: runtimeVariables,
+        variables: runtimeVariables,
+        runId: testRunId,
+        runSource: 'block-test',
+        statelessExecution: true,
+        disableRecording: true,
+    };
+
+    try {
+        const result = await runFigranite(testTask, {
+            headless: true,
+            stopAfterActionId: String(targetActionId),
+            testMode: true,
+        });
+        const testResult = result.testResult || {};
+        res.json({
+            actionId: String(targetActionId),
+            status: testResult.status || 'not_reached',
+            durationMs: Number(testResult.durationMs) || 0,
+            resolvedInputs: testResult.resolvedInputs || {},
+            output: testResult.output,
+            errorMessage: testResult.error,
+            variables: testResult.variables || {},
+            logs: Array.isArray(result.logs) ? result.logs : [],
+            screenshotUrl: result.screenshot_url || null,
+            timestamp: Date.now(),
+        });
+    } catch (error) {
+        const logs = Array.isArray(error.executionLogs) ? error.executionLogs : [];
+        res.status(error.isTaskInputError ? 400 : 500).json({
+            error: error.code || 'BLOCK_TEST_FAILED',
+            details: error.message,
+            logs,
+        });
+    } finally {
+        clearStopRequest(testRunId);
     }
 });
 

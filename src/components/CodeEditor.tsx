@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { highlightCode, SyntaxLanguage } from '../utils/syntaxHighlight';
+import { getVariableDragToken, isVariableDrag, moveTextControlCaretToPoint } from '../utils/variableDrag';
 
 interface CodeEditorProps {
     value: string;
@@ -10,9 +11,10 @@ interface CodeEditorProps {
     className?: string;
     readOnly?: boolean;
     variables?: Record<string, any>;
+    allowVariableInsertion?: boolean;
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onBlur, language, placeholder, className, readOnly, variables }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onBlur, language, placeholder, className, readOnly, variables, allowVariableInsertion = true }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const preRef = useRef<HTMLPreElement>(null);
 
@@ -63,7 +65,29 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, onBlur, langua
                 readOnly={readOnly}
                 className={`code-editor-textarea ${readOnly ? 'code-editor-textarea-readonly' : ''}`}
                 aria-label="Code editor"
+                data-variable-insertion-target={!readOnly && allowVariableInsertion ? 'true' : undefined}
                 tabIndex={readOnly ? -1 : 0}
+                onDragOver={(event) => {
+                    if (readOnly || !allowVariableInsertion || !isVariableDrag(event.dataTransfer)) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'copy';
+                    moveTextControlCaretToPoint(event.currentTarget, event.clientX, event.clientY);
+                }}
+                onDrop={(event) => {
+                    if (readOnly || !allowVariableInsertion || !isVariableDrag(event.dataTransfer)) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const token = getVariableDragToken(event.dataTransfer);
+                    if (!token) return;
+                    const index = moveTextControlCaretToPoint(event.currentTarget, event.clientX, event.clientY);
+                    const nextValue = `${value.slice(0, index)}${token}${value.slice(index)}`;
+                    onChange?.(nextValue);
+                    requestAnimationFrame(() => {
+                        const caret = index + token.length;
+                        textareaRef.current?.focus({ preventScroll: true });
+                        textareaRef.current?.setSelectionRange(caret, caret);
+                    });
+                }}
             />
         </div>
     );

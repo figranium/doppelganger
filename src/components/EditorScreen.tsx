@@ -84,7 +84,8 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     const canvas = useEditorCanvas();
     useEditorHistory(currentTask, (t) => setCurrentTask(t), (t, v) => onSave(t, v));
     const actions = useEditorActions(currentTask, setCurrentTask as any, (t, v) => onSave(t, v));
-    const versioning = useEditorVersions(currentTask, onNotify, onConfirm, (t) => setCurrentTask(t));
+    const saveVersion = useCallback((task: Task) => onSave(task, true), [onSave]);
+    const versioning = useEditorVersions(currentTask, onNotify, onConfirm, (t) => setCurrentTask(t), saveVersion);
 
     // Local State
     const currentTaskRef = useRef(currentTask);
@@ -706,6 +707,10 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 initialTab={cabinetTab}
                 versions={versioning.versions as any}
                 versionsLoading={versioning.versionsLoading}
+                isCreatingVersion={versioning.isCreatingVersion}
+                onCreateVersion={versioning.createVersion}
+                deletingVersionId={versioning.deletingVersionId}
+                onDeleteVersion={versioning.deleteVersion}
                 onRollback={versioning.rollbackToVersion}
                 onPreview={versioning.openVersionPreview}
             />

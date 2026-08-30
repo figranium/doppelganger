@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { Variable } from '../types';
 import { highlightCode, SyntaxLanguage } from '../utils/syntaxHighlight';
+import { getVariableDragToken, isVariableDrag, moveEditableCaretToPoint } from '../utils/variableDrag';
 
 interface RichInputProps {
     value: string;
@@ -10,9 +11,10 @@ interface RichInputProps {
     variables: Record<string, Variable>;
     className?: string;
     syntax?: SyntaxLanguage;
+    allowVariableInsertion?: boolean;
 }
 
-const RichInput: React.FC<RichInputProps> = ({ value, onChange, onBlur, placeholder, variables, className, syntax = 'plain' }) => {
+const RichInput: React.FC<RichInputProps> = ({ value, onChange, onBlur, placeholder, variables, className, syntax = 'plain', allowVariableInsertion = true }) => {
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -61,9 +63,34 @@ const RichInput: React.FC<RichInputProps> = ({ value, onChange, onBlur, placehol
             role="textbox"
             aria-multiline="true"
             aria-label={placeholder || 'Text input'}
+            data-variable-insertion-target={allowVariableInsertion ? 'true' : undefined}
             className={`rich-input-content w-full bg-transparent focus:outline-none text-white min-h-[1.5rem] ${className}`}
             data-placeholder={placeholder}
             onInput={(e) => onChange(e.currentTarget.textContent || '')}
+            onDragOver={(event) => {
+                if (!allowVariableInsertion || !isVariableDrag(event.dataTransfer)) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'copy';
+                event.currentTarget.focus({ preventScroll: true });
+                moveEditableCaretToPoint(event.currentTarget, event.clientX, event.clientY);
+            }}
+            onDrop={(event) => {
+                if (!allowVariableInsertion || !isVariableDrag(event.dataTransfer)) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const token = getVariableDragToken(event.dataTransfer);
+                if (!token) return;
+                const range = moveEditableCaretToPoint(event.currentTarget, event.clientX, event.clientY);
+                range.deleteContents();
+                const node = document.createTextNode(token);
+                range.insertNode(node);
+                range.setStartAfter(node);
+                range.collapse(true);
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+                onChange(event.currentTarget.textContent || '');
+            }}
             onBlur={(e) => {
                 const val = e.currentTarget.textContent || '';
                 onChange(val);

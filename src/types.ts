@@ -27,6 +27,21 @@ export interface Variable {
     autoCreated?: boolean;
 }
 
+export type BlockTestStatus = 'success' | 'error' | 'skipped' | 'stopped' | 'not_reached';
+
+export interface BlockTestResult {
+    actionId: string;
+    status: BlockTestStatus;
+    durationMs: number;
+    resolvedInputs: Record<string, unknown>;
+    output?: unknown;
+    error?: string;
+    variables: Record<string, unknown>;
+    logs: string[];
+    screenshotUrl?: string | null;
+    timestamp: number;
+}
+
 export interface StealthConfig {
     allowTypos: boolean;
     idleMovements: boolean;

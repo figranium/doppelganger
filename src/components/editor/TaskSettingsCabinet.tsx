@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import MaterialIcon from '../MaterialIcon';
 import { Task, VarType, Credential, TaskOutput, ExtractionField, ExtractionGroup } from '../../types';
 import CodeEditor from '../CodeEditor';
@@ -27,6 +28,10 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
     initialTab?: 'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'output' | 'schedule' | 'history',
     versions: { id: string; timestamp: number; name: string; mode: string }[],
     versionsLoading: boolean,
+    isCreatingVersion: boolean,
+    onCreateVersion: () => void,
+    deletingVersionId: string | null,
+    onDeleteVersion: (id: string) => void,
     onRollback: (id: string) => void,
     onPreview: (id: string) => void
 }> = ({
@@ -43,6 +48,10 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
     initialTab = 'mode',
     versions,
     versionsLoading,
+    isCreatingVersion,
+    onCreateVersion,
+    deletingVersionId,
+    onDeleteVersion,
     onRollback,
     onPreview
 }) => {
@@ -56,12 +65,26 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
         const [dbLoading, setDbLoading] = React.useState(false);
         const [tableLoading, setTableLoading] = React.useState(false);
         const [browseSupported, setBrowseSupported] = React.useState(true);
+        const [versionContextMenu, setVersionContextMenu] = React.useState<{ id: string; x: number; y: number } | null>(null);
 
         React.useEffect(() => {
             if (isOpen) {
                 setActiveTab(initialTab);
             }
         }, [isOpen, initialTab]);
+
+        React.useEffect(() => {
+            if (!isOpen || activeTab !== 'history') setVersionContextMenu(null);
+        }, [activeTab, isOpen]);
+
+        React.useEffect(() => {
+            if (!versionContextMenu) return;
+            const handleKeyDown = (event: KeyboardEvent) => {
+                if (event.key === 'Escape') setVersionContextMenu(null);
+            };
+            window.addEventListener('keydown', handleKeyDown);
+            return () => window.removeEventListener('keydown', handleKeyDown);
+        }, [versionContextMenu]);
 
         React.useEffect(() => {
             if (isOpen && activeTab === 'output') {
@@ -193,6 +216,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
         );
 
         return (
+            <>
             <div className="fixed inset-y-0 right-0 w-[450px] z-[100] flex">
                 {/* Backdrop for closing */}
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
@@ -1035,12 +1059,34 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="flex items-center justify-between">
                                     <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Version History</label>
-                                    {versionsLoading && <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
+                                    <div className="flex items-center gap-3">
+                                        {versionsLoading && <div className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--app-border)] border-t-[var(--app-text)]" />}
+                                        <button
+                                            type="button"
+                                            onClick={onCreateVersion}
+                                            disabled={isCreatingVersion || versionsLoading}
+                                            className="theme-accent-bg flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-border-strong)]"
+                                        >
+                                            <MaterialIcon name={isCreatingVersion ? 'progress_activity' : 'add'} className={`text-sm ${isCreatingVersion ? 'animate-spin' : ''}`} />
+                                            {isCreatingVersion ? 'Creating…' : 'New Version'}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     {versions.map((v) => (
-                                        <div key={v.id} className="bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-4 flex items-center justify-between group hover:border-[var(--app-border-strong)] transition-all">
+                                        <div
+                                            key={v.id}
+                                            onContextMenu={(event) => {
+                                                event.preventDefault();
+                                                setVersionContextMenu({
+                                                    id: v.id,
+                                                    x: Math.max(8, Math.min(event.clientX, window.innerWidth - 184)),
+                                                    y: Math.max(8, Math.min(event.clientY, window.innerHeight - 64)),
+                                                });
+                                            }}
+                                            className={`bg-[var(--app-surface-3)] border border-[var(--app-border)] rounded-2xl p-4 flex items-center justify-between group hover:border-[var(--app-border-strong)] transition-all ${deletingVersionId === v.id ? 'pointer-events-none opacity-50' : ''}`}
+                                        >
                                             <div className="flex flex-col gap-1">
                                                 <div className="text-xs font-bold text-[var(--app-text)] mb-0.5">{new Date(v.timestamp).toLocaleString()}</div>
                                                 <div className="flex items-center gap-2">
@@ -1079,6 +1125,41 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                     </div>
                 </div>
             </div>
+            {versionContextMenu && createPortal(
+                <>
+                    <div
+                        className="fixed inset-0 z-[249]"
+                        onMouseDown={() => setVersionContextMenu(null)}
+                        onContextMenu={(event) => {
+                            event.preventDefault();
+                            setVersionContextMenu(null);
+                        }}
+                    />
+                    <div
+                        role="menu"
+                        aria-label="Version actions"
+                        className="theme-surface theme-text fixed z-[250] w-44 rounded-xl border theme-border-strong p-1.5 shadow-2xl"
+                        style={{ left: versionContextMenu.x, top: versionContextMenu.y }}
+                        onMouseDown={(event) => event.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                                const versionId = versionContextMenu.id;
+                                setVersionContextMenu(null);
+                                onDeleteVersion(versionId);
+                            }}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40"
+                        >
+                            <MaterialIcon name="delete" className="text-sm" />
+                            Delete version
+                        </button>
+                    </div>
+                </>,
+                document.body,
+            )}
+            </>
         );
     };
 

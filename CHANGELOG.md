@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.16.1] - 2026-08-30
+
+### Canvas loop redesign
+- Redesigned `while`, `repeat`, and `foreach` loop actions as atomic canvas blocks with rounded return-path connectors, replacing the previous loop layout with a rendering style consistent with `if` blocks.
+- Added shared action-block helpers (`src/utils/actionBlocks.ts`) for identifying block-start/loop action types, matching a block's start to its `end` marker, computing a block's action range, and expanding a set of selected action ids to fully include any block they belong to.
+- Enabled constrained cross-scope action dragging on the canvas, so an action or block can be dragged into a different branch/loop scope while staying within valid drop targets, and refined the closed-loop connector paths to route cleanly around the redesigned loop blocks.
+
+### Block testing
+- Added a "Run through block" tester to the action configuration modal, letting a single block be executed in a temporary headless browser from the start of the Task up through the selected block, without running extraction, recording, or persistent session state.
+- Added a redesigned block configuration workspace showing resolved inputs, expected output, live variable snapshots, execution logs, and a screenshot of the page after the tested block ran, alongside status (success, error, skipped, stopped, not reached) and duration.
+- Added the ability to stop an in-flight block test, including canceling the underlying execution on the server.
+- Fixed a bug where starting a block test could immediately and silently abort itself: auto-saving the Task right before the test request re-created the test-stop callback, and an effect that treated any change to that callback as a reason to run its cleanup ended up canceling the test that had just started. The cleanup now only fires on the modal actually unmounting.
+
+### Variable insertion
+- Added drag-and-drop variable insertion into plain text/code inputs (`CodeEditor`) and rich text inputs (`RichInput`), placing the dropped variable token at the caret position under the cursor.
+- Extracted shared variable-insertion helpers (`src/utils/variableDrag.ts`) and a reusable variable list/palette component (`ConfigVariableList`) used by the new block configuration workspace.
+
+### Task versions
+- Added the ability to permanently delete an individual saved Task version, alongside the existing version preview, rollback, and clear-all actions.
+- Added explicit loading state while a new version is being created or an existing one deleted, so the versions panel no longer allows overlapping requests.
+
+### Editor
+- Split the action configuration modal into a shared `ConfigModalShell` plus dedicated `BlockConfigWorkspace` and `ExecutionConfigModal` surfaces, aligning its layout with the new block-testing and variable-insertion functionality.
+
 ## [0.16.0] - 2026-08-29
 
 ### Execution outcomes

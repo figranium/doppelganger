@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { cloneTaskForVersion, appendTaskVersion } = require('../src/server/utils');
+const { cloneTaskForVersion, appendTaskVersion, removeTaskVersion } = require('../src/server/utils');
 const { MAX_TASK_VERSIONS } = require('../src/server/constants');
 
 // 1. Test cloneTaskForVersion
@@ -60,5 +60,19 @@ for (let i = 0; i < MAX_TASK_VERSIONS + 5; i++) {
 assert.strictEqual(taskManyVersions.versions.length, MAX_TASK_VERSIONS, `Should cap at ${MAX_TASK_VERSIONS}`);
 
 console.log('✓ appendTaskVersion tests passed');
+
+console.log('Testing removeTaskVersion...');
+const taskWithRemovableVersion = {
+    id: 'task4',
+    versions: [
+        { id: 'ver_keep', timestamp: 1, snapshot: {} },
+        { id: 'ver_delete', timestamp: 2, snapshot: {} },
+    ],
+};
+assert.strictEqual(removeTaskVersion(taskWithRemovableVersion, 'ver_delete'), true);
+assert.deepStrictEqual(taskWithRemovableVersion.versions.map((version) => version.id), ['ver_keep']);
+assert.strictEqual(removeTaskVersion(taskWithRemovableVersion, 'ver_missing'), false);
+assert.strictEqual(removeTaskVersion(null, 'ver_keep'), false);
+console.log('✓ removeTaskVersion tests passed');
 
 console.log('All server-utils tests passed successfully!');

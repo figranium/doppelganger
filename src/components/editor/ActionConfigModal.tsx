@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Action, Task, Variable, VarType } from '../../types';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Action, BlockTestResult, Task, Variable, VarType } from '../../types';
 import MaterialIcon from '../MaterialIcon';
 import RichInput from '../RichInput';
 import CodeEditor from '../CodeEditor';
 import { ACTION_CATALOG } from './actionCatalog';
 import CustomSelect, { CustomCombobox } from '../common/CustomSelect';
+import BlockConfigWorkspace from './BlockConfigWorkspace';
+import ConfigModalShell from './ConfigModalShell';
+import useVariableInsertion from './useVariableInsertion';
 
 const PRESS_MODIFIERS = [
     { value: 'Control', label: 'Ctrl' },
@@ -77,6 +79,7 @@ const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothin
 
 interface ActionConfigModalProps {
     action: Action;
+    task: Task;
     variables: Record<string, Variable>;
     availableTasks: Task[];
     selectorOptions?: string[];
@@ -86,10 +89,13 @@ interface ActionConfigModalProps {
     onStartInspect?: (id: string) => void;
     onCreateVariable?: (name: string) => void;
     onDeleteVariable?: (name: string) => void;
+    testResult?: BlockTestResult;
+    onTestResult: (result: BlockTestResult) => void;
 }
 
 const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
     action,
+    task,
     variables,
     availableTasks,
     selectorOptions,
@@ -99,8 +105,17 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
     onStartInspect,
     onCreateVariable,
     onDeleteVariable,
+    testResult,
+    onTestResult,
 }) => {
-    const label = ACTION_CATALOG.find((i) => i.type === action.type)?.label || action.type;
+    const catalogItem = ACTION_CATALOG.find((i) => i.type === action.type);
+    const label = catalogItem?.label || action.type;
+    const [isTesting, setIsTesting] = useState(false);
+    const [testError, setTestError] = useState<string | null>(null);
+    const { canInsertVariable, captureInsertionSelection, insertVariable } = useVariableInsertion();
+    const testAbortRef = useRef<AbortController | null>(null);
+    const testRunIdRef = useRef<string | null>(null);
+    const testStartedAtRef = useRef(0);
 
     const [showAiPrompt, setShowAiPrompt] = useState(false);
     const [aiDescription, setAiDescription] = useState('');
@@ -128,13 +143,100 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
             setAiLoading(false);
         }
     };
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
+    const stopTest = useCallback((recordStoppedResult = true) => {
+        const runId = testRunIdRef.current;
+        if (runId) {
+            fetch('/api/executions/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ runId }),
+            }).catch(() => undefined);
+        }
+        testAbortRef.current?.abort();
+        testAbortRef.current = null;
+        testRunIdRef.current = null;
+        setIsTesting(false);
+        if (recordStoppedResult && testStartedAtRef.current) {
+            onTestResult({
+                actionId: action.id,
+                status: 'stopped',
+                durationMs: Date.now() - testStartedAtRef.current,
+                resolvedInputs: {},
+                variables: Object.fromEntries(Object.entries(variables).map(([name, definition]) => [name, definition.value])),
+                logs: ['Block test stopped by user.'],
+                screenshotUrl: null,
+                timestamp: Date.now(),
+            });
+        }
+    }, [action.id, onTestResult, variables]);
+
+    const runTest = useCallback(async () => {
+        if (isTesting) return;
+        const runId = `block_test_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        const controller = new AbortController();
+        const runtimeVariables = Object.fromEntries(
+            Object.entries(variables).map(([name, definition]) => [name, definition.value])
+        );
+        testAbortRef.current = controller;
+        testRunIdRef.current = runId;
+        testStartedAtRef.current = Date.now();
+        setIsTesting(true);
+        setTestError(null);
+        onAutoSave();
+
+        try {
+            const response = await fetch('/api/tasks/test-action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskSnapshot: task, targetActionId: action.id, variables: runtimeVariables, runId }),
+                signal: controller.signal,
+            });
+            if (response.redirected && new URL(response.url).pathname === '/login') {
+                throw new Error('Your session expired. Sign in again, then retry the block test.');
+            }
+            const isJson = response.headers.get('content-type')?.includes('application/json');
+            if (!isJson) {
+                if (response.status === 404) {
+                    throw new Error('The block-test endpoint is unavailable. Restart the backend and refresh this page.');
+                }
+                throw new Error(`The block-test endpoint returned an unexpected response (${response.status}).`);
+            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.details || data.error || 'Block test failed');
+            onTestResult({
+                actionId: action.id,
+                status: data.status || 'not_reached',
+                durationMs: Number(data.durationMs) || 0,
+                resolvedInputs: data.resolvedInputs || {},
+                output: data.output,
+                error: data.errorMessage,
+                variables: data.variables || {},
+                logs: Array.isArray(data.logs) ? data.logs : [],
+                screenshotUrl: data.screenshotUrl || null,
+                timestamp: Number(data.timestamp) || Date.now(),
+            });
+        } catch (error: any) {
+            if (error?.name !== 'AbortError') setTestError(error?.message || 'Block test failed');
+        } finally {
+            if (testAbortRef.current === controller) {
+                testAbortRef.current = null;
+                testRunIdRef.current = null;
+                setIsTesting(false);
+            }
+        }
+    }, [action.id, isTesting, onAutoSave, onTestResult, task, variables]);
+
+    const handleClose = useCallback(() => {
+        if (testAbortRef.current) stopTest(false);
+        onClose();
+    }, [onClose, stopTest]);
+
+    const stopTestRef = useRef(stopTest);
+    stopTestRef.current = stopTest;
+
+    useEffect(() => () => {
+        if (testAbortRef.current) stopTestRef.current(false);
+    }, []);
 
     const autoCreatedInSession = useRef(new Set<string>());
 
@@ -203,9 +305,12 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
 
         const httpMethod = action.method || 'GET';
         const bodyMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+        const useTwoColumnLayout = ['type', 'scroll', 'foreach', 'set', 'merge', 'solve_captcha'].includes(action.type);
 
         return (
-            <div className="space-y-10">
+            <div className={useTwoColumnLayout
+                ? 'grid grid-cols-1 content-start items-start gap-x-8 gap-y-10 md:grid-cols-2'
+                : 'space-y-10'}>
                 {/* Selector field */}
                 {(action.type === 'click' || action.type === 'type' || action.type === 'hover' || action.type === 'wait_selector' || action.type === 'scroll') && (
                     field(action.type === 'scroll' ? 'Selector (Optional)' : 'Selector',
@@ -234,7 +339,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             </div>
                             {onStartInspect && (
                                 <button
-                                    onClick={() => { onClose(); onStartInspect(action.id); }}
+                                    onClick={() => { handleClose(); onStartInspect(action.id); }}
                                     disabled={action.disabled}
                                     className="text-white opacity-50 hover:opacity-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-20 disabled:cursor-not-allowed rounded"
                                     title="Pick Selector in Browser"
@@ -427,7 +532,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                                         />
                                         {onStartInspect && (
                                             <button
-                                                onClick={() => { onClose(); onStartInspect(action.id); }}
+                                                onClick={() => { handleClose(); onStartInspect(action.id); }}
                                                 disabled={action.disabled}
                                                 className="text-white opacity-50 hover:opacity-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 shrink-0 disabled:opacity-20 disabled:cursor-not-allowed rounded"
                                                 title="Pick Selector in Browser"
@@ -489,6 +594,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                                     onChange={(e) => onUpdate(action.id, { conditionValue: e.target.value })}
                                     onBlur={() => onAutoSave()}
                                     placeholder={condVarType === 'number' ? '0' : 'value'}
+                                    data-variable-insertion-target={condVarType === 'number' ? undefined : 'true'}
                                     className="w-full bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-white/30"
                                 />
                             </div>
@@ -526,6 +632,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             onChange={(v) => onUpdate(action.id, { varName: v })}
                             onBlur={() => onAutoSave()}
                             variables={variables}
+                            allowVariableInsertion={false}
                             placeholder="items"
                         />
                     ))}
@@ -539,6 +646,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             onChange={(v) => onUpdate(action.id, { varName: v })}
                             onBlur={() => onAutoSave()}
                             variables={variables}
+                            allowVariableInsertion={false}
                             placeholder="status"
                         />
                     ))}
@@ -570,6 +678,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             onChange={(v) => onUpdate(action.id, { varName: v })}
                             onBlur={() => onAutoSave()}
                             variables={variables}
+                            allowVariableInsertion={false}
                             placeholder="allItems"
                         />
                     ))}
@@ -673,6 +782,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             onChange={(v) => onUpdate(action.id, { varName: v })}
                             onBlur={() => onAutoSave()}
                             variables={variables}
+                            allowVariableInsertion={false}
                             placeholder="apiResponse"
                         />
                     ))}
@@ -695,6 +805,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             onChange={(v) => onUpdate(action.id, { varName: v })}
                             onBlur={() => onAutoSave()}
                             variables={variables}
+                            allowVariableInsertion={false}
                             placeholder="pageContent"
                         />
                     ))}
@@ -748,6 +859,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                             onChange={(v) => onUpdate(action.id, { varName: v })}
                             onBlur={() => onAutoSave()}
                             variables={variables}
+                            allowVariableInsertion={false}
                             placeholder="captchaResult"
                         />
                     ))}
@@ -756,47 +868,31 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
         );
     };
 
-    return createPortal(
-        <div
-            className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6"
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-        >
-            <div
-                className="glass-card w-full max-w-lg rounded-[28px] border border-white/10 p-7 shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col gap-10 max-h-[85vh]"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="flex items-center justify-between shrink-0">
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.4em] text-gray-500">{label}</p>
-                        <p className="text-xs text-gray-400 mt-1">Configure this block.</p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 text-white/40 hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-xl"
-                        aria-label="Close"
-                        title="Close"
+    return (
+        <ConfigModalShell icon={catalogItem?.icon || 'tune'} title={label} onClose={handleClose}>
+            <BlockConfigWorkspace
+                configuration={(
+                    <div
+                            className="min-w-0"
+                            onFocusCapture={(event) => captureInsertionSelection(event.target)}
+                            onSelectCapture={(event) => captureInsertionSelection(event.target)}
+                            onKeyUpCapture={(event) => captureInsertionSelection(event.target)}
+                            onPointerUpCapture={(event) => captureInsertionSelection(event.target)}
                     >
-                        <MaterialIcon name="close" className="text-base" />
-                    </button>
-                </div>
-
-                <div className="overflow-y-auto custom-scrollbar pr-1">
-                    {renderForm()}
-                </div>
-
-                <button
-                    onClick={onClose}
-                    className="shrink-0 w-full py-3 rounded-2xl bg-white text-black text-xs font-bold uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                    Done
-                </button>
-            </div>
-        </div>,
-        document.body
+                        {renderForm()}
+                    </div>
+                )}
+                action={action}
+                variables={variables}
+                canInsertVariable={canInsertVariable}
+                isTesting={isTesting}
+                testError={testError}
+                testResult={testResult}
+                onInsertVariable={insertVariable}
+                onRunTest={runTest}
+                onStopTest={() => stopTest(true)}
+            />
+        </ConfigModalShell>
     );
 };
 

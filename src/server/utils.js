@@ -48,6 +48,14 @@ function appendTaskVersion(task) {
     }
 }
 
+function removeTaskVersion(task, versionId) {
+    if (!task || !Array.isArray(task.versions)) return false;
+    const index = task.versions.findIndex((version) => version.id === versionId);
+    if (index === -1) return false;
+    task.versions.splice(index, 1);
+    return true;
+}
+
 const tryBind = (host, port) => new Promise((resolve, reject) => {
     const tester = net.createServer();
     tester.unref();
@@ -157,6 +165,7 @@ module.exports = {
     Mutex,
     cloneTaskForVersion,
     appendTaskVersion,
+    removeTaskVersion,
     isPortAvailable,
     findAvailablePort,
     proxyWebsockify,
