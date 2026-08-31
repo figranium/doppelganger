@@ -631,6 +631,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({
     canvasOffset,
     canvasScale,
     canvasViewportRef,
+    onOpenCabinet,
     handleAutoSave,
     dragState,
     dragOverIndex,
@@ -1058,10 +1059,11 @@ const CanvasView: React.FC<CanvasViewProps> = ({
                                 <h3 className="text-white/60 font-bold tracking-widest uppercase text-xs">On Execution</h3>
                             </button>
                             <button
-                                onClick={() => setIsExecutionConfigOpen(true)}
+                                type="button"
+                                onClick={() => onOpenCabinet('mode')}
                                 className="p-2 rounded-lg hover:bg-white/10 text-white/30 hover:text-white transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                                title="Configure On Execution"
-                                aria-label="Configure On Execution"
+                                title="Open Task Settings"
+                                aria-label="Open Task Settings"
                             >
                                 <MaterialIcon name="settings" className="text-lg" />
                             </button>
