@@ -8,7 +8,7 @@ const { formatHTML } = require('./html-utils');
 const { validateUrl } = require('./url-utils');
 const { toCsvString } = require('./common-utils');
 const { resolveTaskOutcome, findAntiBotReason } = require('./src/agent/outcomes');
-const { consumeStopRequest, clearStopRequest } = require('./src/agent/execution-control');
+const { consumeStopRequest, clearStopRequest, registerActiveRun, unregisterActiveRun } = require('./src/agent/execution-control');
 const { sendExecutionUpdate } = require('./src/server/state');
 
 const HEADFUL_STATE_PATH = path.join(__dirname, 'data', 'headful-storage-state.json');
@@ -143,8 +143,18 @@ async function runScrape(data) {
     }
 
     const runId = data.runId ? String(data.runId) : null;
+    let isForceStopped = false;
+
+    if (runId) {
+        registerActiveRun(runId, {
+            forceStop: () => {
+                isForceStopped = true;
+            }
+        });
+    }
+
     sendExecutionUpdate(runId, { status: 'started' });
-    if (consumeStopRequest(runId)) {
+    if (isForceStopped || consumeStopRequest(runId)) {
         return { outcome: 'stopped', url, html: '', data: null, links: [], screenshot_url: null, logs: ['Execution stopped by user.'] };
     }
 
@@ -217,7 +227,7 @@ async function runScrape(data) {
             title: $('title').first().text().trim(),
             html
         });
-        const stopped = consumeStopRequest(runId);
+        const stopped = isForceStopped || consumeStopRequest(runId);
         const outcome = resolveTaskOutcome({ antiBot: Boolean(antiBotReason), stopped });
         const logs = [];
         if (stopped) logs.push('Execution stopped by user.');
@@ -267,7 +277,10 @@ async function handleScrape(req, res) {
         sendExecutionUpdate(data.runId, { status: 'finished', outcome });
         res.json({ outcome, error: 'Failed to scrape', details: error.message, logs });
     } finally {
-        clearStopRequest(data.runId);
+        if (data.runId) {
+            unregisterActiveRun(data.runId);
+            clearStopRequest(data.runId);
+        }
     }
 }
 

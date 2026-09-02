@@ -3,6 +3,7 @@ const { requireAuth, requireApiKey } = require('../middleware');
 const { loadExecutions, saveExecutions, getExecutionById } = require('../storage');
 const { executionStreams, stopRequests, sendExecutionUpdate } = require('../state');
 const { normalizeTaskOutcome } = require('../../agent/outcomes');
+const { requestStop } = require('../../agent/execution-control');
 
 const router = express.Router();
 
@@ -88,6 +89,7 @@ router.post('/stop', requireAuth, (req, res) => {
     const runId = String(req.body?.runId || '').trim();
     if (!runId) return res.status(400).json({ error: 'MISSING_RUN_ID' });
     stopRequests.add(runId);
+    requestStop(runId);
     // Try to notify the stream as well
     try {
         sendExecutionUpdate(runId, { status: 'stop_requested' });

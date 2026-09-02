@@ -12,6 +12,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
     const useNovnc = useHeadfulStatus();
     const executeAbortRef = useRef<AbortController | null>(null);
+    const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const stopHeadful = async () => {
         try {
@@ -50,6 +51,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
     const stopTask = async () => {
         if (!activeRunId || isStopping) return;
         setIsStopping(true);
+
         if (activeRunId) {
             try {
                 await fetch('/api/executions/stop', {
@@ -59,10 +61,18 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
                 });
             } catch (e) {
                 console.error('Failed to request stop', e);
-                setIsStopping(false);
-                showAlert('Failed to request execution stop.', 'error');
             }
         }
+
+        if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
+        stopTimeoutRef.current = setTimeout(() => {
+            if (executeAbortRef.current) {
+                executeAbortRef.current.abort();
+            }
+            setIsExecuting(false);
+            setIsStopping(false);
+            showAlert('Execution stopped.', 'success');
+        }, 3000);
     };
 
     const runTaskWithSnapshot = async (taskToRunRaw: Task | null, currentTask: Task | null, setCurrentTask: (t: Task) => void) => {
@@ -227,6 +237,10 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
                 setIsExecuting(false);
             }
         } finally {
+            if (stopTimeoutRef.current) {
+                clearTimeout(stopTimeoutRef.current);
+                stopTimeoutRef.current = null;
+            }
             executeAbortRef.current = null;
             setIsExecuting(false);
             setIsStopping(false);
