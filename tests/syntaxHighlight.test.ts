@@ -33,6 +33,11 @@ function testHighlightVariables() {
     const res5 = highlightCode("Time: {$now}", "plain", variables);
     assert.ok(res5.includes('class="var-highlight-default"'), "Should use var-highlight-default for 'now'");
 
+    // Reserved variables with dotted names
+    const res7 = highlightCode("Previous: {$block.output}; item: {$loop.item}", "plain", variables);
+    assert.ok(res7.includes('class="var-highlight"'), "Should recognize reserved dotted variables");
+    assert.ok(!res7.includes('var-highlight-undefined'), "Reserved dotted variables should not be undefined");
+
     // HTML Escaping
     const res6 = highlightCode("<b>{$name}</b>", "plain", variables);
     assert.ok(res6.includes("&lt;b&gt;"), "Should escape HTML tags in plain text");
@@ -78,7 +83,7 @@ function testHighlightHtml() {
 function testHighlightJavascript() {
     console.log("  Testing highlightJavascript...");
 
-    const js = 'const x = 10; // comment\nreturn "hello" + {$var};';
+    const js = 'const x = 10; // comment\nreturn "hello" + {$var} + {$block.output};';
     const variables = { var: { value: "world" } };
     const res = highlightCode(js, "javascript", variables);
 
@@ -87,6 +92,7 @@ function testHighlightJavascript() {
     assert.ok(res.includes('class="code-token-comment"'), "Should highlight comments");
     assert.ok(res.includes('class="code-token-string"'), "Should highlight strings");
     assert.ok(res.includes('class="var-highlight-default"'), "Should highlight variables inside JS");
+    assert.ok(res.includes('{$block.output}'), "Should preserve dotted reserved variables inside JS");
 
     assert.ok(res.includes('<span class="code-token-keyword">const</span>'), "Keyword should be highlighted");
     assert.ok(res.includes('// comment'), "Comment should be present");

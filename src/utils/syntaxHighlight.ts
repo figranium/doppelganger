@@ -1,3 +1,5 @@
+import { getReservedVariable } from './reservedVariables';
+
 export type SyntaxLanguage = 'plain' | 'javascript' | 'json' | 'html';
 
 const HTML_ESCAPE_MAP: Record<string, string> = {
@@ -26,14 +28,15 @@ const highlightVariables = (text: string, variables?: Record<string, any>) => {
     // ⚡ Bolt: Fast-path for text that doesn't contain variable placeholders.
     if (!text.includes('{$')) return escapeHtml(text);
 
-    const regex = /\{\$(\w+)\}/g;
+    const regex = /\{\$([\w.]+)\}/g;
     let html = '';
     let lastIndex = 0;
     let match;
 
-    const varExists = (name: string) => !!variables && ((name in variables) || name === 'now');
+    const varExists = (name: string) => !!getReservedVariable(name) || (!!variables && name in variables);
     const hasValue = (name: string) => {
-        if (name === 'now') return true;
+        const reserved = getReservedVariable(name);
+        if (reserved) return !!reserved.hasValue;
         const v = variables ? variables[name] : undefined;
         return v && (v.value !== '' && v.value !== undefined && v.value !== null);
     };
@@ -87,7 +90,7 @@ const highlightJson = (text: string) => {
 };
 
 const highlightJavascript = (text: string, variables?: Record<string, any>) => {
-    const tokenRegex = /(\{\$\w+\})|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|(\btrue\b|\bfalse\b|\bnull\b|\bundefined\b)|(\b[A-Za-z_]\w*\b)/g;
+    const tokenRegex = /(\{\$[\w.]+\})|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)|(\btrue\b|\bfalse\b|\bnull\b|\bundefined\b)|(\b[A-Za-z_]\w*\b)/g;
     let html = '';
     let lastIndex = 0;
     let match;

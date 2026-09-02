@@ -112,24 +112,13 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
                 });
             };
 
-            const resolveMaybe = (value?: string) => {
-                if (typeof value !== 'string') return value;
-                return resolveTemplate(value);
-            };
-
-            const shouldResolve = taskToRun.mode !== 'agent';
             const resolvedTask = {
                 ...taskToRun,
-                url: shouldResolve ? resolveTemplate(taskToRun.url || '') : (taskToRun.url || ''),
-                selector: shouldResolve ? resolveMaybe(taskToRun.selector) : taskToRun.selector,
-                actions: shouldResolve
-                    ? taskToRun.actions.map((action) => ({
-                        ...action,
-                        selector: resolveMaybe(action.selector),
-                        value: resolveMaybe(action.value),
-                        key: resolveMaybe(action.key)
-                    }))
-                    : taskToRun.actions
+                // URLs are known before the run and scrape mode needs a concrete URL.
+                // Action inputs must stay templated: their values can be produced by a
+                // preceding block (for example {$block.output} -> {$adjective}).
+                url: resolveTemplate(taskToRun.url || ''),
+                actions: taskToRun.actions
             };
 
             payload = {

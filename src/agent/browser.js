@@ -143,8 +143,12 @@ async function createBrowserContext(launchOptions, options = {}) {
             args: launchOptions.args,
             ...contextOptions
         });
-        await injectHeadfulCookies(context);
     }
+
+    // Highlight-tool handoffs use a short-lived (stateless) context. Restore
+    // cookies captured from the previous interactive headful session for both
+    // context types so logging in normally carries into that handoff.
+    await injectHeadfulCookies(context);
 
     await setupNavigationProtection(context);
     await context.addInitScript(installMouseHelper);
