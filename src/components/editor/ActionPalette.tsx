@@ -85,7 +85,7 @@ const ActionPalette: React.FC<ActionPaletteProps> = ({ open, query, onQueryChang
             >
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.4em] text-gray-500">Add Block</p>
+                        <p className="text-base font-semibold normal-case tracking-normal text-white">Add Block</p>
                         <p className="text-xs text-gray-400 mt-1">Search actions and control flow blocks.</p>
                     </div>
                     <button
