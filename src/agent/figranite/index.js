@@ -14,7 +14,7 @@ const { evalStructuredCondition, evalCondition } = require('./logic-handler');
 const { executeAction } = require('./action-handler');
 const { solveCaptcha } = require('./captcha-client');
 const { resolveTaskOutcome, inspectPageForAntiBot } = require('../outcomes');
-const { setStopChecker, setStopCleaner, consumeStopRequest, clearStopRequest } = require('../execution-control');
+const { setStopChecker, setStopCleaner, consumeStopRequest, clearStopRequest, registerActiveRun, unregisterActiveRun } = require('../execution-control');
 
 // Action types after which an auto-solve pass (task-level `autoSolveCaptcha`) checks for
 // a challenge — the points where navigation or a form interaction commonly triggers one.
@@ -198,6 +198,29 @@ async function runFigranite(data, options = {}) {
     let page;
     const logs = [];
     let lastMainDocumentStatus = null;
+    let isForceStopped = false;
+    let stopRequested = false;
+    let stopOutcome = 'success';
+    let userStopped = false;
+
+    const forceStop = async () => {
+        isForceStopped = true;
+        userStopped = true;
+        stopRequested = true;
+        logs.push('Execution force-stopped by user after 3s timeout.');
+        try {
+            if (page) await page.close().catch(() => {});
+            if (context) await context.close().catch(() => {});
+            if (browser) await browser.close().catch(() => {});
+        } catch {
+            // ignore
+        }
+    };
+
+    if (runId) {
+        registerActiveRun(runId, { forceStop });
+    }
+
     try {
         const useRotateProxies = String(rotateProxies).toLowerCase() === 'true' || rotateProxies === true;
         const headless = options.headless !== undefined ? options.headless : true;
@@ -289,9 +312,6 @@ async function runFigranite(data, options = {}) {
         const foreachState = new Map();
         let errorHandler = null;
         let inErrorHandler = false;
-        let stopRequested = false;
-        let stopOutcome = 'success';
-        let userStopped = false;
 
         const setLoopVars = (item, index, count) => {
             runtimeVars['loop.index'] = index;
@@ -820,6 +840,17 @@ async function runFigranite(data, options = {}) {
         try { await browser.close(); } catch { }
         return outputData;
     } catch (error) {
+        if (userStopped || isForceStopped || (runId && consumeStopRequest(runId))) {
+            logs.push('Execution stopped by user.');
+            return {
+                outcome: 'stopped',
+                final_url: (page && typeof page.isClosed === 'function' && !page.isClosed()) ? (page.url() || '') : (url || ''),
+                logs: logs || [],
+                html: '',
+                data: null,
+                screenshot_url: null,
+            };
+        }
         console.error('Engine Error:', error);
         const antiBot = await inspectPageForAntiBot(page, { status: lastMainDocumentStatus });
         if (antiBot.reason) {
@@ -832,6 +863,11 @@ async function runFigranite(data, options = {}) {
         } catch { }
         if (browser) await browser.close();
         throw error;
+    } finally {
+        if (runId) {
+            unregisterActiveRun(runId);
+            clearStopRequest(runId);
+        }
     }
 }
 
