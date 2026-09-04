@@ -248,7 +248,7 @@ async function runFigranite(data, options = {}) {
         const pendingDownloads = new Set();
         const newDownloadListeners = new Set();
 
-        context.on('page', (p) => {
+        const setupPageDownload = (p) => {
             p.on('download', async (download) => {
                 for (const listener of newDownloadListeners) listener();
 
@@ -281,7 +281,9 @@ async function runFigranite(data, options = {}) {
                 pendingDownloads.add(promise);
                 promise.finally(() => pendingDownloads.delete(promise));
             });
-        });
+        };
+        context.on('page', setupPageDownload);
+        context.pages().forEach(setupPageDownload);
 
         // Persistent context auto-creates a blank page; reuse it or open a new one
         const existingPages = context.pages();
