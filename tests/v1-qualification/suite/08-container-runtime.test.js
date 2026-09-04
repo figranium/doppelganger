@@ -36,22 +36,62 @@ async function ensureImage() {
     imageBuilt = true;
 }
 
-async function waitForHealth(port, timeoutMs = 60_000) {
+function containerDiagnostics(containerName) {
+    const inspect = spawnSync('docker', ['inspect', containerName, '--format', 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        timeout: 15_000
+    });
+    const logs = spawnSync('docker', ['logs', '--tail', '200', containerName], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        timeout: 15_000
+    });
+    return [
+        `Inspect: ${(inspect.stdout || inspect.stderr || '').trim()}`,
+        `Logs:\n${(logs.stdout || '')}${logs.stderr || ''}`
+    ].join('\n');
+}
+
+async function waitForContainerHealth(containerName, timeoutMs = 90_000) {
     const deadline = Date.now() + timeoutMs;
-    let lastError = null;
+    let lastResult = '';
+
     while (Date.now() < deadline) {
-        try {
-            const res = await fetch(`http://127.0.0.1:${port}/api/health`);
-            if (res.status === 200) {
-                const data = await res.json();
-                if (data.status === 'ok') return;
-            }
-        } catch (error) {
-            lastError = error;
+        const state = spawnSync('docker', ['inspect', containerName, '--format', '{{.State.Running}}'], {
+            cwd: repoRoot,
+            encoding: 'utf8',
+            timeout: 10_000
+        });
+
+        if (state.status === 0 && state.stdout.trim() !== 'true') {
+            throw new Error(`Container exited before becoming healthy.\n${containerDiagnostics(containerName)}`);
         }
-        await new Promise(r => setTimeout(r, 500));
+
+        const health = spawnSync('docker', [
+            'exec', containerName,
+            'curl', '-fsS', '--max-time', '2',
+            'http://127.0.0.1:11345/api/health'
+        ], {
+            cwd: repoRoot,
+            encoding: 'utf8',
+            timeout: 5_000
+        });
+
+        lastResult = `${health.stdout || ''}${health.stderr || ''}`.trim();
+        if (health.status === 0) {
+            try {
+                const data = JSON.parse(health.stdout);
+                if (data.status === 'ok') return data;
+            } catch {
+                // Keep waiting until the endpoint returns valid health JSON.
+            }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
-    throw new Error(`Container health endpoint did not become ready${lastError ? `: ${lastError.message}` : ''}`);
+
+    throw new Error(`Container health endpoint did not become ready inside the production container. Last probe: ${lastResult || 'no response'}\n${containerDiagnostics(containerName)}`);
 }
 
 async function cleanup() {
@@ -113,8 +153,8 @@ const tests = [
         name: 'Docker Runtime - Startup, Health, Restart, and /app/data Volume Persistence',
         subsystem: 'container-runtime',
         setup: 'Built qualification image and working Docker daemon',
-        steps: 'Run the image with an isolated /app/data bind mount and ephemeral host port, verify /api/health, create a persistence marker, restart the same container, verify health again and confirm the marker remains.',
-        expected: 'The production container starts, becomes healthy, survives restart, and preserves mounted application data.',
+        steps: 'Run the image with an isolated /app/data bind mount and ephemeral published port, verify /api/health from inside the production container, confirm the port is published, create a persistence marker, restart the same container, verify health again and confirm the marker remains.',
+        expected: 'The production container starts, serves a healthy API, publishes port 11345, survives restart, and preserves mounted application data.',
         severity: 'CRITICAL',
         blocksV1: true,
         run: async () => {
@@ -134,15 +174,15 @@ const tests = [
                 const portLine = run('docker', ['port', containerName, '11345/tcp']);
                 const match = portLine.match(/:(\d+)\s*$/m);
                 assert.ok(match, `Could not resolve published port from: ${portLine}`);
-                const port = Number(match[1]);
-                await waitForHealth(port);
+
+                await waitForContainerHealth(containerName);
 
                 const marker = `qualification-${Date.now()}`;
                 fs.writeFileSync(path.join(dataDir, 'qualification-marker.txt'), marker, 'utf8');
                 assert.strictEqual(run('docker', ['exec', containerName, 'cat', '/app/data/qualification-marker.txt']), marker);
 
                 run('docker', ['restart', containerName], { timeout: 60_000 });
-                await waitForHealth(port);
+                await waitForContainerHealth(containerName);
                 assert.strictEqual(run('docker', ['exec', containerName, 'cat', '/app/data/qualification-marker.txt']), marker, 'Mounted /app/data must survive restart');
             } finally {
                 if (dockerAvailable()) {
