@@ -183,7 +183,9 @@ const tests = [
 
             const proxyRes = await fetch(`${base}/api/settings/proxies`, { headers: h });
             assert.strictEqual(proxyRes.status, 200);
-            assert.ok(Array.isArray(await proxyRes.json()));
+            const proxyData = await proxyRes.json();
+            assert.ok(proxyData && typeof proxyData === 'object');
+            assert.ok(Array.isArray(proxyData.proxies), 'Proxy settings response must expose a proxies array');
 
             const uaRes = await fetch(`${base}/api/settings/user-agent`, { headers: h });
             assert.strictEqual(uaRes.status, 200);
