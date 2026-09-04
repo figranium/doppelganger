@@ -145,7 +145,14 @@ const tests = [
                 await waitForHealth(port);
                 assert.strictEqual(run('docker', ['exec', containerName, 'cat', '/app/data/qualification-marker.txt']), marker, 'Mounted /app/data must survive restart');
             } finally {
-                spawnSync('docker', ['rm', '-f', containerName], { cwd: repoRoot, encoding: 'utf8', timeout: 30_000 });
+                if (dockerAvailable()) {
+                    spawnSync('docker', ['exec', containerName, 'sh', '-c', 'rm -rf /app/data/* /app/data/.[!.]* /app/data/..?* 2>/dev/null || true'], {
+                        cwd: repoRoot,
+                        encoding: 'utf8',
+                        timeout: 30_000
+                    });
+                    spawnSync('docker', ['rm', '-f', containerName], { cwd: repoRoot, encoding: 'utf8', timeout: 30_000 });
+                }
                 fs.rmSync(dataDir, { recursive: true, force: true });
             }
         }
