@@ -54,6 +54,16 @@ async function waitForHealth(port, timeoutMs = 60_000) {
     throw new Error(`Container health endpoint did not become ready${lastError ? `: ${lastError.message}` : ''}`);
 }
 
+async function cleanup() {
+    if (!imageBuilt || !dockerAvailable()) return;
+    spawnSync('docker', ['image', 'rm', '-f', imageTag], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        timeout: 60_000
+    });
+    imageBuilt = false;
+}
+
 const tests = [
     {
         id: 'CONTAINER-001',
@@ -142,4 +152,4 @@ const tests = [
     }
 ];
 
-module.exports = { tests };
+module.exports = { tests, cleanup };
