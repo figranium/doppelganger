@@ -1,0 +1,6 @@
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(dashRes.html.includes('Protected Auth Dashboard'))
+
+    at Object.run (/app/tests/v1-qualification/suite/04-engine-runtime.test.js:107:20)
+    at async runQualificationSuite (/app/tests/v1-qualification/runner.js:111:29)

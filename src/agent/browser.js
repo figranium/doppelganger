@@ -145,6 +145,16 @@ async function createBrowserContext(launchOptions, options = {}) {
         });
     }
 
+    if (contextOptions.storageState && typeof contextOptions.storageState === 'string') {
+        try {
+            const raw = await fs.promises.readFile(contextOptions.storageState, 'utf8');
+            const state = JSON.parse(raw);
+            if (Array.isArray(state.cookies) && state.cookies.length > 0) {
+                await context.addCookies(state.cookies);
+            }
+        } catch { }
+    }
+
     // Highlight-tool handoffs use a short-lived (stateless) context. Restore
     // cookies captured from the previous interactive headful session for both
     // context types so logging in normally carries into that handoff.
