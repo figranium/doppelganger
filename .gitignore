@@ -14,3 +14,6 @@ npm-debug.log
 .gemini/
 .claude/
 .claude.json
+reports/v1-qualification-report.json
+reports/v1-qualification-report.md
+reports/artifacts/
