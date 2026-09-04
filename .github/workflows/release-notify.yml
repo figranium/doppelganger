@@ -1,4 +1,4 @@
-name: ᴅɪꜱᴄᴏʀᴅ ʀᴇʟᴇᴀꜱᴇ ɴᴏᴛɪꜰɪᴇʀ
+name: Discord Release Notifier
 
 on:
   release:
@@ -12,7 +12,7 @@ jobs:
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          embed-title: "🚀 ɴᴇᴡ ʀᴇʟᴇᴀꜱᴇ: ${{ github.event.release.tag_name }}"
+          embed-title: "🚀 New Release: ${{ github.event.release.tag_name }}"
           embed-url: "${{ github.event.release.html_url }}"
           embed-description: "${{ github.event.release.body }}"
           embed-color: 16777215 # Pure White
