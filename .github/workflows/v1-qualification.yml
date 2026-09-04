@@ -65,7 +65,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run v1 qualification suite
-        run: npm run test:v1-qualification
+        run: xvfb-run -a npm run test:v1-qualification
 
       - name: Upload qualification evidence
         if: always()
