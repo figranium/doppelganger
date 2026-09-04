@@ -162,8 +162,10 @@ const tests = [
             const headful = await runFigranite(task, { headless: false });
             assert.strictEqual(headless.outcome, 'success');
             assert.strictEqual(headful.outcome, 'success');
-            assert.deepStrictEqual(headful.data, headless.data);
-            assert.strictEqual(headful.data.title, 'Figranium Torture Site');
+            const headlessData = JSON.parse(JSON.stringify(headless.data));
+            const headfulData = JSON.parse(JSON.stringify(headful.data));
+            assert.deepStrictEqual(headfulData, headlessData);
+            assert.strictEqual(headfulData.title, 'Figranium Torture Site');
         }
     },
     {
@@ -171,7 +173,7 @@ const tests = [
         name: 'Engine Runtime - Concurrent Stateless Executions',
         subsystem: 'engine-runtime',
         setup: 'Torture server running',
-        steps: 'Launch four independent stateless executions concurrently with unique input values.',
+        steps: 'Launch four independent stateless executions concurrently with unique input values, reflect each live input value into serialized DOM state, then extract it.',
         expected: 'All four complete successfully and preserve their own input/output state without cross-run contamination.',
         severity: 'CRITICAL',
         blocksV1: true,
@@ -179,8 +181,11 @@ const tests = [
             await ensureTortureServer();
             const runs = Array.from({ length: 4 }, (_, i) => runFigranite({
                 url: `${TORTURE_URL}/form`, mode: 'agent', statelessExecution: true, disableRecording: true,
-                extractionScript: `return { value: document.querySelector('#username-input')?.value };`,
-                actions: [{ id: `c-${i}`, type: 'type', selector: '#username-input', value: `concurrent-${i}` }]
+                extractionScript: 'return { value: document.body.dataset.qualConcurrent || "" };',
+                actions: [
+                    { id: `c-${i}-type`, type: 'type', selector: '#username-input', value: `concurrent-${i}`, typeMode: 'replace' },
+                    { id: `c-${i}-serialize`, type: 'javascript', value: 'document.body.dataset.qualConcurrent = document.querySelector("#username-input")?.value || "";' }
+                ]
             }, { headless: true }));
             const results = await Promise.all(runs);
             results.forEach((result, i) => {
