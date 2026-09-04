@@ -1,24 +1,22 @@
 const assert = require('assert');
-const { parseCron, getNextRun, isValidCron } = require('../../../src/server/cron-parser');
+const { parseCron, getNextRun } = require('../../../src/server/cron-parser');
 
 const tests = [
     {
         id: 'SCHED-001',
-        name: 'Cron Parser - Full Syntax Validation & Edge Cases',
+        name: 'Cron Parser - Syntax Validation & Edge Cases',
         subsystem: 'scheduler',
-        setup: 'Call parseCron with valid, invalid, step, range, and alias expressions',
-        steps: 'Test minute, hour, day, month, day-of-week parsing including Sunday alias (7 -> 0).',
-        expected: 'Valid cron strings parse into match arrays. Out-of-range fields throw error.',
+        setup: 'Pure cron parser calls',
+        steps: 'Parse step/range expressions and reject out-of-range hour/day/month values.',
+        expected: 'Valid expressions produce expected sets and invalid ranges throw.',
         severity: 'CRITICAL',
         blocksV1: true,
         run: async () => {
             const parsed = parseCron('*/15 9-17 * * 1-5');
-            assert.ok(parsed, 'Should parse valid business hours cron');
+            assert.ok(parsed);
             assert.ok(parsed.minute instanceof Set && parsed.hour instanceof Set);
             assert.ok(parsed.minute.has(0) && parsed.minute.has(15) && parsed.minute.has(30) && parsed.minute.has(45));
             assert.ok(parsed.hour.has(9) && parsed.hour.has(17));
-
-            // Out-of-range checks
             assert.throws(() => parseCron('0 24 * * *'), /out of range/);
             assert.throws(() => parseCron('0 * 32 * *'), /out of range/);
             assert.throws(() => parseCron('0 * * 13 *'), /out of range/);
@@ -26,11 +24,11 @@ const tests = [
     },
     {
         id: 'SCHED-002',
-        name: 'Scheduler - Schedule State Updates & Next Run Calculation',
+        name: 'Cron Parser - Deterministic Next Run Calculation',
         subsystem: 'scheduler',
-        setup: 'Create scheduled task',
-        steps: 'Save task with hourly schedule, calculate nextRun timestamp, verify nextRun is in the future.',
-        expected: 'nextRun is correctly calculated in the future and persisted.',
+        setup: 'Fixed reference timestamp',
+        steps: 'Calculate the next run for an hourly cron from a known UTC instant.',
+        expected: 'The next run is exactly the following hour.',
         severity: 'HIGH',
         blocksV1: true,
         run: async () => {
@@ -39,6 +37,17 @@ const tests = [
             assert.ok(next > now);
             assert.strictEqual(next.toISOString(), '2025-01-01T11:00:00.000Z');
         }
+    },
+    {
+        id: 'SCHED-003',
+        name: 'Scheduler Runtime - Persisted Cron Executes Task',
+        subsystem: 'scheduler',
+        setup: 'Requires an isolated scheduler clock, temporary Task, and deterministic execution fixture',
+        steps: 'Persist an enabled schedule, advance/run the scheduler, verify exactly one execution, then disable and prove no further executions occur.',
+        expected: 'The real scheduler executes persisted schedules exactly when due and respects disable/removal.',
+        severity: 'CRITICAL',
+        blocksV1: true,
+        run: async () => ({ status: 'NOT_TESTED', reason: 'Cron parsing is tested, but the previous suite never exercised the scheduler runtime. A deterministic clock-backed scheduler fixture is still required.' })
     }
 ];
 
