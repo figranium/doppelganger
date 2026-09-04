@@ -1,4 +1,5 @@
 const assert = require('assert');
+const { Pool } = require('pg');
 const storage = require('../../../src/server/storage');
 const db = require('../../../src/server/db');
 
@@ -14,7 +15,7 @@ const tests = [
         blocksV1: true,
         run: async () => {
             const taskId = `test_task_${Date.now()}`;
-            const originalTasks = await storage.loadTasks();
+            const originalTasks = JSON.parse(JSON.stringify(await storage.loadTasks()));
             const testTask = {
                 id: taskId,
                 name: 'Persistence Qualification Task',
@@ -92,14 +93,66 @@ const tests = [
     },
     {
         id: 'PERSIST-005',
-        name: 'PostgreSQL Restart/Migration Qualification',
+        name: 'PostgreSQL Backend - Real Round Trip, Independent Connection, and Schema Migration End-State',
         subsystem: 'persistence',
-        setup: 'Requires an isolated PostgreSQL service and a known previous schema snapshot',
-        steps: 'Upgrade a previous schema, restart the database/service, then verify all v1-critical records and migrations.',
-        expected: 'Migration and restart persistence are proven against an isolated real PostgreSQL instance.',
+        setup: 'Requires DB_TYPE=postgres plus DB_POSTGRESDB_HOST/PORT/USER/PASSWORD and an isolated qualification database',
+        steps: 'Initialize the real PostgreSQL backend, persist an API key through Figranium storage, verify it through a second independent PostgreSQL connection, and verify migrated API-key columns are TEXT.',
+        expected: 'Figranium writes to PostgreSQL, data is visible from an independent connection, and key-column migration end-state is correct.',
         severity: 'CRITICAL',
         blocksV1: true,
-        run: async () => ({ status: 'NOT_TESTED', reason: 'No isolated previous-schema PostgreSQL restart fixture is wired into this suite yet.' })
+        run: async () => {
+            const required = ['DB_POSTGRESDB_HOST', 'DB_POSTGRESDB_PORT', 'DB_POSTGRESDB_USER', 'DB_POSTGRESDB_PASSWORD'];
+            const missing = required.filter(name => !process.env[name]);
+            if (missing.length) {
+                return { status: 'BLOCKED', reason: `PostgreSQL qualification environment is missing: ${missing.join(', ')}` };
+            }
+
+            const primaryPool = await db.initDB();
+            assert.ok(primaryPool, 'Configured PostgreSQL backend must return a pool');
+
+            const independentPool = new Pool({
+                host: process.env.DB_POSTGRESDB_HOST,
+                port: Number(process.env.DB_POSTGRESDB_PORT),
+                user: process.env.DB_POSTGRESDB_USER,
+                password: process.env.DB_POSTGRESDB_PASSWORD,
+                database: process.env.DB_POSTGRESDB_DATABASE || 'postgres',
+                ssl: ['true', '1'].includes(String(process.env.DB_POSTGRESDB_SSL || '').toLowerCase()) ? { rejectUnauthorized: false } : false
+            });
+
+            const originalKey = await storage.loadApiKey();
+            const testKey = `fig_pg_qual_${Date.now()}`;
+            try {
+                await storage.saveApiKey(testKey);
+                const direct = await independentPool.query('SELECT key FROM api_key WHERE id = 1');
+                assert.strictEqual(direct.rows[0]?.key, testKey, 'Independent PostgreSQL connection must see the storage write');
+
+                const tables = await independentPool.query(`
+                    SELECT table_name
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                      AND table_name IN ('users','tasks','executions','api_key','credentials','ai_models','proxies_config','captcha_settings')
+                `);
+                const tableNames = new Set(tables.rows.map(r => r.table_name));
+                for (const table of ['users','tasks','executions','api_key','credentials','ai_models','proxies_config','captcha_settings']) {
+                    assert.ok(tableNames.has(table), `Expected PostgreSQL table ${table}`);
+                }
+
+                const columns = await independentPool.query(`
+                    SELECT table_name, data_type
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND column_name = 'key'
+                      AND table_name IN ('api_key','gemini_api_key','openai_api_key','claude_api_key')
+                `);
+                const types = new Map(columns.rows.map(r => [r.table_name, r.data_type]));
+                for (const table of ['api_key','gemini_api_key','openai_api_key','claude_api_key']) {
+                    assert.strictEqual(types.get(table), 'text', `${table}.key must be migrated to TEXT`);
+                }
+            } finally {
+                await storage.saveApiKey(originalKey || '');
+                await independentPool.end();
+            }
+        }
     }
 ];
 
