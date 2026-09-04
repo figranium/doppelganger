@@ -1,0 +1,80 @@
+name: V1 Qualification
+
+on:
+  pull_request:
+  push:
+    branches: ['main', 'beta']
+  workflow_dispatch:
+
+concurrency:
+  group: v1-qualification-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualification:
+    name: Release qualification
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: figranium
+          POSTGRES_PASSWORD: figranium_qualification
+          POSTGRES_DB: figranium_qualification
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U figranium -d figranium_qualification"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      CI: 'true'
+      DB_TYPE: postgres
+      DB_POSTGRESDB_HOST: 127.0.0.1
+      DB_POSTGRESDB_PORT: '5432'
+      DB_POSTGRESDB_USER: figranium
+      DB_POSTGRESDB_PASSWORD: figranium_qualification
+      DB_POSTGRESDB_DATABASE: figranium_qualification
+      DB_POSTGRESDB_SSL: 'false'
+      TEST_SEED: '42'
+      QUALIFICATION_REPEAT: '2'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run v1 qualification suite
+        run: npm run test:v1-qualification
+
+      - name: Upload qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-qualification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/v1-qualification-report.json
+            reports/v1-qualification-report.md
+            reports/artifacts/
+          if-no-files-found: warn
+          retention-days: 30
