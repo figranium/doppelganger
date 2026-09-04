@@ -33,6 +33,7 @@ function parseArgs() {
         layer: null,
         testId: null,
         seed: process.env.TEST_SEED || '42',
+        repeat: Math.max(1, Number(process.env.QUALIFICATION_REPEAT || 2) || 2),
         historyDir: path.join(__dirname, '../../reports')
     };
 
@@ -40,6 +41,7 @@ function parseArgs() {
         if (arg.startsWith('--layer=')) options.layer = arg.split('=')[1].toLowerCase();
         if (arg.startsWith('--test=')) options.testId = arg.split('=')[1].toUpperCase();
         if (arg.startsWith('--seed=')) options.seed = arg.split('=')[1];
+        if (arg.startsWith('--repeat=')) options.repeat = Math.max(1, Number(arg.split('=')[1]) || 1);
         if (arg.startsWith('--history=')) options.historyDir = arg.split('=')[1];
     });
 
@@ -77,20 +79,57 @@ function createSeededRandom(seed) {
 }
 
 function removeArtifactDir(artifactsDir, testId) {
-    const dir = path.join(artifactsDir, testId);
-    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(path.join(artifactsDir, testId), { recursive: true, force: true });
+}
+
+async function executeAttempt(test, options, attemptIndex) {
+    Math.random = createSeededRandom(`${options.seed}:${test.id}`);
+    const started = Date.now();
+    let status = 'PASS';
+    let actualResult = 'Success';
+    let errorDetails = null;
+    let metricData = null;
+
+    try {
+        const res = await test.run({ seed: options.seed, attempt: attemptIndex + 1, repeat: options.repeat });
+        if (res && res.metric) metricData = res;
+        if (res && res.status) {
+            const requestedStatus = String(res.status).toUpperCase();
+            if (!VALID_STATUSES.has(requestedStatus)) throw new Error(`Test returned unsupported status: ${requestedStatus}`);
+            status = requestedStatus;
+            actualResult = res.reason || res.actualResult || (status === 'PASS' ? 'Success' : status);
+        }
+    } catch (err) {
+        status = 'FAIL';
+        actualResult = err.message || String(err);
+        errorDetails = err.stack || String(err);
+    }
+
+    return {
+        attempt: attemptIndex + 1,
+        status,
+        actualResult,
+        errorDetails,
+        metricData,
+        durationMs: Date.now() - started
+    };
+}
+
+function collapseAttempts(attempts) {
+    const statuses = [...new Set(attempts.map(a => a.status))];
+    if (statuses.length === 1) return statuses[0];
+    return 'FLAKY';
 }
 
 async function runQualificationSuite() {
     const options = parseArgs();
     const startTime = new Date();
     const originalRandom = Math.random;
-    Math.random = createSeededRandom(options.seed);
     process.env.TEST_SEED = String(options.seed);
 
     console.log(`\n======================================================`);
     console.log(` FIGRANIUM PRE-V1 QUALIFICATION TEST SUITE`);
-    console.log(` Seed: ${options.seed} | Layer: ${options.layer || 'ALL'} | TestID: ${options.testId || 'ALL'}`);
+    console.log(` Seed: ${options.seed} | Repeat: ${options.repeat} | Layer: ${options.layer || 'ALL'} | TestID: ${options.testId || 'ALL'}`);
     console.log(` Commit: ${getGitCommit()}`);
     console.log(`======================================================\n`);
 
@@ -117,81 +156,76 @@ async function runQualificationSuite() {
     try {
         for (const suite of suites) {
             if (options.layer && !suite.name.includes(options.layer)) continue;
-
             const modPath = path.join(__dirname, suite.path);
             if (!fs.existsSync(modPath)) continue;
-
             const mod = require(modPath);
-            for (const test of mod.tests) {
-                if (options.testId && test.id !== options.testId) continue;
 
-                removeArtifactDir(artifactsDir, test.id);
-                const testStart = Date.now();
-                let status = 'PASS';
-                let actualResult = 'Success';
-                let errorDetails = null;
-                let metricData = null;
+            try {
+                if (typeof mod.setup === 'function') await mod.setup({ seed: options.seed });
 
-                console.log(`[RUNNING] ${test.id} - ${test.name}`);
+                for (const test of mod.tests) {
+                    if (options.testId && test.id !== options.testId) continue;
+                    removeArtifactDir(artifactsDir, test.id);
+                    console.log(`[RUNNING] ${test.id} - ${test.name}`);
 
-                try {
-                    const res = await test.run({ seed: options.seed });
-                    if (res && res.metric) {
-                        metricData = res;
-                        perfMetrics[res.metric] = res.value;
+                    const attempts = [];
+                    for (let i = 0; i < options.repeat; i++) {
+                        const attempt = await executeAttempt(test, options, i);
+                        attempts.push(attempt);
+                        console.log(`  ├─ attempt ${i + 1}/${options.repeat}: ${attempt.status} (${attempt.durationMs}ms)${attempt.actualResult !== 'Success' ? ` - ${attempt.actualResult}` : ''}`);
                     }
-                    if (res && res.status) {
-                        const requestedStatus = String(res.status).toUpperCase();
-                        if (!VALID_STATUSES.has(requestedStatus)) {
-                            throw new Error(`Test returned unsupported status: ${requestedStatus}`);
-                        }
-                        status = requestedStatus;
-                        actualResult = res.reason || res.actualResult || (status === 'PASS' ? 'Success' : status);
-                    }
-                    console.log(`  └─ STATUS: ${status} (${Date.now() - testStart}ms)${actualResult !== 'Success' ? ` - ${actualResult}` : ''}`);
-                } catch (err) {
-                    status = 'FAIL';
-                    actualResult = err.message || String(err);
-                    errorDetails = err.stack || String(err);
-                    console.log(`  └─ STATUS: FAIL - ${actualResult}`);
-                }
 
-                if (status !== 'PASS') {
-                    const testArtifactsDir = path.join(artifactsDir, test.id);
-                    fs.mkdirSync(testArtifactsDir, { recursive: true });
-                    fs.writeFileSync(path.join(testArtifactsDir, 'error.log'), errorDetails || actualResult);
-                    fs.writeFileSync(path.join(testArtifactsDir, 'test_metadata.json'), JSON.stringify(maskSecrets({
-                        test: {
-                            id: test.id,
-                            name: test.name,
-                            subsystem: test.subsystem,
-                            setup: test.setup,
-                            steps: test.steps,
-                            expected: test.expected,
-                            severity: test.severity,
-                            blocksV1: test.blocksV1
-                        },
-                        status,
+                    const status = collapseAttempts(attempts);
+                    const durationMs = attempts.reduce((sum, a) => sum + a.durationMs, 0);
+                    const firstNonPass = attempts.find(a => a.status !== 'PASS');
+                    const actualResult = status === 'FLAKY'
+                        ? `Inconsistent attempt statuses: ${attempts.map(a => a.status).join(', ')}`
+                        : (firstNonPass?.actualResult || 'Success');
+                    const errorDetails = firstNonPass?.errorDetails || null;
+                    const metricData = attempts.map(a => a.metricData).find(Boolean) || null;
+                    if (metricData?.metric) perfMetrics[metricData.metric] = metricData.value;
+
+                    if (status !== 'PASS') {
+                        const testArtifactsDir = path.join(artifactsDir, test.id);
+                        fs.mkdirSync(testArtifactsDir, { recursive: true });
+                        fs.writeFileSync(path.join(testArtifactsDir, 'error.log'), errorDetails || actualResult);
+                        fs.writeFileSync(path.join(testArtifactsDir, 'test_metadata.json'), JSON.stringify(maskSecrets({
+                            test: {
+                                id: test.id,
+                                name: test.name,
+                                subsystem: test.subsystem,
+                                setup: test.setup,
+                                steps: test.steps,
+                                expected: test.expected,
+                                severity: test.severity,
+                                blocksV1: test.blocksV1
+                            },
+                            status,
+                            actualResult,
+                            attempts
+                        }), null, 2));
+                    }
+
+                    testResults.push({
+                        id: test.id,
+                        name: test.name,
+                        subsystem: test.subsystem,
+                        setup: test.setup,
+                        steps: test.steps,
+                        expected: test.expected,
                         actualResult,
-                        errorDetails
-                    }), null, 2));
+                        status,
+                        severity: test.severity,
+                        blocksV1: test.blocksV1,
+                        durationMs,
+                        attempts,
+                        errorDetails,
+                        metricData
+                    });
+                    console.log(`  └─ FINAL: ${status}\n`);
                 }
-
-                testResults.push({
-                    id: test.id,
-                    name: test.name,
-                    subsystem: test.subsystem,
-                    setup: test.setup,
-                    steps: test.steps,
-                    expected: test.expected,
-                    actualResult,
-                    status,
-                    severity: test.severity,
-                    blocksV1: test.blocksV1,
-                    durationMs: Date.now() - testStart,
-                    errorDetails,
-                    metricData
-                });
+            } finally {
+                if (typeof mod.cleanup === 'function') await mod.cleanup();
             }
         }
     } finally {
@@ -213,18 +247,17 @@ async function runQualificationSuite() {
     const regressions = [];
     const newlyFailing = [];
     const newlyFixed = [];
-
-    if (previousReport && previousReport.results) {
+    if (previousReport?.results) {
         const prevMap = new Map(previousReport.results.map(r => [r.id, r]));
-        testResults.forEach(curr => {
+        for (const curr of testResults) {
             const prev = prevMap.get(curr.id);
-            if (!prev) return;
+            if (!prev) continue;
             if (prev.status === 'PASS' && curr.status !== 'PASS') newlyFailing.push(curr.id);
             if (prev.status !== 'PASS' && curr.status === 'PASS') newlyFixed.push(curr.id);
             if (prev.durationMs && curr.durationMs > prev.durationMs * 1.5 && curr.durationMs > 200) {
                 regressions.push(`${curr.id}: Execution time increased by ${((curr.durationMs - prev.durationMs) / prev.durationMs * 100).toFixed(1)}% (${prev.durationMs}ms -> ${curr.durationMs}ms)`);
             }
-        });
+        }
     }
 
     const v1Blockers = testResults.filter(t => t.status !== 'PASS' && t.blocksV1);
@@ -232,17 +265,18 @@ async function runQualificationSuite() {
     const stabilityAssessment = releaseGateFailures.length === 0 ? 'STABLE_FOR_V1_RELEASE' : 'UNSTABLE_RELEASE_GATE_FAILED';
 
     const subsystemCoverage = {};
-    testResults.forEach(t => {
+    for (const t of testResults) {
         if (!subsystemCoverage[t.subsystem]) subsystemCoverage[t.subsystem] = { total: 0, pass: 0, fail: 0, other: 0 };
         subsystemCoverage[t.subsystem].total += 1;
         if (t.status === 'PASS') subsystemCoverage[t.subsystem].pass += 1;
         else if (t.status === 'FAIL') subsystemCoverage[t.subsystem].fail += 1;
         else subsystemCoverage[t.subsystem].other += 1;
-    });
+    }
 
     const reportJson = {
         commit: getGitCommit(),
         seed: options.seed,
+        repeat: options.repeat,
         environment: {
             node: process.version,
             platform: process.platform,
@@ -281,6 +315,7 @@ async function runQualificationSuite() {
         '## Test Metadata & Environment',
         `- **Tested Commit**: \`${reportJson.commit}\``,
         `- **Test Seed**: \`${reportJson.seed}\``,
+        `- **Attempts per test**: \`${reportJson.repeat}\``,
         `- **Duration**: \`${durationSec} seconds\``,
         `- **Node.js**: \`${reportJson.environment.node}\` (${reportJson.environment.platform} ${reportJson.environment.arch})`,
         `- **CPU / RAM**: \`${reportJson.environment.cpus} cores / ${reportJson.environment.memoryMb} MB\``,
@@ -305,10 +340,18 @@ async function runQualificationSuite() {
     const nonPassing = testResults.filter(t => t.status !== 'PASS');
     if (!nonPassing.length) mdLines.push('*None.*');
     for (const t of nonPassing) {
-        mdLines.push(`### ${t.id}: ${t.name}`, `- Status: **${t.status}**`, `- Expected: ${t.expected}`, `- Actual: ${t.actualResult}`, `- Artifacts: \`reports/artifacts/${t.id}/\``, '');
+        mdLines.push(
+            `### ${t.id}: ${t.name}`,
+            `- Status: **${t.status}**`,
+            `- Expected: ${t.expected}`,
+            `- Actual: ${t.actualResult}`,
+            `- Attempts: ${t.attempts.map(a => `${a.attempt}:${a.status}`).join(', ')}`,
+            `- Artifacts: \`reports/artifacts/${t.id}/\``,
+            ''
+        );
     }
 
-    mdLines.push('', '## Final Release Assessment', `**Assessment**: ${stabilityAssessment === 'STABLE_FOR_V1_RELEASE' ? 'ALL QUALIFICATION TESTS PASSED.' : 'ONE OR MORE QUALIFICATION TESTS DID NOT PASS; AUTOMATIC RELEASE MUST NOT PROCEED.'}`);
+    mdLines.push('', '## Final Release Assessment', `**Assessment**: ${stabilityAssessment === 'STABLE_FOR_V1_RELEASE' ? 'ALL QUALIFICATION TESTS PASSED CONSISTENTLY.' : 'ONE OR MORE QUALIFICATION TESTS DID NOT PASS CONSISTENTLY; AUTOMATIC RELEASE MUST NOT PROCEED.'}`);
     fs.writeFileSync(path.join(reportsDir, 'v1-qualification-report.md'), mdLines.join('\n'));
 
     console.log(`\n======================================================`);
