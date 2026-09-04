@@ -376,4 +376,6 @@ module.exports = {
     removeSchedule,
     getSchedulerStatus,
     resolveCron,
+    // Testability-only hook: exercises the exact production tick path without waiting for wall-clock cron time.
+    __testTick: tick,
 };
