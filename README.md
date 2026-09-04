@@ -148,38 +148,6 @@ Set `SESSION_SECRET` before any run. A quick generator:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-# Architecture Snapshot
-
-## Figranite
-At the core of Figranium lies **Figranite**, a high-performance, deterministic workflow interpreter designed for stateful browser automation. It is the project's primary execution kernel, responsible for transforming abstract block definitions into sentient-like browser behavior.
-
-Key capabilities of **Figranite** include:
-- **Stateful Execution:** Manages complex variables and loop contexts across blocks.
-- **Human Physics Simulation:** Implements Bezier-curve cursor movements, randomized jitter, and fatigue-aware typing.
-- **Stealth Integration:** Works in tandem with the Stealth Browser engine to bypass modern bot detection.
-- **Recursive Logic:** Handles nested if/else, while, and foreach blocks with custom jump-map optimization.
-- **Security-First:** Executes within a protected context with built-in SSRF and private network protection.
-
-
-1. **Frontend**  
-   - Vite with React (TypeScript) drives `/dashboard`, `/tasks`, `/settings`, `/executions`, and `/captures`.
-   - The Settings screen is tabbed (`System`, `Data`, `Proxies`) and houses panels for API keys, user agents, layout, storage, and version info.
-   - Components call `/api/*` endpoints through the Vite dev proxy (see `vite.config.mts`), sharing `APP_VERSION` via `src/utils/appInfo.ts`.
-
-2. **Backend**  
-   - `server.js` (Express) handles auth (`/api/auth`), task metadata, hooks into Playwright, and exposes `/api/settings/*` for runtime configuration.
-   - Requirements: Node 18+ (LTS), Playwright bundled via `npm install`.
-   - Storage is plain‑file: `data/` for proxies and allowlists, `public/captures` for visuals, and browser session cookies stored internally.
-
-3. **Scripts & automation**  
-   - `scripts/postinstall.js` runs when dependencies install (keep an eye if you customize).
-   - `agent.js` (powered by the **Figranite Engine**), `headful.js`, and `scrape.js` expose specialized runners; the CLI binary `bin/cli.js` wires them for `npx figranium`.
-
-4. **Code layout highlights**
-   - `src/App.tsx` glues together routing, alerts, and the sidebar that links dashboards, tasks, and settings.
-   - `src/components` houses reusable panels (API keys, storage, captures, proxies) that map directly to backend endpoints.
-   - `server.js` embeds all HTTP handlers in one file; use the `data/` helpers for proxies, API keys, and user agent preferences if you customize behavior.
-
 # Configuration
 
 | Variable | Purpose | Default |
