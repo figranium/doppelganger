@@ -229,7 +229,7 @@ Proxy rotation also respects `data/proxies.json` (see below), and `data/allowed_
 
 # CLI & Agent Mode
 
-- Use `npx figranium` (or `npm run cli`) to launch the interactive CLI that shows tasks, status, and logs.
+- Use `npx figranium` (or `node bin/cli.js` from a local checkout) to launch the interactive CLI that shows tasks, status, and logs.
 - Behind the scenes, `bin/cli.js` can invoke `agent.js`, `headful.js`, or `scrape.js` depending on the runtime mode (`--agent`, `--headful`, `--scrape`).
 - Run `node agent.js --help` to see flags like `--task`, `--browser`, or `--version`. These runners share the same settings (API key, proxies, storage) as the web UI.
 - When connecting via the API key, prefer `Authorization: Bearer <key>` so reverse proxies can normalize headers; the CLI also accepts a `--api-key` flag for scripted runs.
