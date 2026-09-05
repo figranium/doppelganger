@@ -16,7 +16,7 @@ Figranium is an open-source, self-hosted alternative to Apify and SaaS cloud scr
 # What You Get
 
 - **Block‑based automation** — build flows with actions like click, type, wait, hover, and execute JavaScript against modern pages.
-- **Task API + CLI** — trigger saved tasks via HTTP (`/tasks/:id/api`) or `npx figranium` while passing variables and securing runs with the API key you control.
+- **Task API + CLI** — trigger saved tasks via HTTP (`/tasks/:id/api`) or the CLI from a source checkout while passing variables and securing runs with the API key you control.
 - **Captures & storage** — automatically store screenshots/recordings and cookies; view them in the captures tab, reset storage, or download built assets.
 - **Proxy management** — host, rotate, or import HTTP/SOCKS proxies, flag a default, and toggle rotation per task.
 - **Task Scheduling** — run workflows automatically using visual interval/daily/weekly/monthly settings or advanced cron expressions.
@@ -229,7 +229,7 @@ Proxy rotation also respects `data/proxies.json` (see below), and `data/allowed_
 
 # CLI & Agent Mode
 
-- Use `npx figranium` (or `node bin/cli.js` from a local checkout) to launch the interactive CLI that shows tasks, status, and logs.
+- npm distribution is discontinued. Clone this repository and run `node bin/cli.js` to launch the interactive CLI that shows tasks, status, and logs.
 - Behind the scenes, `bin/cli.js` can invoke `agent.js`, `headful.js`, or `scrape.js` depending on the runtime mode (`--agent`, `--headful`, `--scrape`).
 - Run `node agent.js --help` to see flags like `--task`, `--browser`, or `--version`. These runners share the same settings (API key, proxies, storage) as the web UI.
 - When connecting via the API key, prefer `Authorization: Bearer <key>` so reverse proxies can normalize headers; the CLI also accepts a `--api-key` flag for scripted runs.
@@ -337,7 +337,7 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 
 - The project is governed by the **[GNU General Public License v3.0](https://github.com/figranium/figranium/blob/main/LICENSE)**, which grants rights for distribution and modification as per the GPLv3 terms.
 - Keep `data/` backed up if you rely on historical proxies and settings.
-- Release updates by pulling `figranium/figranium` (Docker) or `npm i figranium` (npm). The Settings view always displays the current package version.
+- Release updates: Docker installations should run `docker compose pull` followed by `docker compose up -d`; source installations should pull `figranium/figranium` and follow the project setup commands. The Settings view always displays the current package version.
 - Contributions: follow `.github/` templates, respect `CONTRIBUTING.md`, and run available lint/test scripts if you touch critical areas.
 
 # Roadmap
