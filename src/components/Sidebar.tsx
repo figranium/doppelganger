@@ -39,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, curr
                 ] as const).map(([screen, icon, title]) => (
                     <button
                         key={screen}
+                        data-testid={screen === 'dashboard' ? 'sidebar-dashboard' : undefined}
                         onClick={() => onNavigate(screen)}
                         className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentScreen === screen ? 'theme-highlight' : 'theme-text-faint theme-hover'}`}
                         title={title}

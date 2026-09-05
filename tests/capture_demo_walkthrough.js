@@ -118,7 +118,7 @@ async function run() {
     }
 
     // Wait until on dashboard (Sidebar is rendered)
-    await setupPage.waitForSelector('button[aria-label="Dashboard (Alt + 1)"]', { timeout: 15000 });
+    await setupPage.waitForSelector('[data-testid="sidebar-dashboard"]', { timeout: 15000 });
     console.log('Successfully arrived on Dashboard. Waiting for session stabilization...');
     await setupPage.waitForTimeout(3000);
 
@@ -127,7 +127,7 @@ async function run() {
         localStorage.setItem('figranium.seenThemeIntro', 'true');
     });
     await setupPage.reload();
-    await setupPage.waitForSelector('button[aria-label="Dashboard (Alt + 1)"]', { timeout: 15000 });
+    await setupPage.waitForSelector('[data-testid="sidebar-dashboard"]', { timeout: 15000 });
     await setupPage.waitForTimeout(2000);
 
     // Pre-create/Configure the 'Demo Autoscraper Task' directly via API

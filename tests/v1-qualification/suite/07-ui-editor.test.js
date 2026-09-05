@@ -140,7 +140,7 @@ const tests = [
                 }
                 assert.ok(taskId, 'UI-created Task must be persisted with an ID');
 
-                await page.click('button[aria-label="Dashboard (Alt + 1)"]');
+                await page.click('[data-testid="sidebar-dashboard"]');
                 const search = page.locator('input[aria-label="Search Tasks"]');
                 await search.waitFor({ state: 'visible', timeout: 10000 });
                 await search.fill('V1 Qualification UI Task');

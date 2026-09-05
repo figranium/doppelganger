@@ -68,7 +68,7 @@ async function run() {
 
         // Navigating back to Dashboard to create a task and run it
         console.log('4. Navigating back to Dashboard...');
-        await page.click('button[aria-label="Dashboard (Alt + 1)"]');
+        await page.click('[data-testid="sidebar-dashboard"]');
         await page.waitForTimeout(1000);
 
         console.log('Clicking Create First Task or New Task...');
