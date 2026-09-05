@@ -167,7 +167,7 @@ export default function App() {
     const getCurrentScreen = () => {
         if (location.pathname.startsWith('/tasks')) return 'editor';
         if (location.pathname === '/settings') return 'settings';
-        if (location.pathname === '/executions') return 'executions';
+        if (location.pathname.startsWith('/executions')) return 'executions';
         if (location.pathname === '/captures') return 'captures';
         return 'dashboard';
     };
