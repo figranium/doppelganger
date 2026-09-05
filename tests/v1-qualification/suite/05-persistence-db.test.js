@@ -2,6 +2,7 @@ const assert = require('assert');
 const { Pool } = require('pg');
 const storage = require('../../../src/server/storage');
 const db = require('../../../src/server/db');
+const cabinetTests = require('./10-cabinets-uploads.test').tests;
 
 const tests = [
     {
@@ -153,7 +154,8 @@ const tests = [
                 await independentPool.end();
             }
         }
-    }
+    },
+    ...cabinetTests
 ];
 
 module.exports = { tests };
