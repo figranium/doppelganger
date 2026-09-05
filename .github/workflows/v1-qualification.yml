@@ -2,8 +2,6 @@ name: V1 Qualification
 
 on:
   pull_request:
-  push:
-    branches: ['main', 'beta']
   workflow_dispatch:
 
 concurrency:
