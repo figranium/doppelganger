@@ -10,6 +10,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
     const [isHeadfulOpen, setIsHeadfulOpen] = useState(false);
     const [results, setResults] = useState<Results | null>(null);
     const [activeRunId, setActiveRunId] = useState<string | null>(null);
+    const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
     const useNovnc = useHeadfulStatus();
     const executeAbortRef = useRef<AbortController | null>(null);
     const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,6 +72,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
             }
             setIsExecuting(false);
             setIsStopping(false);
+            setActiveTaskId(null);
             showAlert('Execution stopped.', 'success');
         }, 3000);
     };
@@ -78,14 +80,14 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
     const runTaskWithSnapshot = async (taskToRunRaw: Task | null, currentTask: Task | null, setCurrentTask: (t: Task) => void) => {
         if (!taskToRunRaw || !taskToRunRaw.url) return;
         const taskToRun = ensureActionIds(taskToRunRaw);
+        if (isExecuting) return;
         if (currentTask && taskToRun !== currentTask) {
             setCurrentTask(taskToRun);
         }
 
         const runId = `run_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         setActiveRunId(runId);
-
-        if (isExecuting) return;
+        setActiveTaskId(taskToRun.id ? String(taskToRun.id) : 'new');
 
         setIsExecuting(true);
         setIsStopping(false);
@@ -233,6 +235,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
             executeAbortRef.current = null;
             setIsExecuting(false);
             setIsStopping(false);
+            setActiveTaskId(null);
         }
     };
 
@@ -243,6 +246,7 @@ export function useExecution(showAlert: (msg: string, tone?: 'success' | 'error'
         results,
         setResults,
         activeRunId,
+        activeTaskId,
         useNovnc,
         runTaskWithSnapshot,
         stopTask,

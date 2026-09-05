@@ -61,6 +61,7 @@ export default function App() {
         results,
         setResults,
         activeRunId,
+        activeTaskId,
         useNovnc,
         runTaskWithSnapshot,
         stopTask,
@@ -84,6 +85,9 @@ export default function App() {
     const pinnedResultsKey = 'figranium.pinnedResults';
     const getTaskKey = (task?: Task | null) => task?.id ? String(task.id) : 'new';
     const currentTaskKey = getTaskKey(currentTask);
+    const isCurrentTaskExecuting = isExecuting && activeTaskId === currentTaskKey;
+    const isCurrentTaskStopping = isStopping && activeTaskId === currentTaskKey;
+    const currentTaskRunId = isCurrentTaskExecuting ? activeRunId : null;
     const pinnedResults = currentTask ? pinnedResultsByTask[currentTaskKey] || null : null;
 
     useEffect(() => {
@@ -279,8 +283,8 @@ export default function App() {
                                 setEditorView={setEditorView}
                                 triggerExpanded={triggerExpanded}
                                 setTriggerExpanded={setTriggerExpanded}
-                                isExecuting={isExecuting}
-                                isStopping={isStopping}
+                                isExecuting={isCurrentTaskExecuting}
+                                isStopping={isCurrentTaskStopping}
                                 onSave={handleSaveTask}
                                 onRun={() => runTaskWithSnapshot(currentTask, currentTask, setCurrentTask)}
                                 onRunSnapshot={(t) => runTaskWithSnapshot(t || currentTask, currentTask, setCurrentTask)}
@@ -290,7 +294,7 @@ export default function App() {
                                 onNotify={showAlert}
                                 onPinResults={pinResults}
                                 onUnpinResults={unpinResults}
-                                runId={activeRunId}
+                                runId={currentTaskRunId}
                                 onStop={() => stopTask()}
                                 isHeadfulOpen={isHeadfulOpen}
                                 onOpenHeadful={(url, targetActionId, taskSnapshot, variables) => openHeadful(url, targetActionId, taskSnapshot, variables)}
@@ -312,8 +316,8 @@ export default function App() {
                                 setEditorView={setEditorView}
                                 triggerExpanded={triggerExpanded}
                                 setTriggerExpanded={setTriggerExpanded}
-                                isExecuting={isExecuting}
-                                isStopping={isStopping}
+                                isExecuting={isCurrentTaskExecuting}
+                                isStopping={isCurrentTaskStopping}
                                 onSave={handleSaveTask}
                                 onRun={() => runTaskWithSnapshot(currentTask, currentTask, setCurrentTask)}
                                 onRunSnapshot={(t) => runTaskWithSnapshot(t || currentTask, currentTask, setCurrentTask)}
@@ -323,7 +327,7 @@ export default function App() {
                                 onNotify={showAlert}
                                 onPinResults={pinResults}
                                 onUnpinResults={unpinResults}
-                                runId={activeRunId}
+                                runId={currentTaskRunId}
                                 onStop={() => stopTask()}
                                 onTaskLoaded={markTaskAsSaved}
                                 isHeadfulOpen={isHeadfulOpen}
