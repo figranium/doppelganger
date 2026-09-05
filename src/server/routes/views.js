@@ -59,6 +59,11 @@ router.get('/captures', requireAuth, (req, res) => {
     res.sendFile(path.join(DIST_DIR, 'index.html'));
 });
 
+// Cabinets
+router.get('/cabinets', requireAuth, (req, res) => {
+    res.sendFile(path.join(DIST_DIR, 'index.html'));
+});
+
 // Executions (SPA routes)
 router.get('/executions', requireAuth, (req, res) => {
     res.sendFile(path.join(DIST_DIR, 'index.html'));

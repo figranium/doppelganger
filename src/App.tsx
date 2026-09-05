@@ -17,7 +17,6 @@ import CenterAlert from './components/app/CenterAlert';
 import CenterConfirm from './components/app/CenterConfirm';
 import EditorLoader from './components/app/EditorLoader';
 import ReleaseNotesModal from './components/app/ReleaseNotesModal';
-import ThemeIntroModal from './components/app/ThemeIntroModal';
 
 import { useAuth } from './hooks/useAuth';
 import { useTasks } from './hooks/useTasks';
@@ -34,7 +33,7 @@ export default function App() {
     const { centerAlert, setCenterAlert, centerConfirm, showAlert, requestConfirm, closeConfirm } = useUI();
 
     // Theme Hook
-    const { theme, setTheme, introOpen, dismissIntro } = useTheme();
+    useTheme();
 
     // Auth Hook
     const { authStatus, authError, authBusy, handleAuthSubmit, logout } = useAuth();
@@ -265,12 +264,6 @@ export default function App() {
         content = (
             <div className="h-full flex flex-row overflow-hidden" style={{ backgroundColor: 'var(--app-bg)' }}>
                 <ReleaseNotesModal />
-                <ThemeIntroModal
-                    open={introOpen}
-                    currentThemeId={theme.id}
-                    onSelect={setTheme}
-                    onDismiss={dismissIntro}
-                />
                 <Sidebar
                     onNavigate={handleNavigate}
                     onNewTask={handleNewTask}

@@ -57,7 +57,7 @@
   "keywords": [],
   "author": "",
   "license": "GPL-3.0-only",
-  "description": "Figranium: Deterministic Control for an Agentic World",
+  "description": "Stack blocks visually to build complex browser workflows and execute them via API",
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "bcryptjs": "^3.0.3",

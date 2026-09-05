@@ -465,6 +465,14 @@ if (novncDir) {
 }
 
 // Static Files
+// File-type logos are versioned application assets. Keep them in the browser's
+// HTTP cache instead of cookies (cookies are sent with every request and cannot
+// safely hold binary SVG data).
+app.use('/file-icons', express.static(path.join(__dirname, 'public', 'file-icons'), {
+    maxAge: '1y',
+    immutable: true,
+    etag: true
+}));
 app.get('/captures/:legacyName', requireAuthOrApiKey, async (req, res, next) => {
     try {
         const entry = await require('./src/server/cabinets').resolveLegacyPath(req.params.legacyName);
@@ -563,6 +571,16 @@ app.get('/api/headful/vnc-password', requireAuth, (req, res) => {
     } catch (err) {
         res.status(500).json({ error: 'FAILED_TO_READ_VNC_PASSWORD' });
     }
+});
+
+// Client-side routes must remain reloadable. Keep this after all API and
+// browser endpoints so unknown API paths still return their normal 404s.
+app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.startsWith('/captures/') || req.path.startsWith('/screenshots/') || req.path.startsWith('/novnc/') || path.extname(req.path)) {
+        return next();
+    }
+    if (!req.accepts('html')) return next();
+    return requireAuth(req, res, () => res.sendFile(path.join(DIST_DIR, 'index.html')));
 });
 
 // Start Server
