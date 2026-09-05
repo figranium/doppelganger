@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const cabinets = require('../../../src/server/cabinets');
 const { CABINETS_DIR } = require('../../../src/server/constants');
+const { initDB } = require('../../../src/server/db');
 const { executeAction } = require('../../../src/agent/figranite/action-handler');
 
 const unique = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -257,11 +258,11 @@ const tests = [
     },
     {
         id: 'CAB-008',
-        name: 'Cabinet Catalog Persists Durable State to Disk',
+        name: 'Cabinet Catalog Persists Durable State in Active Storage Backend',
         subsystem: 'persistence',
         setup: 'Temporary Cabinet with one queued item',
-        steps: 'Create a Cabinet and item, then independently parse data/cabinets/catalog.json and compare persisted identifiers and metadata.',
-        expected: 'Cabinet state is durably represented in the on-disk catalog rather than existing only in process memory.',
+        steps: 'Create a Cabinet and item, then independently read the active persistence backend (Postgres or catalog.json) and compare persisted identifiers and metadata.',
+        expected: 'Cabinet metadata is durably represented in Postgres when configured, otherwise in catalog.json, rather than existing only in process memory.',
         severity: 'CRITICAL',
         blocksV1: true,
         run: async () => {
@@ -269,11 +270,19 @@ const tests = [
             try {
                 cabinet = await cabinets.createCabinet(unique('Persistence Qualification'));
                 const saved = await cabinets.saveDownload(cabinet.id, makeDownload('durable'), 'durable.txt', { sourceTaskId: 'qualification_task' });
-                const raw = JSON.parse(await fs.promises.readFile(path.join(CABINETS_DIR, 'catalog.json'), 'utf8'));
+                const pool = await initDB();
+                let raw;
+                if (pool) {
+                    const result = await pool.query('SELECT data FROM cabinet_catalog WHERE id = 1');
+                    raw = result.rows[0]?.data;
+                    assert.ok(raw, 'Created Cabinet catalog must be persisted in Postgres');
+                } else {
+                    raw = JSON.parse(await fs.promises.readFile(path.join(CABINETS_DIR, 'catalog.json'), 'utf8'));
+                }
                 const persistedCabinet = raw.cabinets.find(c => c.id === cabinet.id);
-                assert.ok(persistedCabinet, 'Created Cabinet must be persisted in catalog.json');
+                assert.ok(persistedCabinet, 'Created Cabinet must be persisted in the active storage backend');
                 const persistedItem = persistedCabinet.items.find(i => i.id === saved.item.id);
-                assert.ok(persistedItem, 'Created Cabinet item must be persisted in catalog.json');
+                assert.ok(persistedItem, 'Created Cabinet item must be persisted in the active storage backend');
                 assert.strictEqual(persistedItem.name, saved.item.name);
                 assert.strictEqual(persistedItem.status, 'unuploaded');
                 assert.strictEqual(persistedItem.sourceTaskId, 'qualification_task');

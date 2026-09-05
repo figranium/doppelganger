@@ -137,6 +137,12 @@ async function initDB() {
                         data JSONB NOT NULL
                     );
                 `);
+                await client.query(`
+                    CREATE TABLE IF NOT EXISTS cabinet_catalog (
+                        id INT PRIMARY KEY DEFAULT 1,
+                        data JSONB NOT NULL
+                    );
+                `);
             } finally {
                 client.release();
             }
