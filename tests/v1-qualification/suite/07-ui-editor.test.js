@@ -54,6 +54,10 @@ async function authenticateThroughUi(page) {
         await page.click('button[type="submit"]');
         await page.waitForSelector('h1:has-text("Overview")', { timeout: 15000 });
         await page.waitForSelector('input[aria-label="Search Tasks"]', { timeout: 10000 });
+        const themeIntroSkip = page.getByRole('button', { name: 'Skip', exact: true });
+        if (await themeIntroSkip.isVisible().catch(() => false)) {
+            await themeIntroSkip.click();
+        }
         return originalUsers;
     } catch (error) {
         await storage.saveUsers(originalUsers);
