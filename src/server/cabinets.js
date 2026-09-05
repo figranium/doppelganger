@@ -4,10 +4,12 @@ const crypto = require('crypto');
 const JSZip = require('jszip');
 const { CABINETS_DIR } = require('./constants');
 const { Mutex } = require('./utils');
+const { initDB, getPool } = require('./db');
 
 const catalogFile = path.join(CABINETS_DIR, 'catalog.json');
 const lock = new Mutex();
 let catalog = null;
+let dbMode = null;
 const id = (prefix) => `${prefix}_${crypto.randomBytes(10).toString('hex')}`;
 const safeName = (name, fallback = 'download') => {
     const value = path.basename(String(name || fallback)).replace(/[\\/:*?"<>|\x00-\x1f]/g, '_').trim();
@@ -21,14 +23,37 @@ const uniqueName = (cabinet, name) => {
     while (used.has(candidate.toLowerCase())) candidate = `${stem} (${index++})${ext}`;
     return candidate;
 };
+async function usingDatabase() {
+    if (dbMode !== null) return dbMode;
+    try { dbMode = !!(await initDB()); } catch { dbMode = false; }
+    return dbMode;
+}
+async function loadCatalog() {
+    if (await usingDatabase()) {
+        const pool = getPool();
+        const res = await pool.query('SELECT data FROM cabinet_catalog WHERE id = 1');
+        if (res.rows[0]?.data) return res.rows[0].data;
+        try {
+            const disk = JSON.parse(await fs.promises.readFile(catalogFile, 'utf8'));
+            await pool.query('INSERT INTO cabinet_catalog (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data', [disk]);
+            return disk;
+        } catch { return null; }
+    }
+    try { return JSON.parse(await fs.promises.readFile(catalogFile, 'utf8')); } catch { return null; }
+}
 async function save() {
     await fs.promises.mkdir(CABINETS_DIR, { recursive: true });
+    if (await usingDatabase()) {
+        const pool = getPool();
+        await pool.query('INSERT INTO cabinet_catalog (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data', [catalog]);
+        return;
+    }
     const temp = `${catalogFile}.${process.pid}.${Date.now()}.tmp`;
     await fs.promises.writeFile(temp, JSON.stringify(catalog, null, 2));
     await fs.promises.rename(temp, catalogFile);
 }
 async function ensure() {
-    if (!catalog) { try { catalog = JSON.parse(await fs.promises.readFile(catalogFile, 'utf8')); } catch { catalog = null; } }
+    if (!catalog) catalog = await loadCatalog();
     if (!catalog || !Array.isArray(catalog.cabinets)) {
         const basic = { id: 'cab_basic', name: 'Basic Cabinet', createdAt: Date.now(), items: [] };
         catalog = { version: 1, defaultCabinetId: basic.id, cabinets: [basic], legacyPaths: {} };
@@ -80,11 +105,11 @@ async function clearCabinet(cabinetId) { await ensure(); const c = findExact(cab
 async function rewriteReferences(fromId, toId) { const { loadTasks, saveTasks } = require('./storage'); const tasks = await loadTasks(); const rewrite = task => { if (task.downloadCabinetId === fromId) task.downloadCabinetId = toId; (task.actions || []).forEach(a => { if (a.cabinetId === fromId) a.cabinetId = toId; }); (task.versions || []).forEach(v => v.snapshot && rewrite(v.snapshot)); };
     tasks.forEach(rewrite); await saveTasks(tasks);
 }
-async function deleteCabinet(cabinetId, targetId, migrate) { return withLock(async () => { const c = findExact(cabinetId); const target = findExact(targetId); if (!c || !target || c.id === target.id) throw new Error('Choose a different replacement cabinet.'); if (catalog.cabinets.length < 2) throw new Error('At least one cabinet must remain.'); if (migrate) { for (const item of c.items || []) { const nextName = uniqueName(target, item.name); const nextDir = itemDir(target.id, item.id); await fs.promises.mkdir(path.dirname(nextDir), { recursive: true }); await fs.promises.rename(itemDir(c.id, item.id), nextDir); item.name = nextName; item.storageName = item.storageName; target.items.push(item); } }
+async function deleteCabinet(cabinetId, targetId, migrate) { return withLock(async () => { const c = findExact(cabinetId); const target = findExact(targetId); if (!c || !target || c.id === target.id) throw new Error('Choose a different replacement cabinet.'); if (catalog.cabinets.length < 2) throw new Error('At least one cabinet must remain.'); if (migrate) { for (const item of c.items || []) { const nextName = uniqueName(target, item.name); const nextDir = itemDir(target.id, item.id); await fs.promises.mkdir(path.dirname(nextDir), { recursive: true }); await fs.promises.rename(itemDir(c.id, item.id), nextDir); item.name = nextName; target.items.push(item); } }
         else { for (const item of c.items || []) await fs.promises.rm(itemDir(c.id, item.id), { recursive: true, force: true }); }
         await fs.promises.rm(path.join(CABINETS_DIR, c.id), { recursive: true, force: true }); catalog.cabinets = catalog.cabinets.filter(x => x.id !== c.id); if (catalog.defaultCabinetId === c.id) catalog.defaultCabinetId = target.id; await rewriteReferences(c.id, target.id); await save(); return listCabinets(); }); }
 async function zipItems(cabinetId, itemIds, archiveName) { return withLock(async () => { const c = findExact(cabinetId); const items = c?.items?.filter(i => (itemIds || []).includes(i.id)) || []; if (!c || !items.length) throw new Error('Select at least one item.'); const zip = new JSZip(); const add = async (source, prefix) => { const stat = await fs.promises.stat(source); if (stat.isDirectory()) { for (const child of await fs.promises.readdir(source)) await add(path.join(source, child), `${prefix}/${child}`); } else zip.file(prefix, await fs.promises.readFile(source)); };
         for (const item of items) await add(path.join(itemDir(c.id,item.id), item.storageName), item.name);
         const itemId = id('item'); const name = uniqueName(c, safeName(archiveName || `archive-${Date.now()}.zip`)); const dir = itemDir(c.id,itemId); await fs.promises.mkdir(dir,{recursive:true}); await fs.promises.writeFile(path.join(dir,name), await zip.generateAsync({type:'nodebuffer'})); const stat=await fs.promises.stat(path.join(dir,name)); c.items.push({id:itemId,name,kind:'file',status:'unuploaded',size:stat.size,createdAt:Date.now(),storageName:name}); for (const item of items) await fs.promises.rm(itemDir(c.id,item.id),{recursive:true,force:true}); c.items=c.items.filter(i=>!items.includes(i)); await save(); return c.items[c.items.length-1]; }); }
 async function unzipItem(cabinetId,itemId) { return withLock(async()=>{ const c=findExact(cabinetId); const source=c?.items?.find(i=>i.id===itemId); if(!c||!source||!source.name.toLowerCase().endsWith('.zip')) throw new Error('Select a ZIP file.'); const zip=await JSZip.loadAsync(await fs.promises.readFile(path.join(itemDir(c.id,source.id),source.storageName))); const nextId=id('item'); const folder=uniqueName(c,safeName(source.name.replace(/\.zip$/i,''),'extracted')); const root=path.join(itemDir(c.id,nextId),folder); for(const entry of Object.values(zip.files)){ if(entry.dir) continue; const rel=entry.name.replace(/\\/g,'/'); if(rel.startsWith('/')||rel.split('/').includes('..')) throw new Error('Unsafe ZIP entry.'); const target=path.join(root,rel); if(!target.startsWith(root+path.sep)) throw new Error('Unsafe ZIP entry.'); await fs.promises.mkdir(path.dirname(target),{recursive:true}); await fs.promises.writeFile(target,await entry.async('nodebuffer')); } const size=async p=>{const s=await fs.promises.stat(p); if(!s.isDirectory())return s.size; let n=0; for(const x of await fs.promises.readdir(p))n+=await size(path.join(p,x)); return n;}; c.items.push({id:nextId,name:folder,kind:'folder',status:'unuploaded',size:await size(root),createdAt:Date.now(),storageName:folder}); await fs.promises.rm(itemDir(c.id,source.id),{recursive:true,force:true}); c.items=c.items.filter(i=>i.id!==source.id); await save(); return c.items[c.items.length-1]; }); }
-module.exports={ensure,listCabinets,createCabinet,renameCabinet,listItems,saveDownload,getItem,resolveLegacyPath,latestUnuploaded,setStatus,removeItems,clearCabinet,deleteCabinet,zipItems,unzipItem};
+module.exports={ensure,listCabinets,createCabinet,renameCabinet,listItems,addFile,saveDownload,getItem,resolveLegacyPath,latestUnuploaded,setStatus,removeItems,clearCabinet,deleteCabinet,zipItems,unzipItem};
