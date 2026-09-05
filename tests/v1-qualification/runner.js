@@ -1,4 +1,8 @@
 process.env.ALLOW_PRIVATE_NETWORKS = '1';
+// Repeated auth and UI qualification attempts intentionally exercise the same
+// server process. Keep production's login throttling from becoming shared test
+// state that makes later E2E attempts fail deterministically.
+process.env.AUTH_RATE_LIMIT_MAX ||= '1000';
 const fs = require('fs');
 const path = require('path');
 const os = require('os');

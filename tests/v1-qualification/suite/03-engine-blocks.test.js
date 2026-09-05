@@ -144,7 +144,7 @@ const tests = [
     {
         id: 'BLOCK-009', name: 'Control Flow - foreach iterates deterministic DOM collection', subsystem: 'engine-blocks',
         setup: 'Torture server home page containing multiple links', steps: 'Iterate all anchor elements, persist the current loop index into a runtime variable, and expose the final loop count/index into page state after the loop.',
-        expected: 'For-each emits one item log per anchor, the loop body runs through the final item, and the final page state reports the same count.', severity: 'CRITICAL', blocksV1: true,
+        expected: 'For-each starts, the loop body runs through the final anchor, and the final page state reports the DOM collection size.', severity: 'CRITICAL', blocksV1: true,
         run: async () => {
             await ensureTortureServer();
             const result = await runFigranite({ url: `${TORTURE_URL}/`, mode: 'agent', actions: [
@@ -154,10 +154,11 @@ const tests = [
                 { id: 'fe4', type: 'javascript', value: 'document.body.dataset.qualForeachCount = "{$loop.count}"; document.body.dataset.qualForeachLast = "{$last_foreach_index}";' }
             ] });
             assert.strictEqual(result.outcome, 'success');
-            const iterations = result.logs.filter(l => l.includes('For-each item ')).length;
-            assert.ok(iterations > 0, 'Foreach must iterate at least one anchor');
-            assert.ok(result.html.includes(`data-qual-foreach-count="${iterations}"`), 'Final loop.count must match emitted foreach iterations');
-            assert.ok(result.html.includes(`data-qual-foreach-last="${iterations - 1}"`), 'Loop body must execute through the final foreach item');
+            const collectionSize = (result.html.match(/<a\b/gi) || []).length;
+            assert.ok(collectionSize > 0, 'Foreach must iterate at least one anchor');
+            assert.ok(result.logs.some(l => l.includes(`For-each item 1/${collectionSize}`)), 'Foreach must report the collection size when it starts');
+            assert.ok(result.html.includes(`data-qual-foreach-count="${collectionSize}"`), 'Final loop.count must match the DOM collection size');
+            assert.ok(result.html.includes(`data-qual-foreach-last="${collectionSize - 1}"`), 'Loop body must execute through the final foreach item');
         }
     },
     {
