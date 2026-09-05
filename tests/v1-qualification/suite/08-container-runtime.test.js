@@ -1,4 +1,5 @@
 const assert = require('assert');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -36,6 +37,13 @@ async function ensureImage() {
     imageBuilt = true;
 }
 
+function seedQualificationApiKey(dataDir) {
+    const apiKey = crypto.randomBytes(32).toString('hex');
+    const apiKeyPath = path.join(dataDir, 'api_key.json');
+    fs.writeFileSync(apiKeyPath, JSON.stringify({ apiKey }), { encoding: 'utf8', mode: 0o600 });
+    fs.chmodSync(apiKeyPath, 0o600);
+}
+
 function containerDiagnostics(containerName) {
     const inspect = spawnSync('docker', ['inspect', containerName, '--format', 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}'], {
         cwd: repoRoot,
@@ -68,10 +76,13 @@ async function waitForContainerHealth(containerName, timeoutMs = 90_000) {
             throw new Error(`Container exited before becoming healthy.\n${containerDiagnostics(containerName)}`);
         }
 
+        // Keep the per-run qualification key out of host command arguments, env vars,
+        // logs, and workflow artifacts. curl reads it from the isolated bind mount
+        // inside the container and sends it using Figranium's normal x-api-key header.
         const health = spawnSync('docker', [
             'exec', containerName,
-            'curl', '-fsS', '--max-time', '2',
-            'http://127.0.0.1:11345/api/health'
+            'sh', '-lc',
+            'curl -fsS --max-time 2 -H "x-api-key: $(node -p \'JSON.parse(require("fs").readFileSync("/app/data/api_key.json", "utf8")).apiKey\')" http://127.0.0.1:11345/api/health'
         ], {
             cwd: repoRoot,
             encoding: 'utf8',
@@ -150,11 +161,11 @@ const tests = [
     },
     {
         id: 'CONTAINER-004',
-        name: 'Docker Runtime - Startup, Health, Restart, and /app/data Volume Persistence',
+        name: 'Docker Runtime - Startup, Authenticated Health, Restart, and /app/data Volume Persistence',
         subsystem: 'container-runtime',
-        setup: 'Built qualification image and working Docker daemon',
-        steps: 'Run the image with an isolated /app/data bind mount and ephemeral published port, verify /api/health from inside the production container, confirm the port is published, create a persistence marker, restart the same container, verify health again and confirm the marker remains.',
-        expected: 'The production container starts, serves a healthy API, publishes port 11345, survives restart, and preserves mounted application data.',
+        setup: 'Built qualification image, working Docker daemon, and an isolated per-run API key stored only in the temporary /app/data bind mount',
+        steps: 'Create an ephemeral API key, run the image with an isolated /app/data bind mount and ephemeral published port, verify /api/health from inside the production container using x-api-key, confirm the port is published, create a persistence marker, restart the same container, verify authenticated health again and confirm the marker remains.',
+        expected: 'The production container starts, serves a healthy authenticated API, publishes port 11345, survives restart, and preserves mounted application data without exposing the qualification key in CI arguments or logs.',
         severity: 'CRITICAL',
         blocksV1: true,
         run: async () => {
@@ -164,6 +175,8 @@ const tests = [
             const containerName = `figranium-v1-qual-${process.pid}-${Date.now()}`;
             const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'figranium-v1-data-'));
             try {
+                seedQualificationApiKey(dataDir);
+
                 run('docker', [
                     'run', '-d', '--name', containerName,
                     '-p', '127.0.0.1::11345',
