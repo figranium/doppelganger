@@ -6,6 +6,7 @@ import { BLOCK_OUTPUT_VARIABLE, MORE_RESERVED_VARIABLES, ReservedVariableDefinit
 interface ConfigVariableListProps {
     variables: Record<string, Variable>;
     canInsertVariable?: boolean;
+    loopVariablesAvailable?: boolean;
     onInsertVariable?: (name: string) => void;
 }
 
@@ -25,28 +26,33 @@ const formatValue = (value: unknown) => {
 const ConfigVariableList: React.FC<ConfigVariableListProps> = ({
     variables,
     canInsertVariable = false,
+    loopVariablesAvailable = false,
     onInsertVariable,
 }) => {
     const entries = Object.entries(variables || {});
     const [activeTab, setActiveTab] = useState<'variables' | 'more'>('variables');
-    const insertOrDragProps = (name: string) => ({
-        draggable: true,
-        'aria-disabled': !canInsertVariable,
-        onClick: () => { if (canInsertVariable) onInsertVariable?.(name); },
+    const insertOrDragProps = (name: string, unavailable = false) => ({
+        draggable: !unavailable,
+        disabled: unavailable,
+        'aria-disabled': unavailable || !canInsertVariable,
+        onClick: () => { if (canInsertVariable && !unavailable) onInsertVariable?.(name); },
         onDragStart: (event: React.DragEvent<HTMLButtonElement>) => {
+            if (unavailable) { event.preventDefault(); return; }
             const token = `{$${name}}`;
             event.dataTransfer.effectAllowed = 'copy';
             event.dataTransfer.setData('text/plain', token);
             event.dataTransfer.setData('application/x-figranium-variable', token);
         },
     });
-    const reservedVariableRow = (variable: ReservedVariableDefinition) => (
-        <div key={variable.name} className="flex w-full items-start gap-3">
+    const reservedVariableRow = (variable: ReservedVariableDefinition) => {
+        const unavailable = variable.name.startsWith('loop.') && !loopVariablesAvailable;
+        return (
+        <div key={variable.name} className={`flex w-full items-start gap-3 ${unavailable ? 'opacity-35' : ''}`}>
             <button
                 type="button"
-                {...insertOrDragProps(variable.name)}
-                className={`inline-flex max-w-[58%] shrink-0 cursor-grab overflow-hidden rounded-lg border theme-border bg-[var(--app-input)] text-left active:cursor-grabbing ${canInsertVariable ? '' : 'opacity-75'}`}
-                title={canInsertVariable ? `Insert {$${variable.name}}` : `Drag {$${variable.name}} into a field`}
+                {...insertOrDragProps(variable.name, unavailable)}
+                className={`inline-flex max-w-[58%] shrink-0 overflow-hidden rounded-lg border theme-border bg-[var(--app-input)] text-left ${unavailable ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'} ${canInsertVariable ? '' : 'opacity-75'}`}
+                title={unavailable ? 'Available only inside a For Each loop' : canInsertVariable ? `Insert {$${variable.name}}` : `Drag {$${variable.name}} into a field`}
             >
                 <span className="flex w-8 shrink-0 items-center justify-center border-r theme-border text-[var(--app-text-muted)]">
                     <MaterialIcon name={variable.icon} className="text-sm" />
@@ -55,7 +61,7 @@ const ConfigVariableList: React.FC<ConfigVariableListProps> = ({
             </button>
             <span className="min-w-0 flex-1 pt-1.5 text-xs leading-5 text-[var(--app-text-muted)]">{variable.description}</span>
         </div>
-    );
+    )};
 
     return (
         <section className="rounded-2xl border theme-border bg-[var(--app-surface-2)] p-4">

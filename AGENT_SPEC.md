@@ -27,6 +27,7 @@ This document is a concise, implementation-focused reference for AI agents that 
     "naturalTyping": false
   },
   "autoSolveCaptcha": false,
+  "downloadCabinetId": "cab_basic",
   "actions": [],
   "variables": {},
   "schedule": {
@@ -51,6 +52,7 @@ navigate, click, type, wait, wait_selector, wait_downloads, press, scroll, javas
 screenshot, if, else, end, while, repeat, foreach, stop, set, on_error, start, http_request, get_content,
 solve_captcha
 wait_captcha
+upload, finalize_uploads
 ```
 
 Common fields:
@@ -60,6 +62,8 @@ Common fields:
 - `disabled` (boolean): skip action.
 - `varName` (string): target variable for `set`, `merge`, `foreach`.
 - `conditionVar`, `conditionVarType`, `conditionOp`, `conditionValue`: structured conditions for `if` and `while`.
+- `cabinetId`: source Cabinet for `upload`; omitted uses the default Cabinet.
+- `markAsUploaded`: when true, an Upload action marks its item uploaded after attaching it.
 
 ### Execution outcomes
 Completed `agent` and `scrape` executions return an `outcome` field with one of:
@@ -364,7 +368,19 @@ Wait until a CAPTCHA is initialized and ready for interaction without clicking o
 - Checkbox challenges become ready only when their control is visible, enabled, pointer-receivable, and positionally stable. Invisible and non-interactive variants use their initialized/executable provider state.
 - The action never clicks or solves the challenge. A timeout marks the block as failed and follows the normal `on_error`/continue behavior.
 
-## 18) Notes for AI agents
+## 18) Upload from a Cabinet
+
+```json
+{ "id": "act_upload", "type": "upload", "cabinetId": "cab_basic", "selector": "input[type=file]", "markAsUploaded": false }
+```
+
+Upload selects the latest unuploaded file, ZIP, or folder in the Cabinet. It supports file inputs, labels that resolve to file inputs, custom file choosers, and drop targets. A folder requires a directory-enabled input. Use the following action after successful page-side submission when upload status should be deferred:
+
+```json
+{ "id": "act_finalize_uploads", "type": "finalize_uploads" }
+```
+
+## 19) Notes for AI agents
 - `javascript` actions are page-context only (no `page` object).
 - Prefer structured conditions for selectors (`exists` with selector).
 - Keep waits short; use 1-2s unless the target site is slow.

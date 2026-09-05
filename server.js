@@ -79,6 +79,7 @@ const scheduleRoutes = require('./src/server/routes/schedules');
 const credentialRoutes = require('./src/server/routes/credentials');
 const healthRoutes = require('./src/server/routes/health');
 const browserRoutes = require('./src/server/routes/browser');
+const cabinetRoutes = require('./src/server/routes/cabinets');
 const { pushOutput } = require('./src/server/outputProviders');
 const { migrateStorageState } = require('./src/server/migrate-storage');
 const { concurrencyGate } = require('./src/server/execution-queue');
@@ -208,6 +209,7 @@ app.use('/api', dataRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/credentials', credentialRoutes);
+app.use('/api/cabinets', cabinetRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api', browserRoutes);
 
@@ -463,6 +465,21 @@ if (novncDir) {
 }
 
 // Static Files
+// File-type logos are versioned application assets. Keep them in the browser's
+// HTTP cache instead of cookies (cookies are sent with every request and cannot
+// safely hold binary SVG data).
+app.use('/file-icons', express.static(path.join(__dirname, 'public', 'file-icons'), {
+    maxAge: '1y',
+    immutable: true,
+    etag: true
+}));
+app.get('/captures/:legacyName', requireAuthOrApiKey, dataRateLimiter, async (req, res, next) => {
+    try {
+        const entry = await require('./src/server/cabinets').resolveLegacyPath(req.params.legacyName);
+        if (!entry) return next();
+        return res.download(entry.path, entry.item.name);
+    } catch { return next(); }
+});
 app.use('/captures', requireAuthOrApiKey, express.static(capturesDir), express.static(srcCapturesDir));
 app.use('/screenshots', requireAuthOrApiKey, express.static(capturesDir), express.static(srcCapturesDir));
 app.use(express.static(DIST_DIR));
@@ -556,6 +573,16 @@ app.get('/api/headful/vnc-password', requireAuth, (req, res) => {
     }
 });
 
+// Client-side routes must remain reloadable. Keep this after all API and
+// browser endpoints so unknown API paths still return their normal 404s.
+app.use(dataRateLimiter, (req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.startsWith('/captures/') || req.path.startsWith('/screenshots/') || req.path.startsWith('/novnc/') || path.extname(req.path)) {
+        return next();
+    }
+    if (!req.accepts('html')) return next();
+    return requireAuth(req, res, () => res.sendFile(path.join(DIST_DIR, 'index.html')));
+});
+
 // Start Server
 findAvailablePort(port, 20)
     .then((availablePort) => {
@@ -569,6 +596,7 @@ findAvailablePort(port, 20)
 
             // One-time migration of storage_state.json cookies into persistent browser profiles
             migrateStorageState().catch(err => console.error('[MIGRATION] Failed:', err.message));
+            require('./src/server/cabinets').ensure().catch(err => console.error('[CABINETS] Initialization failed:', err.message));
 
             // Start the cron scheduler
             const { startScheduler } = require('./src/server/scheduler');

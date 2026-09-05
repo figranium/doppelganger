@@ -79,7 +79,7 @@ export const normalizeImportedTask = (raw: any, index: number): Task | null => {
     return merged;
 };
 
-export const buildNewTask = (): Task => {
+export const buildNewTask = (downloadCabinetId = 'cab_basic'): Task => {
     return {
         name: "Task " + Math.floor(Math.random() * 100),
         url: "",
@@ -106,6 +106,7 @@ export const buildNewTask = (): Task => {
         includeHtml: false,
         includeShadowDom: true,
         disableRecording: false,
-        statelessExecution: false
+        statelessExecution: false,
+        downloadCabinetId
     };
 };

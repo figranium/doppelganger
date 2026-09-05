@@ -2,11 +2,13 @@ import { ReactNode, useMemo } from 'react';
 import { Action, BlockTestResult, Variable } from '../../types';
 import MaterialIcon from '../MaterialIcon';
 import ConfigVariableList from './ConfigVariableList';
+import { isBlockStartAction } from '../../utils/actionBlocks';
 
 interface InputEntry { key: string; label: string; raw: unknown; resolved: unknown }
 interface BlockConfigWorkspaceProps {
     configuration: ReactNode;
     action: Action;
+    actions: Action[];
     variables: Record<string, Variable>;
     canInsertVariable: boolean;
     isTesting: boolean;
@@ -77,10 +79,21 @@ const statusTone: Record<BlockTestResult['status'], string> = {
 };
 
 const BlockConfigWorkspace: React.FC<BlockConfigWorkspaceProps> = ({
-    configuration, action, variables, canInsertVariable, isTesting, testError,
+    configuration, action, actions, variables, canInsertVariable, isTesting, testError,
     testResult, onInsertVariable, onRunTest, onStopTest,
 }) => {
     const inputEntries = getActionInputEntries(action, variables);
+    const loopVariablesAvailable = useMemo(() => {
+        const actionIndex = actions.findIndex((candidate) => candidate.id === action.id);
+        if (actionIndex < 1) return false;
+        const stack: Action['type'][] = [];
+        for (let index = 0; index < actionIndex; index++) {
+            const type = actions[index].type;
+            if (isBlockStartAction(type)) stack.push(type);
+            else if (type === 'end') stack.pop();
+        }
+        return stack.includes('foreach');
+    }, [action.id, actions]);
     const changedVariables = useMemo(() => {
         if (!testResult) return [];
         return Object.entries(testResult.variables || {}).filter(([name, value]) => (
@@ -121,7 +134,7 @@ const BlockConfigWorkspace: React.FC<BlockConfigWorkspaceProps> = ({
             </div>
 
             <aside className="min-w-0 space-y-5" aria-label="Block context">
-                <ConfigVariableList variables={variables} canInsertVariable={canInsertVariable} onInsertVariable={onInsertVariable} />
+                <ConfigVariableList variables={variables} canInsertVariable={canInsertVariable} loopVariablesAvailable={loopVariablesAvailable} onInsertVariable={onInsertVariable} />
                 <section className="rounded-2xl border theme-border bg-[var(--app-surface-2)] p-4" aria-live="polite">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-text-muted)]">

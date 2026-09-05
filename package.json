@@ -1,6 +1,6 @@
 {
   "name": "figranium",
-  "version": "0.16.1",
+  "version": "0.17.0",
   "main": "index.js",
   "bin": {
     "figranium": "bin/cli.js"
@@ -57,7 +57,7 @@
   "keywords": [],
   "author": "",
   "license": "GPL-3.0-only",
-  "description": "Figranium: Deterministic Control for an Agentic World",
+  "description": "Stack blocks visually to build complex browser workflows and execute them via API",
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "bcryptjs": "^3.0.3",
@@ -73,7 +73,7 @@
     "jsdom": "^22.1.0",
     "jszip": "^3.10.1",
     "pg": "^8.16.3",
-    "playwright": "^1.57.0",
+    "playwright": "^1.63.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "^19.2.3",

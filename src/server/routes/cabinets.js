@@ -1,0 +1,21 @@
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const JSZip = require('jszip');
+const { requireAuth, requireAuthOrApiKey, dataRateLimiter } = require('../middleware');
+const cabinets = require('../cabinets');
+const router = express.Router();
+const fail = (res, error) => res.status(/not found/i.test(error.message) ? 404 : 400).json({ error: error.message });
+
+router.get('/', requireAuth, async (_req,res)=>{ try { res.json(await cabinets.listCabinets()); } catch(e){ fail(res,e); } });
+router.post('/', requireAuth, dataRateLimiter, async (req,res)=>{ try { res.status(201).json(await cabinets.createCabinet(req.body?.name)); } catch(e){ fail(res,e); } });
+router.patch('/:cabinetId', requireAuth, dataRateLimiter, async (req,res)=>{ try { res.json(await cabinets.renameCabinet(req.params.cabinetId,req.body?.name)); } catch(e){ fail(res,e); } });
+router.get('/:cabinetId/items', requireAuth, async (req,res)=>{ try { res.json({items:await cabinets.listItems(req.params.cabinetId)}); } catch(e){ fail(res,e); } });
+router.post('/:cabinetId/clear', requireAuth, dataRateLimiter, async (req,res)=>{ try { await cabinets.clearCabinet(req.params.cabinetId); res.json({success:true}); } catch(e){ fail(res,e); } });
+router.delete('/:cabinetId', requireAuth, dataRateLimiter, async (req,res)=>{ try { res.json(await cabinets.deleteCabinet(req.params.cabinetId,req.body?.targetCabinetId,req.body?.mode==='migrate')); } catch(e){ fail(res,e); } });
+router.patch('/:cabinetId/items/status', requireAuth, dataRateLimiter, async(req,res)=>{try{res.json({items:await cabinets.setStatus(req.params.cabinetId,req.body?.itemIds,req.body?.status)});}catch(e){fail(res,e);}});
+router.delete('/:cabinetId/items', requireAuth, dataRateLimiter, async(req,res)=>{try{await cabinets.removeItems(req.params.cabinetId,req.body?.itemIds);res.json({success:true});}catch(e){fail(res,e);}});
+router.post('/:cabinetId/zip', requireAuth, dataRateLimiter, async(req,res)=>{try{res.json(await cabinets.zipItems(req.params.cabinetId,req.body?.itemIds,req.body?.name));}catch(e){fail(res,e);}});
+router.post('/:cabinetId/items/:itemId/unzip', requireAuth, dataRateLimiter, async(req,res)=>{try{res.json(await cabinets.unzipItem(req.params.cabinetId,req.params.itemId));}catch(e){fail(res,e);}});
+router.get('/:cabinetId/items/:itemId/download', requireAuthOrApiKey, dataRateLimiter, async(req,res)=>{ try { const entry=await cabinets.getItem(req.params.cabinetId,req.params.itemId); if(entry.item.kind!=='folder') return res.download(entry.path,entry.item.name); const zip=new JSZip(); const add=async(p,prefix)=>{const s=await fs.promises.stat(p);if(s.isDirectory()){for(const n of await fs.promises.readdir(p))await add(path.join(p,n),`${prefix}/${n}`);}else zip.file(prefix,await fs.promises.readFile(p));}; await add(entry.path,entry.item.name); const data=await zip.generateAsync({type:'nodebuffer'}); res.setHeader('Content-Disposition',`attachment; filename="${entry.item.name.replace(/["\\]/g,'_')}.zip"`);res.type('application/zip').send(data); } catch(e){fail(res,e);} });
+module.exports=router;

@@ -8,7 +8,7 @@ const getActionSummary = (action: Action) => {
     let summary = '';
     if (action.type === 'click' || action.type === 'hover' || action.type === 'scroll' || action.type === 'wait_selector') {
         summary = action.selector || '';
-    } else if (action.type === 'type' || action.type === 'navigate' || action.type === 'wait' || action.type === 'javascript' || action.type === 'repeat' || action.type === 'start' || action.type === 'screenshot' || action.type === 'wait_downloads' || action.type === 'stop') {
+    } else if (action.type === 'type' || action.type === 'navigate' || action.type === 'wait' || action.type === 'javascript' || action.type === 'repeat' || action.type === 'start' || action.type === 'screenshot' || action.type === 'wait_downloads' || action.type === 'stop' || action.type === 'upload') {
         summary = action.value || '';
     } else if (action.type === 'set' || action.type === 'foreach' || action.type === 'merge') {
         summary = action.varName || '';
@@ -44,7 +44,9 @@ const renderBlockMarker = (type: Action['type']) => {
     if (type === 'wait_selector') return <MaterialIcon name="schedule" className={`${iconClass} text-white`} />;
     if (type === 'scroll') return <MaterialIcon name="swap_vert" className={`${iconClass} text-white`} />;
     if (type === 'javascript') return <MaterialIcon name="code" className={`${iconClass} text-white`} />;
-    if (type === 'csv') return <MaterialIcon name="table_chart" className={`${iconClass} text-white`} />;
+    if (type === 'csv') return <MaterialIcon name="csv" className={`${iconClass} text-white`} />;
+    if (type === 'upload') return <MaterialIcon name="upload_file" className={`${iconClass} text-white`} />;
+    if (type === 'finalize_uploads') return <MaterialIcon name="task_alt" className={`${iconClass} text-white`} />;
     if (type === 'merge') return <MaterialIcon name="layers" className={`${iconClass} text-white`} />;
     if (type === 'screenshot') return <MaterialIcon name="photo_camera" className={`${iconClass} text-white`} />;
     if (type === 'start') return <MaterialIcon name="play_circle" className={`${iconClass} text-white`} />;
@@ -59,7 +61,7 @@ const renderBlockMarker = (type: Action['type']) => {
 };
 
 // Block types that have no config and shouldn't open a modal
-const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothing'];
+const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothing', 'finalize_uploads'];
 
 interface ActionItemProps {
     action: Action;

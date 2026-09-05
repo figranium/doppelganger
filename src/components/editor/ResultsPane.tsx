@@ -7,29 +7,8 @@ import CodeEditor from '../CodeEditor';
 import JSZip from 'jszip';
 import { SyntaxLanguage } from '../../utils/syntaxHighlight';
 import GithubStarPrompt from '../GithubStarPrompt';
+import FileTypeIcon from '../FileTypeIcon';
 import { normalizeTaskOutcome, taskOutcomeBadgeClass, taskOutcomeLabel } from '../../utils/taskOutcome';
-
-const getFileIcon = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase() || '';
-    switch (ext) {
-        case 'pdf': return 'picture_as_pdf';
-        case 'csv':
-        case 'xls':
-        case 'xlsx': return 'table_view';
-        case 'png':
-        case 'jpg':
-        case 'jpeg':
-        case 'gif':
-        case 'svg': return 'image';
-        case 'txt':
-        case 'md': return 'description';
-        case 'json': return 'data_object';
-        case 'zip':
-        case 'tar':
-        case 'gz': return 'folder_zip';
-        default: return 'insert_drive_file';
-    }
-};
 
 interface ResultsPaneProps {
     results: Results | null;
@@ -864,7 +843,7 @@ const ResultsPane: React.FC<ResultsPaneProps> = ({ results, pinnedResults, isExe
                                             <div key={idx} className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-xl p-4 hover:bg-white/[0.04] transition-colors">
                                                 <div className="flex items-center gap-4 overflow-hidden pr-4">
                                                     <div className="p-3 bg-white/5 rounded-lg border border-white/10 shrink-0">
-                                                        <MaterialIcon name={getFileIcon(file.name)} className="text-2xl text-white/70" />
+                                                        <FileTypeIcon name={file.name} className="text-2xl" />
                                                     </div>
                                                     <div className="min-w-0">
                                                         <h4 className="text-sm font-bold text-white truncate">{file.name}</h4>

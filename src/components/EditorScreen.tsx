@@ -113,7 +113,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
     const [noteClipboard, setNoteClipboard] = useState<StickyNote[]>([]);
     const [actionPaletteOpen, setActionPaletteOpen] = useState(false);
     const [isCabinetOpen, setIsCabinetOpen] = useState(false);
-    const [cabinetTab, setCabinetTab] = useState<'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'schedule' | 'history'>('mode');
+    const [cabinetTab, setCabinetTab] = useState<'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'output' | 'schedule' | 'history' | 'cabinets'>('mode');
     const [selectionBox, setSelectionBox] = useState<{ startX: number, startY: number, currentX: number, currentY: number } | null>(null);
     const [actionPaletteQuery, setActionPaletteQuery] = useState('');
     const [actionPaletteTargetId, setActionPaletteTargetId] = useState<string | null>(null);
@@ -326,7 +326,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
         setContextMenu({ id, x, y });
     }, []);
 
-    const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothing'];
+    const NO_CONFIG_TYPES: Action['type'][] = ['else', 'end', 'on_error', 'do_nothing', 'finalize_uploads'];
 
     const addActionByType = (type: Action['type']) => {
         const base: Action = { id: "act_" + Date.now() + "_" + Math.floor(Math.random() * 1000), type, selector: '', value: '' };
