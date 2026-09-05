@@ -165,7 +165,7 @@ body {
 .app-input-control {
     height: 40px;
     border: 1px solid var(--app-border);
-    border-radius: 11px;
+    border-radius: 16px;
     background: var(--app-input);
     color: var(--app-text);
     font-size: 12px;
@@ -242,7 +242,7 @@ body {
 .app-button-icon,
 .app-button-danger {
     min-height: 40px;
-    border-radius: 11px;
+    border-radius: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -282,10 +282,14 @@ body {
     border: 1px solid rgba(239, 68, 68, 0.18);
 }
 
-.app-button-primary:hover { transform: translateY(-1px); filter: brightness(0.94); }
+.app-button-primary:hover { transform: scale(1.05); filter: brightness(0.94); }
 .app-button-secondary:hover,
-.app-button-icon:hover { color: var(--app-text); border-color: var(--app-border-strong); background: var(--app-glass-card-hover); }
-.app-button-danger:hover { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.3); }
+.app-button-icon:hover { transform: scale(1.05); color: var(--app-text); border-color: var(--app-border-strong); background: var(--app-glass-card-hover); }
+.app-button-danger:hover { transform: scale(1.05); background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.3); }
+.app-button-primary:disabled:hover,
+.app-button-secondary:disabled:hover,
+.app-button-icon:disabled:hover,
+.app-button-danger:disabled:hover { transform: none; }
 
 .app-metrics {
     display: grid;

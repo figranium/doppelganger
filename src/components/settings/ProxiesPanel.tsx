@@ -337,33 +337,6 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
                 </button>
             </div>
 
-            {(selectedProxyIds.size > 0 || selectableProxies.length > 0) && (
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.02] border border-white/5">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                            type="checkbox"
-                            checked={allSelected}
-                            onChange={toggleAllSelection}
-                            disabled={selectableProxies.length === 0}
-                            className="w-4 h-4 rounded border-white/20 bg-transparent disabled:opacity-50"
-                        />
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white transition-colors">
-                            {selectedProxyIds.size > 0 ? `${selectedProxyIds.size} Selected` : 'Select All'}
-                        </span>
-                    </label>
-
-                    {selectedProxyIds.size > 0 && (
-                        <button
-                            onClick={handleBulkDelete}
-                            className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-xs font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-all inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                        >
-                            <MaterialIcon name="delete" className="text-base" />
-                            Delete Selected
-                        </button>
-                    )}
-                </div>
-            )}
-
             <input
                 ref={fileInputRef}
                 type="file"
@@ -374,28 +347,52 @@ const ProxiesPanel: React.FC<ProxiesPanelProps> = ({
             {importError && (
                 <div className="text-xs text-red-400 uppercase tracking-widest">{importError}</div>
             )}
-            <label className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Rotation mode</span>
-                <CustomSelect
-                    value={rotationMode}
-                    onChange={onRotationModeChange}
-                    options={[
-                        { value: 'round-robin', label: 'Round robin', icon: 'repeat' },
-                        { value: 'random', label: 'Random', icon: 'shuffle' },
-                    ]}
-                    className="w-[170px]"
-                    ariaLabel="Rotation mode"
-                />
-            </label>
-            <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all cursor-pointer group">
-                <input
-                    type="checkbox"
-                    checked={includeDefaultInRotation}
-                    onChange={(e) => onToggleIncludeDefault(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/20 bg-transparent"
-                />
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Include default IP in rotation pool</span>
-            </label>
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-2xl border border-white/5 bg-white/[0.02] p-2.5">
+                <label className="flex items-center rounded-xl px-2 py-1.5 transition-colors hover:bg-white/[0.04] group">
+                    <CustomSelect
+                        value={rotationMode}
+                        onChange={onRotationModeChange}
+                        options={[
+                            { value: 'round-robin', label: 'Round robin', icon: 'repeat' },
+                            { value: 'random', label: 'Random', icon: 'shuffle' },
+                        ]}
+                        className="!w-[176px] !min-h-8"
+                        ariaLabel="Rotation mode"
+                    />
+                </label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.04] group">
+                    <input
+                        type="checkbox"
+                        checked={includeDefaultInRotation}
+                        onChange={(e) => onToggleIncludeDefault(e.target.checked)}
+                        className="w-4 h-4 rounded border-white/20 bg-transparent"
+                    />
+                    <span className="whitespace-nowrap text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">Include default IP</span>
+                </label>
+                {(selectedProxyIds.size > 0 || selectableProxies.length > 0) && (
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.04] group">
+                        <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onChange={toggleAllSelection}
+                            disabled={selectableProxies.length === 0}
+                            className="w-4 h-4 rounded border-white/20 bg-transparent disabled:opacity-50"
+                        />
+                        <span className="whitespace-nowrap text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-white">
+                            {selectedProxyIds.size > 0 ? `${selectedProxyIds.size} Selected` : 'Select All'}
+                        </span>
+                    </label>
+                )}
+                {selectedProxyIds.size > 0 && (
+                    <button
+                        onClick={handleBulkDelete}
+                        className="ml-auto inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-red-400 transition-all hover:bg-red-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    >
+                        <MaterialIcon name="delete" className="text-base" />
+                        Delete Selected
+                    </button>
+                )}
+            </div>
 
             <div className="space-y-3">
                 {loading && <LoadingState label="proxies" />}

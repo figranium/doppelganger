@@ -900,6 +900,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                     </div>
                 )}
                 action={action}
+                actions={task.actions}
                 variables={variables}
                 canInsertVariable={canInsertVariable}
                 isTesting={isTesting}

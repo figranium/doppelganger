@@ -9,6 +9,7 @@ import { APP_VERSION } from '@/utils/appInfo';
 import MaterialIcon from './MaterialIcon';
 import { useTheme } from '../hooks/useTheme';
 import { CustomCombobox } from './common/CustomSelect';
+import { useNavigate, useParams } from 'react-router-dom';
 
 // ── AI Models Panel ──────────────────────────────────────────────────────────
 
@@ -138,7 +139,18 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
     onConfirm,
     onNotify
 }) => {
-    const [section, setSection] = useState<SettingsSection>('api-keys');
+    const navigate = useNavigate();
+    const { section: sectionParam } = useParams<{ section?: string }>();
+    const routeSection = SETTINGS_SECTIONS.some((item) => item.id === sectionParam) ? sectionParam as SettingsSection : 'api-keys';
+    const [section, setSection] = useState<SettingsSection>(routeSection);
+    useEffect(() => {
+        setSection(routeSection);
+        if (!sectionParam || routeSection !== sectionParam) navigate(`/settings/${routeSection}`, { replace: true });
+    }, [navigate, routeSection, sectionParam]);
+    const selectSection = (nextSection: SettingsSection) => {
+        setSection(nextSection);
+        navigate(`/settings/${nextSection}`);
+    };
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [credentialsLoading, setCredentialsLoading] = useState(false);
     const [addedProviders, setAddedProviders] = useState<string[]>([]);
@@ -1136,7 +1148,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 <div className="settings-nav-title">Settings</div>
                 <div className="settings-nav-list">
                     {SETTINGS_SECTIONS.map((item) => (
-                        <button key={item.id} onClick={() => setSection(item.id)} className={`settings-nav-item ${section === item.id ? 'settings-nav-item-active' : ''}`} aria-current={section === item.id ? 'page' : undefined}>
+                        <button key={item.id} onClick={() => selectSection(item.id)} className={`settings-nav-item ${section === item.id ? 'settings-nav-item-active' : ''}`} aria-current={section === item.id ? 'page' : undefined}>
                             <MaterialIcon name={item.icon} className="text-lg" />
                             <span>{item.label}</span>
                         </button>

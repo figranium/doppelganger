@@ -166,7 +166,7 @@ export default function App() {
 
     const getCurrentScreen = () => {
         if (location.pathname.startsWith('/tasks')) return 'editor';
-        if (location.pathname === '/settings') return 'settings';
+        if (location.pathname.startsWith('/settings')) return 'settings';
         if (location.pathname.startsWith('/executions')) return 'executions';
         if (location.pathname === '/captures') return 'captures';
         if (location.pathname === '/cabinets') return 'cabinets';
@@ -216,34 +216,34 @@ export default function App() {
             }
 
             if (e.altKey) {
-                switch (e.key) {
-                    case '1':
+                // Option-number on macOS can produce a symbol for `key`; `code`
+                // stays tied to the physical number row on every platform.
+                switch (e.code) {
+                    case 'Digit1':
                         e.preventDefault();
                         handleNavigate('dashboard');
                         break;
-                    case '2':
+                    case 'Digit2':
                         e.preventDefault();
                         handleNavigate('settings');
                         break;
-                    case '3':
+                    case 'Digit3':
                         e.preventDefault();
                         handleNavigate('executions');
                         break;
-                    case '4':
+                    case 'Digit4':
                         e.preventDefault();
                         handleNavigate('captures');
                         break;
-                    case '5':
+                    case 'Digit5':
                         e.preventDefault();
                         handleNavigate('cabinets');
                         break;
-                    case 'n':
-                    case 'N':
+                    case 'KeyN':
                         e.preventDefault();
                         handleNewTask();
                         break;
-                    case 'l':
-                    case 'L':
+                    case 'KeyL':
                         e.preventDefault();
                         handleLogout();
                         break;
@@ -344,10 +344,17 @@ export default function App() {
                             onNotify={showAlert}
                         />
                     } />
+                    <Route path="/settings/:section" element={
+                        <SettingsScreen
+                            onConfirm={requestConfirm}
+                            onNotify={showAlert}
+                        />
+                    } />
                     <Route path="/executions" element={<ExecutionsScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
                     <Route path="/executions/:id" element={<ExecutionDetailScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
                     <Route path="/captures" element={<CapturesScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
                     <Route path="/cabinets" element={<CabinetsScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
+                    <Route path="/cabinets/:cabinetId" element={<CabinetsScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
                     <Route path="*" element={<NotFoundScreen onBack={() => navigate('/dashboard')} />} />
                 </Routes>
             </div>
