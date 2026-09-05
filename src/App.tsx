@@ -11,6 +11,7 @@ import LoadingScreen from './components/LoadingScreen';
 import ExecutionsScreen from './components/ExecutionsScreen';
 import ExecutionDetailScreen from './components/ExecutionDetailScreen';
 import CapturesScreen from './components/CapturesScreen';
+import CabinetsScreen from './components/CabinetsScreen';
 import NotFoundScreen from './components/NotFoundScreen';
 import CenterAlert from './components/app/CenterAlert';
 import CenterConfirm from './components/app/CenterConfirm';
@@ -169,10 +170,11 @@ export default function App() {
         if (location.pathname === '/settings') return 'settings';
         if (location.pathname.startsWith('/executions')) return 'executions';
         if (location.pathname === '/captures') return 'captures';
+        if (location.pathname === '/cabinets') return 'cabinets';
         return 'dashboard';
     };
 
-    const handleNavigate = useCallback((s: 'dashboard' | 'editor' | 'settings' | 'executions' | 'captures') => {
+    const handleNavigate = useCallback((s: 'dashboard' | 'editor' | 'settings' | 'executions' | 'captures' | 'cabinets') => {
         if (s === 'dashboard') navigate('/dashboard');
         else if (s === 'settings') {
             navigate('/settings');
@@ -180,6 +182,8 @@ export default function App() {
             navigate('/executions');
         } else if (s === 'captures') {
             navigate('/captures');
+        } else if (s === 'cabinets') {
+            navigate('/cabinets');
         }
     }, [navigate]);
 
@@ -229,6 +233,10 @@ export default function App() {
                     case '4':
                         e.preventDefault();
                         handleNavigate('captures');
+                        break;
+                    case '5':
+                        e.preventDefault();
+                        handleNavigate('cabinets');
                         break;
                     case 'n':
                     case 'N':
@@ -346,6 +354,7 @@ export default function App() {
                     <Route path="/executions" element={<ExecutionsScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
                     <Route path="/executions/:id" element={<ExecutionDetailScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
                     <Route path="/captures" element={<CapturesScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
+                    <Route path="/cabinets" element={<CabinetsScreen onConfirm={requestConfirm} onNotify={showAlert} />} />
                     <Route path="*" element={<NotFoundScreen onBack={() => navigate('/dashboard')} />} />
                 </Routes>
             </div>

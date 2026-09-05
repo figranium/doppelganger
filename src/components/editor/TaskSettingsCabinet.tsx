@@ -25,7 +25,7 @@ interface TaskSettingsCabinetProps {
 }
 
 const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
-    initialTab?: 'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'output' | 'schedule' | 'history',
+    initialTab?: 'mode' | 'variables' | 'behavior' | 'extraction' | 'api' | 'output' | 'schedule' | 'history' | 'cabinets',
     versions: { id: string; timestamp: number; name: string; mode: string }[],
     versionsLoading: boolean,
     isCreatingVersion: boolean,
@@ -66,6 +66,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
         const [tableLoading, setTableLoading] = React.useState(false);
         const [browseSupported, setBrowseSupported] = React.useState(true);
         const [versionContextMenu, setVersionContextMenu] = React.useState<{ id: string; x: number; y: number } | null>(null);
+        const [cabinets, setCabinets] = React.useState<{ id: string; name: string; isDefault?: boolean }[]>([]);
 
         React.useEffect(() => {
             if (isOpen) {
@@ -90,6 +91,11 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
             if (isOpen && activeTab === 'output') {
                 fetch('/api/credentials').then(r => r.json()).then(setCredentials).catch(() => {});
             }
+        }, [isOpen, activeTab]);
+
+        React.useEffect(() => {
+            if (!isOpen || activeTab !== 'cabinets') return;
+            fetch('/api/cabinets').then(r => r.ok ? r.json() : null).then(data => setCabinets(data?.cabinets || [])).catch(() => setCabinets([]));
         }, [isOpen, activeTab]);
 
         const fetchDatabases = React.useCallback(async (credentialId: string) => {
@@ -259,6 +265,7 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                         {renderTabButton('api', 'API', 'api')}
                         {renderTabButton('output', 'Output', 'table')}
                         {renderTabButton('schedule', 'Schedule', 'event_repeat')}
+                        {renderTabButton('cabinets', 'Cabinets', 'inventory_2')}
                         {renderTabButton('history', 'History', 'history')}
                     </div>
 
@@ -447,6 +454,22 @@ const TaskSettingsCabinet: React.FC<TaskSettingsCabinetProps & {
                                         ))}
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'cabinets' && (
+                            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div>
+                                    <label className="text-xs font-bold text-[var(--app-text-muted)] uppercase tracking-[0.2em]">Download destination</label>
+                                    <p className="mt-2 text-xs text-[var(--app-text-faint)]">Downloads made by this automation are saved in this cabinet.</p>
+                                </div>
+                                <CustomSelect
+                                    value={currentTask.downloadCabinetId || ''}
+                                    onChange={(downloadCabinetId) => onUpdateTask({ downloadCabinetId })}
+                                    options={cabinets.length ? cabinets.map(c => ({ value: c.id, label: `${c.name}${c.isDefault ? ' (Default)' : ''}`, icon: 'inventory_2' })) : [{ value: '', label: 'Loading cabinets…', disabled: true }]}
+                                    ariaLabel="Download cabinet"
+                                />
+                                <a href="/cabinets" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--app-accent)] hover:opacity-80"><MaterialIcon name="open_in_new" className="text-sm" /> Manage Cabinets</a>
                             </div>
                         )}
 

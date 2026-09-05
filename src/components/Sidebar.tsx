@@ -2,10 +2,10 @@ import React from 'react';
 import MaterialIcon from './MaterialIcon';
 
 interface SidebarProps {
-    onNavigate: (screen: 'dashboard' | 'editor' | 'settings' | 'executions' | 'captures') => void;
+    onNavigate: (screen: 'dashboard' | 'editor' | 'settings' | 'executions' | 'captures' | 'cabinets') => void;
     onNewTask: () => void;
     onLogout: () => void;
-    currentScreen: 'dashboard' | 'editor' | 'settings' | 'executions' | 'captures';
+    currentScreen: 'dashboard' | 'editor' | 'settings' | 'executions' | 'captures' | 'cabinets';
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, currentScreen }) => {
@@ -35,6 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, curr
                     ['settings', 'settings', 'Settings (Alt + 2)'],
                     ['executions', 'history', 'Executions (Alt + 3)'],
                     ['captures', 'photo_camera', 'Captures (Alt + 4)'],
+                    ['cabinets', 'inventory_2', 'Cabinets (Alt + 5)'],
                 ] as const).map(([screen, icon, title]) => (
                     <button
                         key={screen}

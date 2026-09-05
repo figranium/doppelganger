@@ -121,6 +121,13 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
     const [aiDescription, setAiDescription] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
+    const [cabinets, setCabinets] = useState<{ id: string; name: string }[]>([]);
+    useEffect(() => {
+        if (action.type !== 'upload') return;
+        fetch('/api/cabinets').then(r => r.ok ? r.json() : null).then(data => {
+            if (data?.cabinets) setCabinets(data.cabinets);
+        }).catch(() => undefined);
+    }, [action.type]);
 
     const handleGenerateScript = async () => {
         if (!aiDescription.trim()) return;
@@ -305,14 +312,14 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
 
         const httpMethod = action.method || 'GET';
         const bodyMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
-        const useTwoColumnLayout = ['type', 'scroll', 'foreach', 'set', 'merge', 'solve_captcha'].includes(action.type);
+        const useTwoColumnLayout = ['type', 'scroll', 'foreach', 'set', 'merge', 'solve_captcha', 'upload'].includes(action.type);
 
         return (
             <div className={useTwoColumnLayout
                 ? 'grid grid-cols-1 content-start items-start gap-x-8 gap-y-10 md:grid-cols-2'
                 : 'space-y-10'}>
                 {/* Selector field */}
-                {(action.type === 'click' || action.type === 'type' || action.type === 'hover' || action.type === 'wait_selector' || action.type === 'scroll') && (
+                {(action.type === 'click' || action.type === 'type' || action.type === 'hover' || action.type === 'wait_selector' || action.type === 'scroll' || action.type === 'upload') && (
                     field(action.type === 'scroll' ? 'Selector (Optional)' : 'Selector',
                         <div className="bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5 text-xs focus-within:border-white/20 transition-all flex items-center gap-2">
                             <div className="flex-1 min-w-0 flex flex-col gap-1">
@@ -321,7 +328,7 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                                     onChange={(v) => onUpdate(action.id, { selector: v })}
                                     onBlur={() => onAutoSave()}
                                     variables={variables}
-                                    placeholder={action.type === 'scroll' ? '.scroll-container or leave empty' : '.btn-primary'}
+                                    placeholder={action.type === 'scroll' ? '.scroll-container or leave empty' : action.type === 'upload' ? 'input[type=file] or .drop-zone' : '.btn-primary'}
                                 />
                                 {selectorOptions && selectorOptions.length > 1 && (
                                     <div className="flex flex-wrap gap-1 mt-1">
@@ -351,6 +358,16 @@ const ActionConfigModal: React.FC<ActionConfigModalProps> = ({
                         </div>
                     )
                 )}
+
+                {action.type === 'upload' && <>
+                    {field('Cabinet', <CustomSelect
+                        value={action.cabinetId || ''}
+                        onChange={(cabinetId) => onUpdate(action.id, { cabinetId }, true)}
+                        options={cabinets.length ? [{ value: '', label: 'Default cabinet' }, ...cabinets.map(c => ({ value: c.id, label: c.name, icon: 'inventory_2' }))] : [{ value: '', label: 'Loading cabinets…', disabled: true }]}
+                        ariaLabel="Upload cabinet"
+                    />)}
+                    {field('Mark as uploaded', <label className="flex items-center gap-2 text-xs text-white/80"><input type="checkbox" checked={!!action.markAsUploaded} onChange={(e) => onUpdate(action.id, { markAsUploaded: e.target.checked }, true)} className="h-4 w-4" /> Mark after the page accepts this item</label>)}
+                </>}
 
                 {/* Scroll speed */}
                 {action.type === 'scroll' && field('Scroll Speed (ms)',

@@ -3,6 +3,7 @@ const path = require('path');
 const DEFAULT_PORT = 11345;
 const DIST_DIR = path.join(__dirname, '../../dist');
 const DATA_DIR = path.join(__dirname, '../../data');
+const CABINETS_DIR = path.join(DATA_DIR, 'cabinets');
 const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const ALLOWED_IPS_FILE = path.join(DATA_DIR, 'allowed_ips.json');
@@ -38,6 +39,7 @@ module.exports = {
     DEFAULT_PORT,
     DIST_DIR,
     DATA_DIR,
+    CABINETS_DIR,
     SESSIONS_DIR,
     USERS_FILE,
     ALLOWED_IPS_FILE,

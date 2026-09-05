@@ -83,7 +83,9 @@ export interface Action {
     | 'get_content'
     | 'solve_captcha'
     | 'wait_captcha'
-    | 'do_nothing';
+    | 'do_nothing'
+    | 'upload'
+    | 'finalize_uploads';
     selector?: string;
     value?: string;
     key?: string;
@@ -99,6 +101,8 @@ export interface Action {
     body?: string;
     timeout?: number;
     captchaType?: 'recaptcha_v2' | 'recaptcha_v3' | 'hcaptcha' | 'turnstile';
+    cabinetId?: string;
+    markAsUploaded?: boolean;
 }
 
 export interface TaskSchedule {
@@ -175,6 +179,7 @@ export interface Task {
     disableRecording?: boolean;
     statelessExecution?: boolean;
     autoSolveCaptcha?: boolean;
+    downloadCabinetId?: string;
     versions?: TaskVersion[];
     schedule?: TaskSchedule;
 }

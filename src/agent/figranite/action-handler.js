@@ -3,6 +3,9 @@ const { parseCoords, parseValue, parseCsv, sanitizeRunId } = require('../../../c
 const { moveMouseHumanlike, idleMouse, overshootScroll, humanType } = require('./human-interaction');
 const { loadApiKey } = require('../../server/storage'); // Need to access server storage for internal API key loading
 const { solveCaptcha, waitForCaptcha } = require('./captcha-client');
+const fs = require('fs');
+const path = require('path');
+const cabinets = require('../../server/cabinets');
 
 const normalizeVarRef = (raw) => {
     if (!raw) return '';
@@ -115,7 +118,8 @@ const executeAction = async (act, context) => {
         lastBlockOutput,
         setStopOutcome,
         setStopRequested,
-        pendingDownloads
+        pendingDownloads,
+        successfulUploads
     } = context;
 
     const {
@@ -137,6 +141,69 @@ const executeAction = async (act, context) => {
     let result = null;
 
     switch (type) {
+        case 'upload': {
+            const selectorValue = resolveMaybe(act.selector);
+            if (!selectorValue) throw new Error('Upload selector is required.');
+            const entry = await cabinets.latestUnuploaded(act.cabinetId);
+            const isFolder = entry.item.kind === 'folder';
+            logs.push(`Uploading ${entry.item.name} from cabinet ${entry.cabinet.name}.`);
+            const descriptor = await page.evaluate((selector) => {
+                const el = document.querySelector(selector);
+                if (!el) return null;
+                const input = el.matches('input[type="file"]') ? el : (el.querySelector?.('input[type="file"]') || (el.matches('label') && el.htmlFor ? document.getElementById(el.htmlFor) : null));
+                return input && input instanceof HTMLInputElement ? { hasInput: true, directory: !!input.webkitdirectory } : { hasInput: false };
+            }, selectorValue);
+            if (!descriptor) throw new Error(`Upload target not found: ${selectorValue}`);
+            if (isFolder && descriptor.hasInput && !descriptor.directory) throw new Error('The selected file input does not support folders.');
+            if (descriptor.hasInput) {
+                await page.evaluate((selector) => {
+                    const el = document.querySelector(selector);
+                    if (!el) return;
+                    if (el instanceof HTMLInputElement && el.type === 'file') { el.dataset.figraniumUploadInput = '1'; return; }
+                    const input = el.querySelector?.('input[type="file"]') || (el instanceof HTMLLabelElement && el.htmlFor ? document.getElementById(el.htmlFor) : null);
+                    if (input instanceof HTMLInputElement) input.dataset.figraniumUploadInput = '1';
+                }, selectorValue);
+                const target = await page.$('input[data-figranium-upload-input="1"]');
+                if (!target) throw new Error('No file input found for upload target.');
+                await target.setInputFiles(entry.path);
+            } else {
+                const chooser = await Promise.all([
+                    page.waitForEvent?.('filechooser', { timeout: 800 }).catch(() => null),
+                    page.click(selectorValue, { delay: baseDelay(25) }).catch(() => null)
+                ]).then(([fileChooser]) => fileChooser);
+                if (chooser) {
+                    if (isFolder) {
+                        const supportsDirectory = await chooser.element().evaluate((el) => !!el.webkitdirectory);
+                        if (!supportsDirectory) throw new Error('The file chooser does not support folders.');
+                    }
+                    await chooser.setFiles(entry.path);
+                    successfulUploads?.set(`${entry.cabinet.id}:${entry.item.id}`, entry);
+                    if (act.markAsUploaded) await cabinets.setStatus(entry.cabinet.id, [entry.item.id], 'uploaded');
+                    result = { cabinetId: entry.cabinet.id, itemId: entry.item.id, name: entry.item.name, kind: entry.item.kind };
+                    break;
+                }
+                const files = [];
+                const collect = async (source, relative = '') => { const stat = await fs.promises.stat(source); if (stat.isDirectory()) { for (const child of await fs.promises.readdir(source)) await collect(path.join(source, child), `${relative}${relative ? '/' : ''}${child}`); } else files.push({ name: relative || path.basename(source), buffer: await fs.promises.readFile(source) }); };
+                await collect(entry.path, entry.item.name);
+                await page.evaluate(async ({ selector, files: raw }) => {
+                    const target = document.querySelector(selector); if (!target) throw new Error('Upload target disappeared.');
+                    const dt = new DataTransfer();
+                    raw.forEach((file) => { const f = new File([new Uint8Array(file.buffer.data || file.buffer)], file.name); Object.defineProperty(f, 'webkitRelativePath', { value: file.name }); dt.items.add(f); });
+                    ['dragenter','dragover','drop'].forEach(type => target.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt })));
+                }, { selector: selectorValue, files });
+            }
+            successfulUploads?.set(`${entry.cabinet.id}:${entry.item.id}`, entry);
+            if (act.markAsUploaded) await cabinets.setStatus(entry.cabinet.id, [entry.item.id], 'uploaded');
+            result = { cabinetId: entry.cabinet.id, itemId: entry.item.id, name: entry.item.name, kind: entry.item.kind };
+            break;
+        }
+        case 'finalize_uploads': {
+            const grouped = new Map();
+            for (const entry of successfulUploads?.values?.() || []) { const list = grouped.get(entry.cabinet.id) || []; list.push(entry.item.id); grouped.set(entry.cabinet.id, list); }
+            for (const [cabinetId, itemIds] of grouped) await cabinets.setStatus(cabinetId, itemIds, 'uploaded');
+            result = { finalized: Array.from(grouped.values()).reduce((n, list) => n + list.length, 0) };
+            break;
+        }
         case 'navigate':
         case 'goto': {
             const targetUrl = resolveMaybe(act.value);

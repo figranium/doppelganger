@@ -7,6 +7,7 @@ const { parseBooleanFlag, sanitizeRunId, toCsvString } = require('../../../commo
 const { runExtractionScript } = require('../sandbox');
 const { cleanHtml } = require('../dom-utils');
 const { launchBrowser, createBrowserContext } = require('../browser');
+const cabinets = require('../../server/cabinets');
 
 // New Modules
 const { buildBlockMap, randomBetween, getForeachItems } = require('./helpers');
@@ -49,6 +50,7 @@ const reportProgress = (runId, payload) => {
 const TEST_INPUT_FIELDS = [
     'selector', 'value', 'key', 'conditionVar', 'conditionVarType', 'conditionOp',
     'conditionValue', 'typeMode', 'method', 'headers', 'body', 'timeout', 'captchaType',
+    'cabinetId', 'markAsUploaded',
 ];
 
 const buildResolvedActionInputs = (action, resolveTemplate) => {
@@ -245,6 +247,7 @@ async function runFigranite(data, options = {}) {
         browser = context.browser();
 
         const downloads = [];
+        const successfulUploads = new Map();
         const pendingDownloads = new Set();
         const newDownloadListeners = new Set();
 
@@ -256,19 +259,18 @@ async function runFigranite(data, options = {}) {
                 logs.push(`[DOWNLOAD] Intercepted: ${originalName}`);
                 const promise = new Promise(async (resolve) => {
                     try {
-                        const safeName = originalName.replace(/[^a-zA-Z0-9_.-]/g, '_');
-                        const downloadName = `${captureRunId}_dl_${Date.now()}_${safeName}`;
-                        const customCapturesDir = path.join(__dirname, '../../public', 'captures');
-                        // ⚡ Bolt: Use non-blocking directory creation
-                        await fs.promises.mkdir(customCapturesDir, { recursive: true });
-
-                        const downloadPath = path.join(customCapturesDir, downloadName);
-
-                        await download.saveAs(downloadPath);
+                        const stored = await cabinets.saveDownload(data.downloadCabinetId, download, originalName, {
+                            sourceTaskId: data.taskId || null,
+                            sourceRunId: runId || null,
+                            sourceUrl: download.url()
+                        });
                         downloads.push({
                             name: originalName,
                             url: download.url(),
-                            path: `/captures/${downloadName}`
+                            path: `/api/cabinets/${stored.cabinetId}/items/${stored.item.id}/download`,
+                            cabinetId: stored.cabinetId,
+                            itemId: stored.item.id,
+                            kind: stored.item.kind
                         });
                         logs.push(`[DOWNLOAD] Saved locally: ${originalName}`);
                     } catch (e) {
@@ -409,6 +411,7 @@ async function runFigranite(data, options = {}) {
             setStopOutcome: (out) => { stopOutcome = out; },
             setStopRequested: (req) => { stopRequested = req; },
             pendingDownloads,
+            successfulUploads,
             waitForNewDownload: () => new Promise(res => {
                 newDownloadListeners.add(res);
                 setTimeout(() => newDownloadListeners.delete(res), 15000);

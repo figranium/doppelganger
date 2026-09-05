@@ -79,6 +79,7 @@ const scheduleRoutes = require('./src/server/routes/schedules');
 const credentialRoutes = require('./src/server/routes/credentials');
 const healthRoutes = require('./src/server/routes/health');
 const browserRoutes = require('./src/server/routes/browser');
+const cabinetRoutes = require('./src/server/routes/cabinets');
 const { pushOutput } = require('./src/server/outputProviders');
 const { migrateStorageState } = require('./src/server/migrate-storage');
 const { concurrencyGate } = require('./src/server/execution-queue');
@@ -208,6 +209,7 @@ app.use('/api', dataRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/credentials', credentialRoutes);
+app.use('/api/cabinets', cabinetRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api', browserRoutes);
 
@@ -463,6 +465,13 @@ if (novncDir) {
 }
 
 // Static Files
+app.get('/captures/:legacyName', requireAuthOrApiKey, async (req, res, next) => {
+    try {
+        const entry = await require('./src/server/cabinets').resolveLegacyPath(req.params.legacyName);
+        if (!entry) return next();
+        return res.download(entry.path, entry.item.name);
+    } catch { return next(); }
+});
 app.use('/captures', requireAuthOrApiKey, express.static(capturesDir), express.static(srcCapturesDir));
 app.use('/screenshots', requireAuthOrApiKey, express.static(capturesDir), express.static(srcCapturesDir));
 app.use(express.static(DIST_DIR));
@@ -569,6 +578,7 @@ findAvailablePort(port, 20)
 
             // One-time migration of storage_state.json cookies into persistent browser profiles
             migrateStorageState().catch(err => console.error('[MIGRATION] Failed:', err.message));
+            require('./src/server/cabinets').ensure().catch(err => console.error('[CABINETS] Initialization failed:', err.message));
 
             // Start the cron scheduler
             const { startScheduler } = require('./src/server/scheduler');
