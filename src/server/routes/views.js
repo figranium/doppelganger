@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { requireAuth } = require('../middleware');
+const { requireAuth, dataRateLimiter } = require('../middleware');
 const { loadUsers } = require('../storage');
 const { DIST_DIR } = require('../constants');
 
@@ -60,7 +60,7 @@ router.get('/captures', requireAuth, (req, res) => {
 });
 
 // Cabinets
-router.get('/cabinets', requireAuth, (req, res) => {
+router.get('/cabinets', requireAuth, dataRateLimiter, (req, res) => {
     res.sendFile(path.join(DIST_DIR, 'index.html'));
 });
 

@@ -473,7 +473,7 @@ app.use('/file-icons', express.static(path.join(__dirname, 'public', 'file-icons
     immutable: true,
     etag: true
 }));
-app.get('/captures/:legacyName', requireAuthOrApiKey, async (req, res, next) => {
+app.get('/captures/:legacyName', requireAuthOrApiKey, dataRateLimiter, async (req, res, next) => {
     try {
         const entry = await require('./src/server/cabinets').resolveLegacyPath(req.params.legacyName);
         if (!entry) return next();
@@ -575,7 +575,7 @@ app.get('/api/headful/vnc-password', requireAuth, (req, res) => {
 
 // Client-side routes must remain reloadable. Keep this after all API and
 // browser endpoints so unknown API paths still return their normal 404s.
-app.use((req, res, next) => {
+app.use(dataRateLimiter, (req, res, next) => {
     if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.startsWith('/captures/') || req.path.startsWith('/screenshots/') || req.path.startsWith('/novnc/') || path.extname(req.path)) {
         return next();
     }

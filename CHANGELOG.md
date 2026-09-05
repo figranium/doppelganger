@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.17.0] - 2026-09-05
+
+### Cabinets and uploads
+- Added installation-wide **Cabinets** as durable download queues, including a default Basic Cabinet, legacy-download migration, isolated item storage, upload status, Cabinet item downloads, ZIP creation, and safe archive extraction.
+- Added the Cabinets workspace and Cabinet API for creation, renaming, clearing, status changes, bulk deletion, migration/deletion, downloads, ZIP, and unzip operations.
+- Added per-Task download Cabinet selection, routed intercepted browser downloads into the selected Cabinet, and preserved migrated legacy capture download links.
+- Added **Upload** and **Finalize Uploads** Agent actions. Upload selects the newest unuploaded Cabinet item, supports ordinary files, ZIPs, compatible folders, native file inputs, file choosers, and drop targets; Finalize Uploads marks all items attached during the execution.
+- Documented the Cabinet Task field and upload action contract in `AGENT_SPEC.md`.
+
+### Editor and interface
+- Added extension-aware monochrome file icons for Cabinet and execution downloads, plus the dedicated Material Symbols CSV glyph throughout action UI.
+- Added direct, reload-safe URLs for Settings tabs and individual Cabinets, including invalid-Cabinet fallback to the default Cabinet.
+- Added Option-number sidebar navigation support on macOS, improved sidebar add-button affordance, made loop variables unavailable outside a For Each scope, and refined Cabinet controls and proxy rotation settings.
+- Replaced Cabinet browser prompts with the app's glass modal treatment, removed the theme introduction prompt, and updated the package description to describe the product directly.
+
+### Reliability and qualification
+- Added and hardened deterministic v1 qualification coverage for browser execution, control-flow blocks, persistence, scheduler behavior, Docker startup, PostgreSQL migration, headful operation, and concurrent execution.
+- Corrected false-positive qualification assertions and CI setup, isolated qualification API keys, and tightened Docker cleanup and health verification.
+- Added rate limiting to Cabinet download, migrated-capture, Cabinet view, and SPA fallback handlers in response to CodeQL findings.
+
+### Documentation and maintenance
+- Updated CLI/release documentation and application dependencies.
+
 ## [0.16.1] - 2026-08-30
 
 ### Canvas loop redesign
