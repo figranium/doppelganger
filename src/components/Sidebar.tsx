@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, curr
                     ['settings', 'settings', 'Settings (Alt/Option + 2)'],
                     ['executions', 'history', 'Executions (Alt/Option + 3)'],
                     ['captures', 'photo_camera', 'Captures (Alt/Option + 4)'],
-                    ['cabinets', 'cases', 'Cabinets (Alt/Option + 5)'],
+                    ['cabinets', 'shelves', 'Cabinets (Alt/Option + 5)'],
                 ] as const).map(([screen, icon, title]) => (
                     <button
                         key={screen}
