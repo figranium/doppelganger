@@ -37,6 +37,26 @@ function setActiveHeadfulPage(nextPage) {
     activeSession.page = nextPage;
 }
 
+async function isSiteCreatedPage(nextPage) {
+    if (!nextPage || typeof nextPage.opener !== 'function') return false;
+    try {
+        return !!(await nextPage.opener());
+    } catch {
+        return false;
+    }
+}
+
+async function rejectSiteCreatedPage(nextPage) {
+    if (!(await isSiteCreatedPage(nextPage))) return false;
+
+    const pageToRestore = activeSession?.page;
+    try { await nextPage.close(); } catch { }
+    if (pageToRestore && !pageToRestore.isClosed()) {
+        try { await pageToRestore.bringToFront(); } catch { }
+    }
+    return true;
+}
+
 const teardownActiveSession = async () => {
     if (!activeSession) return;
     try {
@@ -488,13 +508,10 @@ async function runHeadful(data, options = {}) {
             } catch (e) { }
         }
 
+        const trackedPages = new WeakSet();
         const attachPageTracking = (trackedPage) => {
-            if (!trackedPage) return;
-
-            trackedPage.on('popup', (popup) => {
-                setActiveHeadfulPage(popup);
-                attachPageTracking(popup);
-            });
+            if (!trackedPage || trackedPages.has(trackedPage)) return;
+            trackedPages.add(trackedPage);
 
             trackedPage.on('close', () => {
                 if (!activeSession || activeSession.page !== trackedPage) return;
@@ -505,7 +522,8 @@ async function runHeadful(data, options = {}) {
             });
         };
 
-        context.on('page', (newPage) => {
+        context.on('page', async (newPage) => {
+            if (await rejectSiteCreatedPage(newPage)) return;
             setActiveHeadfulPage(newPage);
             attachPageTracking(newPage);
         });
@@ -693,4 +711,3 @@ module.exports = {
     launchApiSession,
     ensureSessionId
 };
-

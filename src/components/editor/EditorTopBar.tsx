@@ -6,6 +6,7 @@ interface EditorTopBarProps {
     currentTask: Task;
     onUpdateTaskName: (name: string) => void;
     onAutoSave: () => void;
+    onOpenVariables: () => void;
     onOpenHistory: () => void;
 }
 
@@ -13,6 +14,7 @@ const EditorTopBar: React.FC<EditorTopBarProps> = ({
     currentTask,
     onUpdateTaskName,
     onAutoSave,
+    onOpenVariables,
     onOpenHistory,
 }) => {
     return (
@@ -29,6 +31,14 @@ const EditorTopBar: React.FC<EditorTopBarProps> = ({
                     />
                 </div>
                 <div className="flex items-center gap-1">
+                    <button
+                        onClick={onOpenVariables}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        title="Variables"
+                        aria-label="Variables"
+                    >
+                        <MaterialIcon name="function" className="text-base" />
+                    </button>
                     <button
                         onClick={onOpenHistory}
                         className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"

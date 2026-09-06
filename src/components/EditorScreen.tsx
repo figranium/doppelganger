@@ -357,6 +357,7 @@ const EditorScreen: React.FC<EditorScreenProps> = ({
                 currentTask={currentTask}
                 onUpdateTaskName={(name) => setCurrentTask({ ...currentTask, name })}
                 onAutoSave={handleAutoSave}
+                onOpenVariables={() => handleOpenCabinet('variables')}
                 onOpenHistory={() => handleOpenCabinet('history')}
             />
 
