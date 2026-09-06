@@ -23,6 +23,25 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Verify Playwright Docker image matches lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOCKED_PLAYWRIGHT_VERSION="$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")"
+          DOCKER_PLAYWRIGHT_VERSION="$(sed -nE 's#^FROM mcr\.microsoft\.com/playwright:v([0-9]+\.[0-9]+\.[0-9]+)-jammy AS runtime$#\1#p' Dockerfile)"
+
+          if [ -z "$DOCKER_PLAYWRIGHT_VERSION" ]; then
+            echo "Could not determine Playwright version from Dockerfile runtime image."
+            exit 1
+          fi
+
+          if [ "$LOCKED_PLAYWRIGHT_VERSION" != "$DOCKER_PLAYWRIGHT_VERSION" ]; then
+            echo "Playwright version mismatch: package-lock.json=$LOCKED_PLAYWRIGHT_VERSION Dockerfile=$DOCKER_PLAYWRIGHT_VERSION"
+            exit 1
+          fi
+
+          echo "Playwright versions match: $LOCKED_PLAYWRIGHT_VERSION"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
