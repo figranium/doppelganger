@@ -32,7 +32,7 @@ export const makeDefaultTask = (): Task => ({
     name: "Imported Task",
     url: "",
     mode: "scrape",
-    wait: 3,
+    wait: 0,
     selector: "",
     rotateUserAgents: false,
     rotateProxies: false,
@@ -65,7 +65,7 @@ export const normalizeImportedTask = (raw: any, index: number): Task | null => {
     if (!merged.mode || !['scrape', 'agent', 'headful'].includes(merged.mode)) {
         merged.mode = 'scrape';
     }
-    if (typeof merged.wait !== 'number') merged.wait = 3;
+    if (typeof merged.wait !== 'number') merged.wait = 0;
     if (!merged.stealth) merged.stealth = base.stealth;
     if (!merged.variables || Array.isArray(merged.variables)) merged.variables = {};
     if (!Array.isArray(merged.actions)) merged.actions = [];
@@ -84,7 +84,7 @@ export const buildNewTask = (downloadCabinetId = 'cab_basic'): Task => {
         name: "Task " + Math.floor(Math.random() * 100),
         url: "",
         mode: "agent",
-        wait: 3,
+        wait: 0,
         selector: "",
         rotateUserAgents: false,
         rotateProxies: false,
