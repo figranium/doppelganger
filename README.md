@@ -375,6 +375,7 @@ Figranium includes a built-in scheduler that handles automated task execution wi
 - [x] **Cron triggers** — add support for scheduling tasks with cron expressions so workflows can run automatically on defined intervals.
 - [x] **Canvas notes** — add sticky-note-style annotations to the block canvas so operators can leave freeform comments and context alongside their workflows without affecting execution.
 - [ ] **[Page triggers](https://github.com/figranium/figranium/issues/380)** - trigger a task automatically when a web page changes a certain way.
+- [ ] **[Task-dedicated browser state & cookie buckets](https://github.com/figranium/figranium/issues/382)** — persist isolated browser state per bucket so tasks can retain logins across executions or intentionally share the same browser identity with related tasks.
 
 # Security Considerations
 
