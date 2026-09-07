@@ -10,8 +10,8 @@ async function run(): Promise<void> {
     });
     const page = await context.newPage();
 
-    console.log('Navigating to http://localhost:3000...');
-    await page.goto('http://localhost:3000');
+    console.log('Navigating to http://localhost:5173...');
+    await page.goto('http://localhost:5173');
     await page.waitForTimeout(1000);
 
     const createBtn = await page.locator('button:has-text("CREATE ACCOUNT")').count();
