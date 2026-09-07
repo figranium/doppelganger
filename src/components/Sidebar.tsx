@@ -9,6 +9,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, currentScreen }) => {
+    const activeScreen = window.location.pathname.startsWith('/cabinets') ? 'cabinets' : currentScreen;
+
     return (
         <aside className="w-20 h-full border-r theme-border glass flex flex-col items-center py-8 shrink-0 z-50 theme-bg">
             <button
@@ -41,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, onNewTask, onLogout, curr
                         key={screen}
                         data-testid={screen === 'dashboard' ? 'sidebar-dashboard' : undefined}
                         onClick={() => onNavigate(screen)}
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${currentScreen === screen ? 'theme-highlight' : 'theme-text-faint theme-hover'}`}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${activeScreen === screen ? 'theme-highlight' : 'theme-text-faint theme-hover'}`}
                         title={title}
                         aria-label={title}
                     >
