@@ -51,6 +51,11 @@ const ExecutionDetailScreen: React.FC<ExecutionDetailScreenProps> = ({ onConfirm
         loadExecution();
     }, [id]);
 
+    useEffect(() => {
+        const name = execution?.taskName?.trim();
+        document.title = `${name ? `${name} Execution` : 'Execution Detail'} | Figranium`;
+    }, [execution?.taskName]);
+
     if (loading) {
         return (
             <main className="app-page custom-scrollbar animate-in fade-in duration-500">
