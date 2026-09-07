@@ -1,0 +1,11 @@
+/* Editor-only visual refinements that do not affect dashboard empty states. */
+button[data-action-drop-scope="root"][aria-label="Add action (Ctrl + K)"] > div:first-child {
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+button[data-action-drop-scope="root"][aria-label="Add action (Ctrl + K)"]:hover > div:first-child {
+    background: transparent !important;
+}
