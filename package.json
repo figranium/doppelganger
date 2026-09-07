@@ -18,7 +18,9 @@
     "captcha:test:live": "node tests/captchaLiveModels.test.js && node tests/captchaLiveBrowser.test.js",
     "captcha:test:docker": "node tests/captchaDockerAcceptance.test.js",
     "test": "npx -y vite-node tests/clipboard.test.ts",
-    "test:v1-qualification": "node tests/v1-qualification/runner.js"
+    "test:v1-qualification": "node tests/v1-qualification/runner.js",
+    "test:verification:typecheck": "tsc -p tsconfig.verification.json",
+    "verify:agent-html": "npx -y vite-node tests/verify_agent_html_opt.ts"
   },
   "files": [
     "bin",

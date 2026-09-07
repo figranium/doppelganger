@@ -1,18 +1,29 @@
-const { chromium } = require('playwright');
-const path = require('path');
+import { chromium } from 'playwright';
 
-async function run() {
+interface ApiKeyResponse {
+    apiKey?: string;
+}
+
+interface TaskSummary {
+    id: string;
+    name: string;
+}
+
+interface ApiTriggerResponse {
+    status: number;
+    body: unknown;
+}
+
+async function run(): Promise<void> {
     console.log('Starting Figranium E2E User Journey Test...');
 
     const browser = await chromium.launch({ headless: true });
-
-    // Create context and record video
     const context = await browser.newContext({
         viewport: { width: 1280, height: 720 },
         recordVideo: {
             dir: '/home/jules/verification/videos',
-            size: { width: 1280, height: 720 }
-        }
+            size: { width: 1280, height: 720 },
+        },
     });
 
     const page = await context.newPage();
@@ -22,7 +33,6 @@ async function run() {
         await page.goto('http://localhost:11345');
         await page.waitForTimeout(1000);
 
-        // Wait for auth screen input
         console.log('Waiting for authentication input field...');
         await page.waitForSelector('input[id="auth-email"]', { timeout: 5000 });
 
@@ -54,7 +64,6 @@ async function run() {
             await page.waitForTimeout(2000);
         }
 
-        // We should be on the dashboard now
         console.log('2. Verifying Dashboard screen...');
         await page.waitForSelector('text=Dashboard', { timeout: 10000 });
 
@@ -69,7 +78,6 @@ async function run() {
         console.log('Captured dashboard screenshot.');
         await page.waitForTimeout(1000);
 
-        // 3. Go to Settings and get the API Key
         console.log('3. Navigating to Settings...');
         await page.click('button[aria-label="Settings (Alt + 2)"]');
         await page.waitForTimeout(1000);
@@ -77,11 +85,10 @@ async function run() {
         await page.screenshot({ path: '/home/jules/verification/screenshots/settings.png' });
         console.log('Captured settings screenshot.');
 
-        // Fetch API Key from backend settings endpoint directly in browser context
         console.log('Retrieving Tasks API Key...');
-        const apiData = await page.evaluate(async () => {
-            const res = await fetch('/api/settings/api-key');
-            return res.json();
+        const apiData = await page.evaluate<ApiKeyResponse>(async () => {
+            const response = await fetch('/api/settings/api-key');
+            return response.json() as Promise<ApiKeyResponse>;
         });
 
         let apiKey = apiData.apiKey;
@@ -89,17 +96,20 @@ async function run() {
             console.log('API key not set yet. Regenerating one...');
             await page.click('button:has-text("Regenerate")');
             await page.waitForTimeout(1000);
-            const freshApiData = await page.evaluate(async () => {
-                const res = await fetch('/api/settings/api-key');
-                return res.json();
+            const freshApiData = await page.evaluate<ApiKeyResponse>(async () => {
+                const response = await fetch('/api/settings/api-key');
+                return response.json() as Promise<ApiKeyResponse>;
             });
             apiKey = freshApiData.apiKey;
+        }
+
+        if (!apiKey) {
+            throw new Error('Failed to retrieve Tasks API Key.');
         }
 
         console.log(`Successfully retrieved Tasks API Key: ${apiKey.slice(0, 8)}...`);
         await page.waitForTimeout(1000);
 
-        // 4. Go back to Dashboard and create a new task
         console.log('4. Navigating back to Dashboard...');
         await page.click('[data-testid="sidebar-dashboard"]');
         await page.waitForTimeout(1000);
@@ -118,18 +128,16 @@ async function run() {
         await nameInput.fill('E2E User Journey Task');
         await page.waitForTimeout(500);
 
-        // Blur the name input to trigger save and redirect
         console.log('Blurring the input to save and redirect...');
         await nameInput.blur();
-        await page.waitForTimeout(2000); // Wait for auto-save to propagate
+        await page.waitForTimeout(2000);
 
-        // Let's poll the URL until it changes from /tasks/new to /tasks/<id>
         console.log('Waiting for URL redirection to get task ID...');
-        let taskId = null;
-        for (let i = 0; i < 20; i++) {
+        let taskId: string | null = null;
+        for (let index = 0; index < 20; index += 1) {
             const currentUrl = page.url();
             const match = currentUrl.match(/\/tasks\/([a-zA-Z0-9_-]+)/);
-            if (match && match[1] !== 'new') {
+            if (match?.[1] && match[1] !== 'new') {
                 taskId = match[1];
                 break;
             }
@@ -139,13 +147,12 @@ async function run() {
         if (!taskId) {
             const finalUrl = page.url();
             console.log(`URL did not redirect in time. Current URL: ${finalUrl}`);
-            // Fallback: let's try to get the ID by querying /api/tasks directly
             console.log('Attempting to fetch the newly created task ID from API...');
-            const tasksList = await page.evaluate(async () => {
-                const res = await fetch('/api/tasks');
-                return res.json();
+            const tasksList = await page.evaluate<TaskSummary[]>(async () => {
+                const response = await fetch('/api/tasks');
+                return response.json() as Promise<TaskSummary[]>;
             });
-            const createdTask = tasksList.find(t => t.name === 'E2E User Journey Task');
+            const createdTask = tasksList.find((task) => task.name === 'E2E User Journey Task');
             if (createdTask) {
                 taskId = createdTask.id;
             } else {
@@ -156,23 +163,25 @@ async function run() {
         console.log(`Successfully created task with ID: ${taskId}`);
         await page.screenshot({ path: '/home/jules/verification/screenshots/task_editor.png' });
 
-        // 5. Trigger the task execution via API
         console.log(`5. Triggering task ${taskId} via API...`);
-        const apiResponse = await page.evaluate(async ({ taskId, apiKey }) => {
-            const res = await fetch(`/api/tasks/${taskId}/api`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey
-                },
-                body: JSON.stringify({
-                    variables: {
-                        testVar: 'Verified by E2E'
-                    }
-                })
-            });
-            return { status: res.status, body: await res.json() };
-        }, { taskId, apiKey });
+        const apiResponse = await page.evaluate<ApiTriggerResponse, { taskId: string; apiKey: string }>(
+            async ({ taskId: id, apiKey: key }) => {
+                const response = await fetch(`/api/tasks/${id}/api`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': key,
+                    },
+                    body: JSON.stringify({
+                        variables: {
+                            testVar: 'Verified by E2E',
+                        },
+                    }),
+                });
+                return { status: response.status, body: await response.json() as unknown };
+            },
+            { taskId, apiKey },
+        );
 
         console.log('API Response Status:', apiResponse.status);
         console.log('API Response Body:', JSON.stringify(apiResponse.body));
@@ -183,26 +192,22 @@ async function run() {
 
         await page.waitForTimeout(2000);
 
-        // 6. Navigate to Executions tab and verify
         console.log('6. Navigating to Executions screen...');
         await page.click('button[aria-label="Executions (Alt + 3)"]');
         await page.waitForTimeout(2000);
         await page.screenshot({ path: '/home/jules/verification/screenshots/executions.png' });
         console.log('Captured executions screenshot.');
 
-        // 7. Navigate to Captures tab
         console.log('7. Navigating to Captures screen...');
         await page.click('button[aria-label="Captures (Alt + 4)"]');
         await page.waitForTimeout(1000);
         await page.screenshot({ path: '/home/jules/verification/screenshots/captures.png' });
         console.log('Captured captures screenshot.');
 
-        // 8. Log out
         console.log('8. Logging out...');
         await page.click('button[aria-label="Logout (Alt + L)"]');
         await page.waitForTimeout(1500);
 
-        // Accept the confirm dialog if it appears or wait for it
         console.log('Checking for confirm dialog on logout...');
         const confirmBtn = page.locator('button:has-text("OK"), button:has-text("CONFIRM")');
         if (await confirmBtn.count() > 0) {
@@ -212,11 +217,10 @@ async function run() {
 
         await page.screenshot({ path: '/home/jules/verification/screenshots/logged_out.png' });
         console.log('Logged out successfully.');
-
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Test failed with error:', error);
         await page.screenshot({ path: '/home/jules/verification/screenshots/failure.png' });
-        process.exit(1);
+        process.exitCode = 1;
     } finally {
         await context.close();
         await browser.close();
@@ -224,7 +228,7 @@ async function run() {
     }
 }
 
-run().catch((err) => {
-    console.error('Fatal error running E2E test:', err);
-    process.exit(1);
+void run().catch((error: unknown) => {
+    console.error('Fatal error running E2E test:', error);
+    process.exitCode = 1;
 });

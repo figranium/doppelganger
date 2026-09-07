@@ -1,13 +1,12 @@
-const { chromium } = require('playwright');
-const path = require('path');
+import { chromium } from 'playwright';
 
-async function run() {
+async function run(): Promise<void> {
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
         recordVideo: {
             dir: '/home/jules/verification/videos',
-            size: { width: 1280, height: 720 }
-        }
+            size: { width: 1280, height: 720 },
+        },
     });
     const page = await context.newPage();
 
@@ -15,8 +14,6 @@ async function run() {
     await page.goto('http://localhost:3000');
     await page.waitForTimeout(1000);
 
-    // Check if we are on the setup page
-    const setupTitle = await page.locator('text=Setup').count();
     const createBtn = await page.locator('button:has-text("CREATE ACCOUNT")').count();
 
     if (createBtn > 0) {
@@ -27,21 +24,21 @@ async function run() {
         await page.waitForTimeout(500);
 
         const passwordInputs = page.locator('input[type="password"]');
-        const pwdCount = await passwordInputs.count();
-        if (pwdCount > 0) {
+        const passwordCount = await passwordInputs.count();
+        if (passwordCount > 0) {
             await passwordInputs.nth(0).fill('PASSWORD');
             await page.waitForTimeout(500);
-            if (pwdCount > 1) {
+            if (passwordCount > 1) {
                 await passwordInputs.nth(1).fill('PASSWORD');
                 await page.waitForTimeout(500);
             }
         }
+
         console.log('Clicking CREATE ACCOUNT...');
         await page.click('button:has-text("CREATE ACCOUNT")');
         await page.waitForTimeout(2000);
     } else {
         console.log('No setup screen, checking login screen...');
-        // If login screen is shown, log in
         const loginBtn = await page.locator('button:has-text("LOG IN")').count();
         if (loginBtn > 0) {
             await page.fill('input[type="email"]', 'user@example.com');
@@ -54,7 +51,6 @@ async function run() {
     }
 
     console.log('Navigating around dashboard...');
-    // Take a screenshot of the main dashboard
     await page.screenshot({ path: '/home/jules/verification/screenshots/verification.png' });
     console.log('Screenshot captured.');
 
@@ -64,4 +60,7 @@ async function run() {
     console.log('Verification script completed.');
 }
 
-run().catch(console.error);
+void run().catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+});
