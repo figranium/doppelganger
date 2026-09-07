@@ -91,6 +91,26 @@ export default function App() {
     const pinnedResults = currentTask ? pinnedResultsByTask[currentTaskKey] || null : null;
 
     useEffect(() => {
+        let title = 'Figranium';
+
+        if (authStatus === 'login') title = 'Sign In | Figranium';
+        else if (authStatus === 'setup') title = 'Setup | Figranium';
+        else if (authStatus === 'checking') title = 'Loading | Figranium';
+        else if (location.pathname === '/' || location.pathname === '/dashboard') title = 'Dashboard | Figranium';
+        else if (location.pathname.startsWith('/tasks')) {
+            const taskName = currentTask?.name?.trim();
+            title = `${taskName || (location.pathname === '/tasks/new' ? 'New Task' : 'Task Editor')} | Figranium`;
+        } else if (location.pathname.startsWith('/settings')) title = 'Settings | Figranium';
+        else if (location.pathname === '/executions') title = 'Executions | Figranium';
+        else if (location.pathname.startsWith('/executions/')) title = 'Execution Detail | Figranium';
+        else if (location.pathname === '/captures') title = 'Captures | Figranium';
+        else if (location.pathname.startsWith('/cabinets')) title = 'Cabinets | Figranium';
+        else title = 'Not Found | Figranium';
+
+        document.title = title;
+    }, [authStatus, location.pathname, currentTask?.name]);
+
+    useEffect(() => {
         try {
             const stored = localStorage.getItem(pinnedResultsKey);
             if (stored) {
