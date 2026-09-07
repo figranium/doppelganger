@@ -1,18 +1,15 @@
-const { chromium } = require('playwright');
-const path = require('path');
+import { chromium } from 'playwright';
 
-async function run() {
+async function run(): Promise<void> {
     console.log('Starting Figranium Frontend Star Prompt Verification...');
 
     const browser = await chromium.launch({ headless: true });
-
-    // Create context and record video
     const context = await browser.newContext({
         viewport: { width: 1280, height: 720 },
         recordVideo: {
             dir: '/home/jules/verification/videos',
-            size: { width: 1280, height: 720 }
-        }
+            size: { width: 1280, height: 720 },
+        },
     });
 
     const page = await context.newPage();
@@ -22,7 +19,6 @@ async function run() {
         await page.goto('http://localhost:11345');
         await page.waitForTimeout(1000);
 
-        // Wait for auth screen input
         console.log('Waiting for authentication input field...');
         await page.waitForSelector('input[id="auth-email"]', { timeout: 5000 });
 
@@ -42,23 +38,19 @@ async function run() {
             await page.click('button[type="submit"]');
         }
 
-        // Wait for dashboard
         await page.waitForSelector('text=Dashboard', { timeout: 10000 });
         console.log('2. Dashboard loaded.');
 
-        // Dismiss the theme modal if open
         const skipBtn = page.locator('button:has-text("Skip")');
         if (await skipBtn.count() > 0) {
             console.log('Theme intro modal detected, clicking Skip...');
-            await page.click('button:has-text("Skip")');
+            await skipBtn.click();
             await page.waitForTimeout(500);
         }
 
-        // Take dashboard screenshot with GithubStarPill
         await page.screenshot({ path: '/home/jules/verification/screenshots/dashboard_star_pill.png' });
         console.log('Captured dashboard screenshot.');
 
-        // Navigating to Settings to check the pill there too
         console.log('3. Navigating to Settings...');
         await page.click('button[aria-label="Settings (Alt + 2)"]');
         await page.waitForTimeout(1000);
@@ -66,7 +58,6 @@ async function run() {
         await page.screenshot({ path: '/home/jules/verification/screenshots/settings_star_pill.png' });
         console.log('Captured settings screenshot.');
 
-        // Navigating back to Dashboard to create a task and run it
         console.log('4. Navigating back to Dashboard...');
         await page.click('[data-testid="sidebar-dashboard"]');
         await page.waitForTimeout(1000);
@@ -84,26 +75,26 @@ async function run() {
         const nameInput = page.locator('input[placeholder="Task name"]');
         await nameInput.fill('Star Verification Task');
         await nameInput.blur();
-        await page.waitForTimeout(2500); // Wait for auto-save and redirect
+        await page.waitForTimeout(2500);
 
         const taskId = page.url().split('/').pop();
+        if (!taskId || taskId === 'new') {
+            throw new Error(`Could not determine task ID from URL: ${page.url()}`);
+        }
         console.log('Navigated to editor URL for task ID:', taskId);
 
-        // Update task URL to https://example.com via PATCH API
         console.log('Setting task URL to https://example.com...');
-        await page.evaluate(async (taskId) => {
-            await fetch(`/api/tasks/${taskId}`, {
+        await page.evaluate(async (id: string) => {
+            await fetch(`/api/tasks/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: 'https://example.com' })
+                body: JSON.stringify({ url: 'https://example.com' }),
             });
         }, taskId);
 
-        // Reload page to reflect the new URL in state
         await page.reload();
         await page.waitForTimeout(2000);
 
-        // In the editor, let's run the task!
         console.log('Clicking the RUN button to trigger execution...');
         const runBtn = page.locator('button[title="Run Task (Alt + R)"], button:has-text("Run"), button[aria-label="Run"]');
         if (await runBtn.count() > 0) {
@@ -114,17 +105,16 @@ async function run() {
         }
 
         console.log('Waiting for execution to complete...');
-        // We can wait until "Finished" appears
         await page.waitForSelector('text=Finished', { timeout: 30000 });
-        await page.waitForTimeout(2000); // Wait for animations to settle
+        await page.waitForTimeout(2000);
 
         console.log('5. Star prompt should be visible now on success!');
         await page.screenshot({ path: '/home/jules/verification/screenshots/star_prompt_success.png' });
         console.log('Captured star prompt screenshot.');
-
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Frontend Verification failed with error:', error);
         await page.screenshot({ path: '/home/jules/verification/screenshots/failure_verification.png' });
+        process.exitCode = 1;
     } finally {
         await context.close();
         await browser.close();
@@ -132,6 +122,7 @@ async function run() {
     }
 }
 
-run().catch((err) => {
-    console.error('Fatal error running verification:', err);
+void run().catch((error: unknown) => {
+    console.error('Fatal error running verification:', error);
+    process.exitCode = 1;
 });
