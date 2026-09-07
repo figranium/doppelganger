@@ -59,6 +59,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck migrated verification scripts
+        run: npm run test:verification:typecheck
+
+      - name: Run migrated agent HTML verification
+        run: npm run verify:agent-html
+
       - name: Build frontend
         run: npm run build
 
